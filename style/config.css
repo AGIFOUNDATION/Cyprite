@@ -1,0 +1,104 @@
+div.background, div.bgmask {
+	position: fixed;
+	top: 0px;
+	bottom: 0px;
+	left: 0px;
+	right: 0px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	pointer-events: none;
+}
+div.background {
+	background-image: url("../../images/background.png");
+	background-size: cover;
+}
+div.bgmask {
+	background-color: rgb(from var(--front-color) r g b / 50%);
+	backdrop-filter: blur(5px);
+}
+
+body > section {
+	position: relative;
+	display: block;
+	width: 100%;
+	max-width: 800px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	margin-left: auto;
+	margin-right: auto;
+	padding: 20px;
+	border-radius: 20px;
+	background-color: rgb(from var(--back-color) r g b / 60%);
+	box-shadow: 0px 0px 15px var(--back-color), 0px 0px 5px var(--back-color);
+}
+body > section > h1:first-child {
+	margin-top: 0px;
+	margin-bottom: 30px;
+}
+body > aside {
+	display: block;
+	height: 50px;
+}
+body > section > nav {
+	text-align: center;
+}
+body > section > nav > li {
+	display: inline-block;
+	margin-left: 10px;
+	margin-right: 10px;
+	padding: 5px 10px;
+    border-radius: 10px;
+    background-color: rgba(57, 57, 57, 0.3);
+    cursor: pointer;
+}
+body > section > nav > li:hover {
+	box-shadow: 2px 2px 5px rgba(23, 23, 23, 0.6);
+}
+body > section > nav > li.active {
+	border: 1px solid black;
+}
+body section[group] {
+	display: none;
+	margin-top: 50px;
+}
+body section[group].active {
+	display: block;
+}
+
+input.myName {
+	width: 300px;
+}
+input.myVault {
+	width: 400px;
+}
+input.myKey {
+	width: 238px;
+	font-size: 0.7em;
+}
+select.myLang {
+	width: 100px;
+}
+textarea.myInfo {
+	height: 250px;
+}
+.mention {
+	font-size: 0.9em;
+	font-style: italic;
+	color: rgb(from var(--front-color) calc(r + 80) calc(g + 80) calc(b + 80));
+}
+div.mention p {
+	margin-top: 5px;
+	margin-bottom: 5px;
+}
+div.confirm {
+	margin-top: 50px;
+	margin-bottom: 30px;
+	text-align: center;
+}
+div.confirm button {
+	margin-left: 20px;
+	margin-right: 20px;
+}
+div.center {
+	text-align: center;
+}

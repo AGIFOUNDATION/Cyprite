@@ -1,0 +1,13 @@
+html, body {
+	margin: 0px;
+	width: 500px;
+	height: 300px;
+	background-color: transparent;
+}
+html {
+	padding: 0px;
+}
+body {
+	padding: 10px;
+	font-family: Arial, sans-serif;
+}

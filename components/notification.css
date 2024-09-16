@@ -1,0 +1,180 @@
+.extension_component.extension_component.notification, .notification_frame, .notification_inner {
+	display: block;
+	box-sizing: border-box;
+	margin: 0px;
+	padding: 0px;
+	transition: all 500ms ease-in-out;
+}
+
+.extension_component.notification {
+	position: fixed;
+	z-index: 99999;
+	color: rgba(28, 28, 28, 1.0);
+	font-size: 16px;
+	line-height: 1.2;
+	cursor: default;
+	pointer-events: none;
+}
+.extension_component.notification.show {
+	pointer-events: all;
+}
+.extension_component.notification.leftBottom,
+.extension_component.notification.leftCenter,
+.extension_component.notification.leftTop {
+	left: 0;
+}
+.extension_component.notification.rightBottom,
+.extension_component.notification.rightCenter,
+.extension_component.notification.rightTop {
+	right: 0;
+}
+.extension_component.notification.middleBottom,
+.extension_component.notification.middleTop {
+	left: 50%;
+	transform: translateX(-50%);
+}
+.extension_component.notification.leftTop,
+.extension_component.notification.middleTop,
+.extension_component.notification.rightTop {
+	top: 0;
+}
+.extension_component.notification.leftBottom,
+.extension_component.notification.middleBottom,
+.extension_component.notification.rightBottom {
+	bottom: 0;
+}
+.extension_component.notification.leftCenter,
+.extension_component.notification.rightCenter {
+	top: 50%;
+	transform: translateY(-50%);
+}
+.extension_component.notification.middleCenter {
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.extension_component.notification.leftBottom .notification_inner,
+.extension_component.notification.leftCenter .notification_inner,
+.extension_component.notification.leftTop .notification_inner {
+	transform: translateX(-100%);
+	border-top-left-radius: 0px;
+	border-bottom-left-radius: 0px;
+}
+.extension_component.notification.leftBottom.show .notification_inner,
+.extension_component.notification.leftCenter.show .notification_inner,
+.extension_component.notification.leftTop.show .notification_inner {
+	transform: translateX(0%);
+}
+.extension_component.notification.rightBottom .notification_inner,
+.extension_component.notification.rightCenter .notification_inner,
+.extension_component.notification.rightTop .notification_inner {
+	transform: translateX(100%);
+	border-top-right-radius: 0px;
+	border-bottom-right-radius: 0px;
+}
+.extension_component.notification.rightBottom.show .notification_inner,
+.extension_component.notification.rightCenter.show .notification_inner,
+.extension_component.notification.rightTop.show .notification_inner {
+	transform: translateX(0%);
+}
+.extension_component.notification.middleTop .notification_inner {
+	transform: translateY(-100%);
+}
+.extension_component.notification.middleTop.show .notification_inner {
+	transform: translateY(0%);
+}
+.extension_component.notification.middleBottom .notification_inner {
+	transform: translateY(100%);
+}
+.extension_component.notification.middleBottom.show .notification_inner {
+	transform: translateY(0%);
+}
+.extension_component.notification.middleCenter .notification_inner {
+	transform: scale(0);
+}
+.extension_component.notification.middleCenter.show .notification_inner {
+	transform: scale(1);
+}
+
+.extension_component.notification.message .notification_inner {
+	background-color: rgba(147, 181, 207, 0.8);
+}
+.extension_component.notification.success .notification_inner {
+	background-color: rgba(104, 184, 142, 0.8);
+}
+.extension_component.notification.fail .notification_inner {
+	background-color: rgba(248, 223, 112, 0.8);
+}
+.extension_component.notification.warn .notification_inner {
+	background-color: rgba(238, 166, 183, 0.8);
+}
+.extension_component.notification.error .notification_inner {
+	background-color: rgba(240, 124, 130, 0.8);
+}
+.extension_component.notification.fetal .notification_inner {
+	background-color: rgba(53, 53, 53, 0.8);
+	color: rgba(252, 250, 242, 1.0);
+}
+
+.extension_component.notification.message .notification_title {
+	background-color: rgba(21, 85, 154, 0.9);
+}
+.extension_component.notification.success .notification_title {
+	background-color: rgba(36, 128, 103, 0.9);
+}
+.extension_component.notification.fail .notification_title {
+	background-color: rgba(217, 164, 14, 0.9);
+}
+.extension_component.notification.warn .notification_title {
+	background-color: rgba(168, 69, 107, 0.9);
+}
+.extension_component.notification.error .notification_title {
+	background-color: rgba(209, 26, 45, 0.9);
+}
+.extension_component.notification.fetal .notification_title {
+	background-color: rgba(0, 0, 0, 0.9);
+}
+
+.notification_frame, .notification_inner {
+	position: relative;
+}
+.notification_inner {
+	border-radius: 5px;
+	box-shadow: 0px 0px 0px rgba(28, 28, 28, 0);
+	backdrop-filter: blur(2px);
+	overflow: hidden;
+}
+.extension_component.notification.show .notification_inner {
+	box-shadow: 2px 2px 5px rgba(28, 28, 28, 0.6);
+}
+
+.notification_title {
+	margin: 0px;
+	padding: 2px 10px;
+	padding-right: 30px;
+	border-bottom: 1px solid black;
+	border-radius: 5px 5px 0px 0px;
+	box-shadow: 0px -2px 3px 2px black;
+	font-size: 1.2em;
+	font-weight: bolder;
+}
+.notification_message {
+	min-width: 200px;
+	margin: 0px;
+	padding: 5px 10px;
+	font-size: 1em;
+}
+.notification_close {
+	position: absolute;
+	top: 0px;
+	right: 5px;
+	width: 1.2em;
+	margin: 0px;
+	padding: 0px;
+	cursor: pointer;
+}
+.notification_close img {
+	width: 100%;
+	pointer-events: none;
+}

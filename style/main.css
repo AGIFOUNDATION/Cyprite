@@ -1,0 +1,163 @@
+:root {
+	--front-color: rgba(19, 17, 36, 1.0);
+	--back-color: rgba(226, 225, 228, 1.0);
+	--emphasize-color: rgba(36, 134, 185, 1.0);
+}
+
+@font-face {
+	font-family: '标点';
+	src: local('宋体');
+	unicode-range: U+3400-4DFF, U+3002, U+FF1F, U+FF01, U+FF0C, U+3001, U+FF1B, U+FF1A, U+300C, U+300D, U+300E, U+300F, U+2018, U+2019, U+201C, U+201D, U+FF08, U+FF09, U+3014, U+3015, U+3010, U+3011, U+2014, U+2026, U+2013, U+FF0E, U+300A, U+300B, U+3008, U+3009;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html, body {
+	margin: 0px;
+	padding: 0px;
+	width: 100%;
+	height: 100%;
+}
+body {
+	background-color: var(--back-color);
+	color: var(--front-color);
+	font-size: 16px;
+	line-height: 1.5;
+}
+html[lang^="zh"] body, html[lang^="zh"] input, html[lang^="zh"] textarea, html[lang^="zh"] select {
+	font-family: "标点", "Times New Roman", Times, serif, "宋体";
+}
+html[lang^="en"] body, html[lang^="en"] input, html[lang^="en"] textarea, html[lang^="en"] select {
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+a,
+a:visited,
+a:active {
+	color: var(--emphasize-color);
+	text-decoration: none;
+}
+a:hover {
+	color: var(--emphasize-color);
+	text-decoration: underline;
+	text-underline-position: from-font;
+	text-underline-offset: 1px;
+	background-color: transparent;
+}
+
+strong, b, em, i {
+	color: inherit;
+}
+
+img {
+	background-color: transparent;
+}
+
+div, p {
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+}
+
+h1, h2, h3, h4, h5 {
+	font-weight: bolder;
+	color: var(--emphasize-color);
+}
+h1 {
+	margin-top: 2.5em;
+	margin-bottom: 2em;
+	font-size: 2.5em;
+}
+h2 {
+	margin-top: 2em;
+	margin-bottom: 1.8em;
+	font-size: 2.0em;
+}
+h3 {
+	margin-top: 1.8em;
+	margin-bottom: 1.5em;
+	font-size: 1.8em;
+}
+h4 {
+	margin-top: 1.5em;
+	margin-bottom: 1.2em;
+	font-size: 1.5em;
+}
+h5 {
+	margin-top: 1.2em;
+	margin-bottom: 1em;
+	font-size: 1.2em;
+}
+
+hr {
+	height: 2px;
+	margin-top: 2.5rem;
+	margin-bottom: 2.5rem;
+	margin-left: 50px;
+	margin-right: 50px;
+	border-color: transparent;
+	background-image: linear-gradient(to right, rgb(from var(--emphasize-color) r g b / 0%) 0%, var(--emphasize-color) 10%, var(--emphasize-color) 90%, rgb(from var(--emphasize-color) r g b / 0%) 100%);
+	transform: scaleY(0.3);
+}
+
+input, textarea, select, option, button {
+	outline: none;
+	resize: none;
+	background-color: transparent;
+	color: var(--front-color);
+	font-size: 16px;
+	line-height: 1.5;
+}
+input, select {
+	padding: 2px 5px;
+	border: none;
+	border-bottom: 1px solid black;
+}
+input::placeholder, textarea::placeholder {
+	color: rgb(from var(--front-color) r g b / 50%);
+}
+textarea {
+	padding: 5px;
+	width: 100%;
+	min-width: 20px;
+	min-height: 20px;
+	border-radius: 8px;
+}
+textarea:focus {
+	box-shadow: inset 1px 1px 3px rgb(from var(--front-color) r g b / 30%);
+}
+button {
+	display: inline-block;
+	min-width: 80px;
+	padding: 5px 15px;
+	border: 1px solid var(--front-color);
+	border-radius: 8px;
+	cursor: pointer;
+	text-align: center;
+}
+button:hover {
+	box-shadow: 2px 2px 5px rgb(from var(--front-color) r g b / 30%);
+}
+
+.scrollable {
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+.scrollable::-webkit-scrollbar {
+	width: 10px;
+	background-color: transparent;
+	cursor: pointer;
+}
+.scrollable::-webkit-scrollbar-thumb {
+	border-radius: 5px;
+	background-color: rgb(from var(--front-color) r g b / 50%);
+	box-shadow: inset 2px 2px 3px rgb(from var(--back-color) r g b / 50%);
+	cursor: pointer;
+}
+.scrollable::-webkit-scrollbar-track {
+	border-radius: 5px;
+	background-color: rgb(from var(--back-color) r g b / 20%);
+	box-shadow: inset 2px 2px 3px rgb(from var(--front-color) r g b / 30%);
+	cursor: pointer;
+}
