@@ -34,7 +34,7 @@ On the settings page, you can fill in your basic information, including your nam
 Currently, the front end can connect to the following AI platforms:
 
 -	Gemini (1.5 flash, 1.5 pro)
--	OpenAI (GPT-4o, GPT-4o-mini, GPT-o1-preview, GPT-o1-mini)
+-	OpenAI (GPT-4o, GPT-4o-mini, o1-preview, o1-mini)
 -	Anthropic (Claude 3 Opus, 3.5 Sonnet)
 -	MoonShot (MoonShot-v1-128k)
 -	DeepSeek (DeepSeek Chat, DeepSeek Coder)
