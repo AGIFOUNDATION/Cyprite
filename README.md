@@ -13,7 +13,7 @@ $$
 
 -	E: Enlightment
 -	M: Mind
--	c: cyberbutler
+-	c: Cyprite
 
 ---
 
