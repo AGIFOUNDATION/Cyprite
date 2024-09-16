@@ -1,9 +1,9 @@
-#	CyberButler
+#	Cyprite
 
 > -	Author: LostAbaddon
 > -	Version: 0.5.6
 
-Your Personal cyber knowledge vault butler.
+Your best and smartest AI partner.
 
 ---
 
