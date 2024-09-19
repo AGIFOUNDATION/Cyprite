@@ -1,4 +1,4 @@
-globalThis.PromptLib={},PromptLib.assemble=(e,...t)=>{if(!e)return"";if(0!==t.length){var n,r,i=Object.assign({},...t),o={};for(n in i)o[n]=new RegExp("\\{\\{\\s*"+n+"\\s*\\}\\}","g");for(;e!==r;)for(var a in r=e,i){var s=i[a],a=o[a];e=e.replace(a,s)}}return e},PromptLib.summarizeArticle=`The following content is the textual content on the webpage in Markdown format; please summarize the content of this article for me.
+globalThis.PromptLib={},PromptLib.assemble=(e,...t)=>{if(!e)return"";if(0!==t.length){var n,i,r=Object.assign({},...t),o={};for(n in r)o[n]=new RegExp("\\{\\{\\s*"+n+"\\s*\\}\\}","g");for(;e!==i;)for(var a in i=e,r){var s=r[a],a=o[a];e=e.replace(a,s)}}return e},PromptLib.summarizeArticle=`The following content is the textual content on the webpage in Markdown format; please summarize the content of this article for me.
 
 #	Requirements
 
@@ -9,16 +9,17 @@ globalThis.PromptLib={},PromptLib.assemble=(e,...t)=>{if(!e)return"";if(0!==t.le
 
 #	Workflow
 
-1.	List the keywords of this article in list form;
-2.	Summarize the outline of this article, for each item in the outline, provide the line numbers of the original text that it includes, and then provide the overall logical context;
-3.	Based on the outline, analyze which parts this article can be divided into? For each part, answer the following questions in turn:
+1.	Analyze the article's classification, including primary, secondary, and tertiary categories;
+2.	List the keywords of this article in list form;
+3.	Summarize the outline of this article, for each item in the outline, provide the line numbers of the original text that it includes, and then provide the overall logical context;
+4.	Based on the outline, analyze which parts this article can be divided into? For each part, answer the following questions in turn:
 	+	What is the core viewpoint of this part?
 	+	What is the relationship between this part and the context?
 	+	Extract the bullet points of this part, summarize the main issues it covers, and provide relevant arguments and logical context;
-4.	Summarize the main content of this article and compile an abstract of the key content, the requirements are detailed and complete;
-5.	Carefully read this article repeatedly, organize a detailed reading note, and then extract the core viewpoints in the article into an unordered list in Markdown;
-6.	Extract the main conclusions of this article, and list the corresponding arguments in the form of a secondary list, and give the original text citation according to the relevant requirements in the "Rules";
-7.	List the main characters in this passage and their main viewpoints. If there are none, skip this step.
+5.	Summarize the main content of this article and compile an abstract of the key content, the requirements are detailed and complete;
+6.	Carefully read this article repeatedly, organize a detailed reading note, and then extract the core viewpoints in the article into an unordered list in Markdown;
+7.	Extract the main conclusions of this article, and list the corresponding arguments in the form of a secondary list, and give the original text citation according to the relevant requirements in the "Rules";
+8.	List the main characters in this passage and their main viewpoints. If there are none, skip this step.
 
 # Article content to be summarized
 
@@ -213,7 +214,7 @@ Following the specific regulations in the "Requirements" and the steps outlined 
 -	Current Time: {{time}}.
 -	Your reply must be in "{{lang}}", and must strictly adhere to the Markdown format.
 -	Your reply must be as detailed, complete, serious, and meticulous as possible.
--	Your thinking process must be precise and careful, without any errors or omissions.
+-	Your thinking must be precise and careful, without any errors or omissions.
 -	MUST NOT fabricate knowledge or information that you do not know.
 -	Think step by step, answer step by step.`,PromptLib.deepThinkingStep1=`#	Settings
 
@@ -255,23 +256,23 @@ REMEMBER: All replies must be in "{{lang}}", and must strictly adhere to the Mar
 
 {{request}}`,PromptLib.deepThinkingStep2Running=`#	Settings
 
-In the "Opinion From Other", there are responses from others regarding the previous "Request." Please refer to the perspectives and ideas within, and based on the content provided in the "Reference Materials," carefully review your previous reply, reflect on its shortcomings, critically and meticulously rethink the "Request," and provide a more detailed and comprehensive response.
+In the "Opinion From Others", there are responses from others regarding the previous "Request." Please refer to the perspectives and ideas within, and based on the content provided in the "Reference Materials," carefully review your previous reply, reflect on its shortcomings, critically and meticulously rethink the "Request," and provide a more detailed and comprehensive response.
 
 #	Requirements
 
 -	All replies must be in "{{lang}}", and must strictly adhere to the Markdown format.
 -	You must strictly follow the format specified in the "Output Format" to structure your reply;
 -	Follow the steps in the "Workflow", think through and respond step by step.
--	Based on the content in the "Reference Materials" as an accurate and reliable information source and basis for reflection, refer to the opinions in "Opinion From Other" to provide a detailed and appropriate response to the "Request". Do not speculate or fabricate information without a clear source, and **never fabricate information**.
+-	Based on the content in "Reference Materials" as an accurate and reliable source of information and foundation for thinking, identify the shortcomings in others' responses to the "Request" in "Opinion From Others", and perform optimization and correction, ensuring the language is smooth and concise, the viewpoints are clear, and the citations are sufficient. Do not speculate or fabricate information without a clear source, and **never fabricate information**.
 -	All viewpoints in your response of step 1 in "Workflow" must provide citation sources using Markdown hyperlinks. The hyperlink text should include the article title and, if mentioned, the paragraph number in which the content is referenced. The URL for each hyperlink should be the article's URL. A viewpoint may have more than one source, and you should list all possible citation sources one by one. For example: "your viewpoint (from [<Article Title 1>](articleurl1), ...".
--	You must always remember: I HAVE NOT READ anything in the "Reference Materials" nor "Opinion From Other" nor your previous response. Therefore, when replying to step 1 of the "Workflow", please provide all the information in "Reference Materials" you deem useful as well as a complete analysis.
+-	You must always remember: I HAVE NOT READ anything in the "Reference Materials" nor "Opinion From Others" nor your previous response. Therefore, when replying to step 1 of the "Workflow", please provide all the information in "Reference Materials" you deem useful as well as a complete analysis.
 -	The replies of step 1 in "Workflow" must be professional, specific, detailed, careful, comprehensive, complete, and thorough. Think step by step.
 -	All contents in "Reference Materials" you must say you found them, not provided by me.
 -	**REMEMBER: Never forget step 2 in "Workflow".**
 
 #	Workflow
 
-1.	Based on the content in "Reference Materials", please think through the questions or tasks in "Request" STEP BY STEP, thoroughly and comprehensively, and then provide a detailed, complete response and answer.
+1.	Based on the content in "Reference Materials" as an accurate and reliable source of information and foundation for thinking, identify the shortcomings in others' responses to the "Request" in "Opinion From Others", and perform optimization and correction, ensuring the language is smooth and concise, the viewpoints are clear, and the citations are sufficient.
 2.	Put yourself in my position and, based on the need for further information, provide 4 to 10 more in-depth follow-up questions and using Markdown unordered list format. Remember: do not create further graded lists, all questions are placed in a single unordered list, without further classification.
 
 #	Output Format
@@ -283,11 +284,11 @@ In the "Opinion From Other", there are responses from others regarding the previ
 {The questions you think I will ask in Markdown unordered list}
 </more>
 
-#	Opinion From Other
+#	Opinion From Others
 
-{{otheropinion}}`,PromptLib.deepThinkingStep2Replace=`In the "Opinion From Other", there are responses from others regarding the previous "Request." Please refer to the perspectives and ideas within, and based on the content provided in the "Reference Materials," carefully review your previous reply, reflect on its shortcomings, critically and meticulously rethink the "Request," and provide a more detailed and comprehensive response.
+{{otheropinion}}`,PromptLib.deepThinkingStep2Replace=`In the "Opinion From Others", there are responses from others regarding the previous "Request." Please refer to the perspectives and ideas within, and based on the content provided in the "Reference Materials," carefully review your previous reply, reflect on its shortcomings, critically and meticulously rethink the "Request," and provide a more detailed and comprehensive response.
 
-#	Opinion From Other
+#	Opinion From Others
 
 {{otheropinion}}`,PromptLib.deepThinkingStep3Running=`In our subsequent conversations, keep the following requirements in mind:
 
@@ -308,7 +309,7 @@ You need to respond to the question or task in the "Request" based strictly on t
 
 #	Workflow
 
-1. Summarize the content of "Article Content" and present the main points and conclusions of this article in the form of a Markdown unordered list.
+1. Summarize the content of the "article content", identify its category, keywords, and main viewpoints, and present the main points and conclusions of this article in the form of a Markdown unordered list.
 2. Identify the content in "Article Content" related to the "Request", remember it but do not output it;
 3. Strictly respond to the questions or tasks in the "Request" based on the content of "Article Content". Note: Avoid hallucinations, do not fabricate information.
 
@@ -318,7 +319,7 @@ You need to respond to the question or task in the "Request" based strictly on t
 {Whether the content in "Article Content" is sufficient to respond to the "Request", can only be \`true\` or \`false\`}
 </relevant>
 <summary>
-{Summary, main points, conclusions of the content in the "Article Content", in Markdown foramt.}
+{Category, keywords, summary, main points, conclusions of the content in the "Article Content", in Markdown foramt.}
 </summary>
 <reply>
 {Strictly follow the steps required in the "Workflow" and use the content in the "Article Content" as the only source of information to provide a detailed response to the "Request" according to the specific requirements in the "Requirements".}

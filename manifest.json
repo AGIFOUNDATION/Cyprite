@@ -5,8 +5,8 @@
 	"author": {
 		"email": "lostabaddon@gmail.com"
 	},
-	"homepage_url": "https://agifoundation.github.io/Cyprite/",
-	"version": "0.5.6",
+	"homepage_url": "https://agifoundation.github.io/Cyprite",
+	"version": "0.5.7",
 	"description": "CYPRITE: CYber + sPRITE. Your smartest AI partner.",
 	"icons": {
 		"16": "images/icon16.png",
