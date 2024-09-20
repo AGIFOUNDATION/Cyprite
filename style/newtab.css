@@ -266,6 +266,7 @@ body {
 	cursor: pointer;
 }
 .panel_operation_area .search_inputter > div.submitter .mode_chooser li span {
+	font-size: 0.8em;
 	pointer-events: none;
 }
 .panel_operation_area .search_inputter > div.submitter .mode_chooser li img {
