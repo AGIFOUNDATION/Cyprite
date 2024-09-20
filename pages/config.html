@@ -25,12 +25,19 @@
 		<li titlePath="configPage.groupAPIKey" showGroup="groupAPIKey" caseGroup="forceServer"></li>
 		<li titlePath="configPage.groupExtension" showGroup="groupExtension" caseGroup="forceServer"></li>
 		<li titlePath="configPage.groupLocalVault" showGroup="groupLocalVault"></li>
+		<li titlePath="configPage.aboutUs" showGroup="groupAboutUs"></li>
 	</nav>
 
 	<section group="groupPersonel">
 		<div titlePath="configPage.introduction"></div>
 		<div><span titlePath="configPage.hintLordName"></span><input class="myName" type="text" dataGroup="configuration" dataItem="name" placeholderName="configPage.hintDefaultLordName"></div>
-		<div><span titlePath="configPage.hintLanguage"></span><select class="myLang" dataGroup="configuration" dataItem="lang"><option value="zh">中文</option><option value="en">English</option></select></div>
+		<div><span titlePath="configPage.hintLanguage"></span><select class="myLang" dataGroup="configuration" dataItem="lang">
+			<option value="zh">中文</option>
+			<option value="en">English</option>
+			<option value="fr">Français</option>
+			<option value="de">Deutsch</option>
+			<option value="jp">日本語</option>
+		</select></div>
 		<div><span titlePath="configPage.hintIntroduce"></span><span titlePath="configPage.hintIntroduceMention" class="mention"></span></div>
 		<div><textarea class="myInfo scrollable" dataGroup="configuration" dataItem="info" placeholderName="configPage.hintIntroducePlaceholder"></textarea></div>
 	</section>
@@ -59,6 +66,10 @@
 		<div titlePath="configPage.hintGoogleAPI"></div>
 		<div><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.google.key" placeholder="Google APIKey"></div>
 		<div><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.google.cx" placeholder="Google CX"></div>
+	</section>
+
+	<section group="groupAboutUs">
+		<div htmlPath="configPage.hintAboutMe" class="center"></div>
 	</section>
 
 	<div class="confirm">
