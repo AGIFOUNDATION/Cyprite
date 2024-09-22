@@ -1,4 +1,4 @@
-globalThis.PromptLib={},PromptLib.assemble=(e,...t)=>{if(!e)return"";if(0!==t.length){var n,a,i=Object.assign({},...t),o={};for(n in i)o[n]=new RegExp("\\{\\{\\s*"+n+"\\s*\\}\\}","g");for(;e!==a;)for(var r in a=e,i){var s=i[r],r=o[r];e=e.replace(r,s)}}return e},PromptLib.summarizeArticle=`The following content is the textual content on the webpage in Markdown format; please summarize the content of this article for me.
+globalThis.PromptLib={},PromptLib.assemble=(e,...t)=>{if(!e)return"";if(0!==t.length){var n,a,i=Object.assign({},...t),o={};for(n in i)o[n]=new RegExp("\\{\\{\\s*"+n+"\\s*\\}\\}","g");for(;e!==a;)for(var r in a=e,i){var s=i[r],r=o[r];e=e.replace(r,s)}}return e},PromptLib.continueOutput="Your previous reply was too lengthy, resulting in incomplete output. Please continue from where you left off in the last response. Note: Do not reply with any additional content, just continue the unfinished portion of your previous output.",PromptLib.summarizeArticle=`The following content is the textual content on the webpage in Markdown format; please summarize the content of this article for me.
 
 #	Requirements
 
