@@ -59,6 +59,7 @@
 		<div><span titlePath="configPage.hintOpenAIAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.openai" placeholder="APIKey"></div>
 		<div><span titlePath="configPage.hintMoonShotAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.moonshot" placeholder="APIKey"></div>
 		<div><span titlePath="configPage.hintDeepSeekAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.deepseek" placeholder="APIKey"></div>
+		<div><span titlePath="configPage.hintMiniMaxAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.minimax" placeholder="APIKey"></div>
 		<div><span titlePath="configPage.hintGLMAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.glm" placeholder="APIKey"></div>
 	</section>
 
@@ -70,6 +71,12 @@
 
 	<section group="groupAboutUs">
 		<div htmlPath="configPage.hintAboutMe" class="center"></div>
+		<hr>
+		<div class="tableName">Platform Usage</div>
+		<div class="tableList" name="LLMList"></div>
+		<div class="tableName">Model Usage</div>
+		<div class="tableList" name="ModelList"></div>
+		<button titlePath="configPage.resetUsage" class="center" action="resetUsage"></button>
 	</section>
 
 	<div class="confirm">

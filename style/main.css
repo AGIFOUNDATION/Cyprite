@@ -97,6 +97,7 @@ hr {
 	margin-left: 50px;
 	margin-right: 50px;
 	border-color: transparent;
+	border-width: 0px;
 	background-image: linear-gradient(to right, rgb(from var(--emphasize-color) r g b / 0%) 0%, var(--emphasize-color) 10%, var(--emphasize-color) 90%, rgb(from var(--emphasize-color) r g b / 0%) 100%);
 	transform: scaleY(0.3);
 }
