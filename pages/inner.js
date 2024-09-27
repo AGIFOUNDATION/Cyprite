@@ -57,7 +57,7 @@ globalThis.PageContents=globalThis.PageContents||{},globalThis.PageContents.main
 	<div class="panel_logo" @click="onShowComprehensive">
 		<img class="logo" src="{extension_root}/images/cyprite.png">
 	</div>
-	<img id="ThingkingHint2" class="thinking_hint show" src="{extension_root}/images/comment-dots.svg">
+	<img id="ThingkingHint2" class="thinking_hint" src="{extension_root}/images/comment-dots.svg">
 	<div class="dialogInputter closable">
 		<div class="closer" @click="onCloseQuickDialog">
 			<img src="{extension_root}/images/circle-xmark.svg">
