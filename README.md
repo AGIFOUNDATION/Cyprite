@@ -8,7 +8,7 @@ Your best and smartest AI partner.
 ---
 
 $$
-E = M \times c^2
+E = M \times C^2
 $$
 
 -	E: Enlightment
