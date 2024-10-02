@@ -36,58 +36,6 @@ const parseMsg = evt => {
 	return msg;
 };
 
-globalThis.updateAIModelList = () => {
-	var available = false;
-	ModelList.splice(0);
-
-	for (let ai in myInfo.apiKey) {
-		let key = myInfo.apiKey[ai];
-		if (!key) continue;
-		available = true;
-		if (!!AI2Model[ai]) ModelList.push(...AI2Model[ai]);
-	}
-	myInfo.edgeAvailable = available;
-	console.log('~~~~~~~~>', myInfo);
-};
-globalThis.getWSConfig = async () => {
-	var [localInfo, remoteInfo] = await Promise.all([
-		chrome.storage.local.get(['wsHost', 'apiKey', 'AImodel']),
-		chrome.storage.sync.get(['name', 'info', 'lang']),
-	]);
-	logger.em('EXT', 'Config Loaded');
-
-	var tasks = [];
-	myInfo.inited = true;
-	myInfo.name = remoteInfo.name || myInfo.name;
-	myInfo.info = remoteInfo.info || myInfo.info;
-	myInfo.lang = remoteInfo.lang;
-	if (!myInfo.lang) {
-		myInfo.lang = DefaultLang;
-	}
-	else {
-		myInfo.lang = myInfo.lang.toLowerCase();
-		if (!i18nList.includes(myInfo.lang)) myInfo.lang = DefaultLang;
-	}
-	if (myInfo.lang !== remoteInfo.lang) {
-		tasks.push(chrome.storage.sync.set({lang: myInfo.lang}));
-	}
-
-	myInfo.apiKey = localInfo.apiKey || {};
-	if (isString(myInfo.apiKey)) {
-		let apiKey = {};
-		if (!!myInfo.apiKey) apiKey.gemini = myInfo.apiKey;
-		myInfo.apiKey = apiKey;
-		tasks.push(chrome.storage.local.set({apiKey: myInfo.apiKey}));
-	}
-	myInfo.useLocalKV = ForceBackend ? false : !localInfo.wsHost;
-	myInfo.model = localInfo.AImodel || myInfo.model || ModelList[0];
-	updateAIModelList();
-	logger.em('EXT', myInfo);
-
-	if (tasks.length > 0) await Promise.all(tasks);
-
-	return localInfo.wsHost;
-};
 globalThis.initWS = async () => {
 	var wsHost = await getWSConfig();
 	var available = await checkAvailability();
