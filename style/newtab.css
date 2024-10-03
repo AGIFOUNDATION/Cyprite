@@ -463,3 +463,26 @@ body {
 	right: 0px;
 	padding: 0px 10px;
 }
+.foldhint {
+	cursor: pointer;
+}
+.foldable.folded {
+	position: relative;
+	max-height: 48px;
+	overflow-y: hidden;
+	cursor: pointer;
+}
+.foldable.folded::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 10px;
+	background: linear-gradient(to bottom, rgba(2, 2, 2, 0), rgba(105, 105, 105, 1));
+	pointer-events: none;
+	display: block;
+}
+.foldable.folded li {
+	pointer-events: none;
+}
