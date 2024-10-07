@@ -74,7 +74,7 @@
 
 .panel_mask {
 	position: fixed;
-	z-index: 99990;
+	z-index: 999990;
 	top: 0;
 	bottom: 0;
 	left: 0;
@@ -90,7 +90,7 @@ body.showCypritePanel .panel_mask {
 	position: fixed;
 	bottom: 0px;
 	right: 10px;
-	z-index: 99990;
+	z-index: 999990;
 	display: block;
 	min-width: 100px;
 	min-height: 100px;
@@ -466,11 +466,16 @@ body.showCypriteAccess .cyprite_access {
 	padding: 5px;
 	background-color: white;
 	border-radius: 50%;
+	box-shadow: 1px 1px 3px rgba(23, 23, 23, .6);
 	cursor: pointer;
 }
 .panel_container .panel_closer img {
-	width: 100% !important;
-	height: 100% !important;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 20px !important;
+	height: 20px !important;
+	transform: translate(-50%, -50%);
 	pointer-events: none;
 }
 .panel_container .related_articles_list {
@@ -661,8 +666,12 @@ body.showCypriteAccess .cyprite_access {
 	right: 65px;
 }
 .cyprite_access .quick_button img {
-	width: 100% !important;
-	height: 100% !important;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 20px !important;
+	height: 20px !important;
+	transform: translate(-50%, -50%);
 	pointer-events: none;
 }
 

@@ -441,6 +441,8 @@ body {
 	font-weight: bolder;
 	color: var(--front-color);
 	text-shadow: 1px 1px 2px black;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 .reference_page .closer {
 	position: absolute;

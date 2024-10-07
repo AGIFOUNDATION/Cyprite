@@ -1,4 +1,4 @@
-globalThis.PromptLib={},PromptLib.assemble=(e,...t)=>{if(!e)return"";if(0!==t.length){var n,a,o=Object.assign({},...t),i={};for(n in o)i[n]=new RegExp("\\{\\{\\s*"+n+"\\s*\\}\\}","g");for(;e!==a;)for(var r in a=e,o){var s=o[r],r=i[r];e=e.replace(r,s)}}return e},PromptLib.continueOutput="Your previous reply was too lengthy, resulting in incomplete output. Please continue from where you left off in the last response. Note: Do not reply with any additional content, just continue the unfinished portion of your previous output.",PromptLib.instantTranslation=`#	Settings
+globalThis.PromptLib={},PromptLib.assemble=(e,...t)=>{if(!e)return"";if(0!==t.length){var n,a,o=Object.assign({},...t),r={};for(n in o)r[n]=new RegExp("\\{\\{\\s*"+n+"\\s*\\}\\}","g");for(;e!==a;)for(var i in a=e,o){var s=o[i],i=r[i];e=e.replace(i,s)}}return e},PromptLib.continueOutput="Your previous reply was too lengthy, resulting in incomplete output. Please continue from where you left off in the last response. Note: Do not reply with any additional content, just continue the unfinished portion of your previous output.",PromptLib.instantTranslation=`#	Settings
 
 You are a translator proficient in the humanities, social sciences, natural sciences, mathematics, and philosophy, capable of translating any type of content freely between any two languages.
 
@@ -314,8 +314,10 @@ You must, in accordance with the specific provisions in the "Requirements" and t
 
 #	Requirements
 
+-	Current Time: {{time}}.
+-	Your reply MUST be in "{{lang}}".
+-	Your reply MUST strictly adhere to the Markdown format.
 -	**You must strictly follow the format specified in the "Output Format" for your output.**
--	The reply must be in "{{lang}}", and should be in Markdown format.
 -	Use the content in "Reference Materials" as an accurate and reliable source of information. Do not speculate or create information without a definite source, and **never fabricate information**.
 -	Each point in your response must provide a citation from the "Reference Materials", including the article title and URL (in Markdown hyperlink form), and the original text of the cited content (in full sentences). There can be more than one citation.
 -	Follow the steps in the "Workflow", think through and respond step by step.
@@ -347,11 +349,12 @@ You must, in accordance with the specific provisions in the "Requirements" and t
 #	Requirements
 
 -	Current Time: {{time}}.
--	Your reply must be in "{{lang}}", and must strictly adhere to the Markdown format.
+-	Your reply MUST be in "{{lang}}".
+-	Your reply MUST strictly adhere to the Markdown format.
 -	Your reply must be as detailed, complete, serious, and meticulous as possible.
 -	Your thinking must be precise and careful, without any errors or omissions.
 -	MUST NOT fabricate knowledge or information that you do not know.
--	Think step by step, answer step by step.`,PromptLib.deepThinkingStep1=`#	Settings
+-	First, carefully consider the strategy and steps for responding, then think step by step and answer step by step according to the strategy and steps you have devised, and finally summarize based on all your previous thoughts and answers.`,PromptLib.deepThinkingStep1=`#	Settings
 
 In the "Reference Materials", I have provided some responses to issue or task in the "Request" section, or summaries of the article content. You must read these materials carefully and then organize them into a final response that is smooth, coherent, vivid, and detailed.
 
@@ -360,7 +363,8 @@ In the "Reference Materials", I have provided some responses to issue or task in
 -	Current Time: {{time}}.
 -	The reply must be in "{{lang}}", and should be in Markdown format.
 -	Your response must strictly be based on the existing replies or article summaries provided in the "Reference Materials". You cannot provide unfounded responses or fabricate information that does not exist.
--	All viewpoints in your response must provide citation sources in Markdown hyperlink format. The hyperlink title should include the article title and, if mentioned, the paragraph number in which the content is referenced; the URL for the hyperlink should be the article's URL. A viewpoint may have more than one source, and you should list all possible citation sources one by one. For example: "your viewpoint (REF: [<Article Title 1>](articleurl1), ...", don't forget to translate it into "{{lang}}".
+-	All viewpoints in your response must provide citation sources in Markdown hyperlink format. The hyperlink title should include the article title and, if mentioned, the paragraph number in which the content is referenced; the URL for the hyperlink should be the article's URL. A viewpoint may have more than one source, and you should list all possible citation sources one by one. For example: "your viewpoint (REF: [<Article Title 1>](articleurl1), ...", don't forget to translate it into "{{lang}}", and the link address must be guaranteed to be correct and error-free.
+-	You MUST MAKE SURE that all the URL addresses of the hyperlinks you provide are accurate and can be found in the "Reference Materials".
 -	All information and viewpoints should be integrated naturally into a review-style article. The content should be detailed and comprehensive, with careful and thorough responses. No information should be omitted, nor should any information be fabricated.
 -	All replies listed in the "Reference Materials" must be included in your response. For the article summaries, select the usable parts as citation sources for your viewpoints.
 -	You must always remember: I HAVE NOT READ anything in the "Reference Materials", therefore when replying to "Request", please provide all the information in "Reference Materials" you deem useful as well as a complete analysis.
@@ -395,11 +399,14 @@ In the "Opinion From Others", there are responses from others regarding the prev
 
 #	Requirements
 
--	All replies must be in "{{lang}}", and must strictly adhere to the Markdown format.
+-	Current Time: {{time}}.
+-	Your reply MUST be in "{{lang}}".
+-	Your reply MUST strictly adhere to the Markdown format.
 -	You must strictly follow the format specified in the "Output Format" to structure your reply.
 -	Follow the steps in the "Workflow", think through and respond step by step.
 -	Based on the content in "Reference Materials" as an accurate and reliable source of information and foundation for thinking, identify the shortcomings in others' responses to the "Request" in "Opinion From Others", and perform optimization and correction, ensuring the language is smooth and concise, the viewpoints are clear, and the citations are sufficient. Do not speculate or fabricate information without a clear source, and **never fabricate information**.
--	All viewpoints in your response must provide citation sources in Markdown hyperlink format. The hyperlink title should include the article title and, if mentioned, the paragraph number in which the content is referenced; the URL for the hyperlink should be the article's URL. A viewpoint may have more than one source, and you should list all possible citation sources one by one. For example: "your viewpoint (REF: [<Article Title 1>](articleurl1), ...", don't forget to translate it into "{{lang}}".
+-	All viewpoints in your response must provide citation sources in Markdown hyperlink format. The hyperlink title should include the article title and, if mentioned, the paragraph number in which the content is referenced; the URL for the hyperlink should be the article's URL. A viewpoint may have more than one source, and you should list all possible citation sources one by one. For example: "your viewpoint (REF: [<Article Title 1>](articleurl1), ...", don't forget to translate it into "{{lang}}", and the link address must be guaranteed to be correct and error-free.
+-	You MUST MAKE SURE that all the URL addresses of the hyperlinks you provide are accurate and can be found in the "Reference Materials".
 -	You must always remember: I HAVE NOT READ anything in the "Reference Materials" nor "Opinion From Others" nor your previous response. Therefore, when replying to step 1 of the "Workflow", please provide all the information in "Reference Materials" you deem useful as well as a complete analysis.
 -	The replies of step 1 in "Workflow" must be professional, specific, detailed, careful, comprehensive, complete, and thorough. Think step by step.
 -	All contents in "Reference Materials" you must say you found them, not provided by me.
@@ -421,6 +428,8 @@ In the "Opinion From Others", there are responses from others regarding the prev
 #	Opinion From Others
 
 {{otheropinion}}`,PromptLib.deepThinkingStep2Replace=`In the "Opinion From Others", there are responses from others regarding the previous "Request." Please refer to the perspectives and ideas within, and based on the content provided in the "Reference Materials," carefully review your previous reply, reflect on its shortcomings, critically and meticulously rethink the "Request," and provide a more detailed and comprehensive response.
+
+Remember: all replies must be in "{{lang}}", and must strictly adhere to the Markdown format.
 
 #	Opinion From Others
 
