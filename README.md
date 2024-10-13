@@ -1,7 +1,7 @@
 #	Cyprite
 
 > -	Author: LostAbaddon
-> -	Version: 0.5.7
+> -	Version: 0.5.8
 
 Your best and smartest AI partner.
 
@@ -13,7 +13,7 @@ $$
 
 -	E: Enlightment
 -	M: Mind
--	c: Cyprite
+-	C: Cyprite
 
 ---
 
@@ -97,9 +97,17 @@ The plugin will remember all the web pages you have interacted with and load the
 
 When using the local knowledge vault, the plugin will load local information through the server and use the local files and the web pages you have browsed as the current knowledge vault for question and answer interaction during the interaction process.
 
+## Privacy Policy
+
+See [Privacy Policy](./PRIVACY.md)
+
 ##	NextSteps
 
 -	**1.0.0**
 	1. Improve all basic functions;
 	2. Server version: more comprehensive and complete features;
 	3. A truly useful, pluggable AI partner marketplace.
+
+## ChangeLog
+
+See [ChangeLog](./CHANGELOG.md)

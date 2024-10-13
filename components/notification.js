@@ -1,1 +1,215 @@
-let AnimationDuration=500,AvailableTypes=["message","success","fail","warn","error","fetal"],AvailablePositions=["leftBottom","leftCenter","leftTop","middleBottom","middleCenter","middleTop","rightBottom","rightCenter","rightTop"],newNotification=(e,o,i=3e3,n,t)=>{var s,a,r,l,d,c,h;if(e||o)return AvailableTypes.includes(n)||(n=AvailableTypes[0]),AvailablePositions.includes(t)||(t=AvailablePositions[0]),r=i,l=()=>{var e;c._closed||s&&(clearTimeout(s),e=Date.now(),r-=e-a)},d=()=>{c._closed||(s&&clearTimeout(s),r<=0&&(r=0),a=Date.now(),s=setTimeout(c._hide,r))},(c=newEle("div","extension_component","notification",n,t))._type=n,c._positon=t,c._closed=!1,c.onready=null,c.onshow=null,c.onhide=null,c.onclose=null,c._onready=null,c._onshow=null,c._onhide=null,c._onclose=null,c._show=async()=>{await wait(50),c._onready&&c._onready(),c.onready&&c.onready(),c.classList.add("show"),await wait(AnimationDuration),c._onshow&&c._onshow(),c.onshow&&c.onshow(),d()},c._hide=async()=>{c._closed||(c._closed=!0,s&&(clearTimeout(s),s=null),c.classList.remove("show"),c._onhide&&c._onhide(),c.onhide&&c.onhide(),await wait(AnimationDuration),c.removeEventListener("mouseenter",l),c.removeEventListener("mousemove",l),c.removeEventListener("mouseout",d),h.removeEventListener("click",c._hide),c._onclose&&c._onclose(),c.onclose&&c.onclose())},c.addEventListener("mouseenter",l),c.addEventListener("mousemove",l),c.addEventListener("mouseout",d),i=newEle("div","notification_frame"),c.appendChild(i),c._frame=i,n=newEle("div","notification_inner"),i.appendChild(n),c._inner=n,e&&((t=newEle("div","notification_title")).innerText=e,n.appendChild(t)),o&&(i=newEle("div","notification_message"),o.match(/<\/[\w\-]+>/)?i.innerHTML=o:i.innerText=o,n.appendChild(i)),(h=newEle("div","notification_close")).innerHTML='<img src="'+chrome.runtime.getURL("/images/xmark.svg")+'">',h.addEventListener("click",c._hide),n.appendChild(h),c._getTimeLeft=()=>r,window.currentNotify=c},MessageList={},topPositionUpdater=(AvailablePositions.forEach(e=>MessageList[e]=[]),async e=>{var o=0;e.forEach(e=>{o+=e.height+5}),e.forEach(e=>{o-=e.height+5,e.ele._inner.style.top=o+"px"})}),bottomPositionUpdater=async e=>{var o=0;e.forEach(e=>{o+=e.height+5}),e.forEach(e=>{o-=e.height+5,e.ele._inner.style.bottom=o+"px"})},centerPositionUpdater=async e=>{var o=0;e.forEach(e=>{o+=e.height+5}),o/=2,e.forEach(e=>{o-=e.height+5,e.ele._inner.style.top=o+"px"})};globalThis.Notification={},Notification.init=(e=!0)=>{var o="/components/notification.css",e=(e&&(o=chrome.runtime.getURL(o)),newEle("link"));e.rel="stylesheet",e.href=o,document.head.appendChild(e)},Notification.show=(e,o,i,n,t)=>{var s;if(document.body)return(s=newNotification(e,o,t,n,i))._onready=()=>{var e=s.getBoundingClientRect(),o=MessageList[s._positon];o.push({ele:s,width:e.width,height:e.height}),0<s._positon.indexOf("Top")?topPositionUpdater(o):0<s._positon.indexOf("Bottom")?bottomPositionUpdater(o):0<s._positon.indexOf("Center")&&centerPositionUpdater(o)},s._onhide=()=>{var e=MessageList[s._positon],i=-1;e.some((e,o)=>{if(e.ele===s)return i=o,!0}),i<0||(e.splice(i,1),0<s._positon.indexOf("Top")?topPositionUpdater(e):0<s._positon.indexOf("Bottom")?bottomPositionUpdater(e):0<s._positon.indexOf("Center")&&centerPositionUpdater(e))},s._onclose=()=>{document.body.removeChild(s)},document.body.appendChild(s),s._show(),s};
+const AnimationDuration = 500;
+const AvailableTypes = ['message', 'success', 'fail', 'warn', 'error', 'fetal'];
+const AvailablePositions = ['leftBottom', 'leftCenter', 'leftTop', 'middleBottom', 'middleCenter', 'middleTop', 'rightBottom', 'rightCenter', 'rightTop'];
+
+const newNotification = (title, message, duration=3000, type, position) => {
+	if (!title && !message) return;
+
+	if (!AvailableTypes.includes(type)) type = AvailableTypes[0];
+	if (!AvailablePositions.includes(position)) position = AvailablePositions[0];
+
+	var timer;
+	var timeStart, timeLeft = duration;
+	var pauseTimer = () => {
+		if (notify._closed) return;
+		if (!timer) return;
+		clearTimeout(timer);
+		var now = Date.now();
+		var used = now - timeStart;
+		timeLeft -= used;
+	};
+	var resumeTimer = () => {
+		if (notify._closed) return;
+		if (!!timer) {
+			clearTimeout(timer);
+		}
+		// if (timeLeft <= 0) return;
+		if (timeLeft <= 0) timeLeft = 0;
+		timeStart = Date.now();
+		timer = setTimeout(notify._hide, timeLeft);
+	};
+
+	var notify = newEle('div', 'extension_component', 'notification', type, position);
+	notify._type = type;
+	notify._positon = position;
+	notify._closed = false;
+	notify.onready = null;
+	notify.onshow = null;
+	notify.onhide = null;
+	notify.onclose = null;
+	notify._onready = null;
+	notify._onshow = null;
+	notify._onhide = null;
+	notify._onclose = null;
+	notify._show = async () => {
+		await wait(50);
+		if (!!notify._onready) notify._onready();
+		if (!!notify.onready) notify.onready();
+		notify.classList.add('show');
+		await wait(AnimationDuration);
+		if (!!notify._onshow) notify._onshow();
+		if (!!notify.onshow) notify.onshow();
+
+		resumeTimer();
+	};
+	notify._hide = async () => {
+		if (notify._closed) return;
+		notify._closed = true;
+
+		if (!!timer) {
+			clearTimeout(timer);
+			timer = null;
+		}
+
+		notify.classList.remove('show');
+		if (!!notify._onhide) notify._onhide();
+		if (!!notify.onhide) notify.onhide();
+		await wait(AnimationDuration);
+
+		notify.removeEventListener('mouseenter', pauseTimer);
+		notify.removeEventListener('mousemove', pauseTimer);
+		notify.removeEventListener('mouseout', resumeTimer);
+		closer.removeEventListener('click', notify._hide);
+
+		if (!!notify._onclose) notify._onclose();
+		if (!!notify.onclose) notify.onclose();
+	};
+	notify.addEventListener('mouseenter', pauseTimer);
+	notify.addEventListener('mousemove', pauseTimer);
+	notify.addEventListener('mouseout', resumeTimer);
+
+	var frame = newEle('div', 'notification_frame');
+	notify.appendChild(frame);
+	notify._frame = frame;
+
+	var inner = newEle('div', 'notification_inner');
+	frame.appendChild(inner);
+	notify._inner = inner;
+
+	if (!!title) {
+		let titleBar = newEle('div', 'notification_title');
+		titleBar.innerText = title;
+		inner.appendChild(titleBar);
+	}
+	if (!!message) {
+		let messageBar = newEle('div', 'notification_message');
+		if (message.match(/<\/[\w\-]+>/)) {
+			messageBar.innerHTML = message;
+		}
+		else {
+			messageBar.innerText = message;
+		}
+		inner.appendChild(messageBar);
+	}
+
+	var closer = newEle('div', 'notification_close');
+	closer.innerHTML = '<img src="' + chrome.runtime.getURL('/images/xmark.svg') + '">';
+	closer.addEventListener('click', notify._hide);
+	inner.appendChild(closer);
+
+	notify._getTimeLeft = () => timeLeft;
+	window.currentNotify = notify;
+
+	return notify;
+};
+
+const MessageList = {};
+AvailablePositions.forEach(pos => MessageList[pos] = []);
+
+const topPositionUpdater = async list => {
+	var totalHeight = 0;
+	list.forEach(item => {
+		totalHeight += item.height + 5;
+	});
+	list.forEach(item => {
+		totalHeight -= item.height + 5;
+		item.ele._inner.style.top = totalHeight + 'px';
+	});
+};
+const bottomPositionUpdater = async list => {
+	var totalHeight = 0;
+	list.forEach(item => {
+		totalHeight += item.height + 5;
+	});
+	list.forEach(item => {
+		totalHeight -= item.height + 5;
+		item.ele._inner.style.bottom = totalHeight + 'px';
+	});
+};
+const centerPositionUpdater = async list => {
+	var totalHeight = 0;
+	list.forEach(item => {
+		totalHeight += item.height + 5;
+	});
+	totalHeight /= 2;
+	list.forEach(item => {
+		totalHeight -= item.height + 5;
+		item.ele._inner.style.top = totalHeight + 'px';
+	});
+};
+
+globalThis.Notification = {};
+
+Notification.init = (outside=true) => {
+	var cssUrl = "/components/notification.css";
+	if (outside) {
+		cssUrl = chrome.runtime.getURL(cssUrl);
+	}
+
+	// Load CSS
+	var tag = newEle('link');
+	tag.rel = 'stylesheet';
+	tag.href = cssUrl;
+	document.head.appendChild(tag);
+};
+Notification.show = (title, message, position, type, duration) => {
+	if (!document.body) return;
+
+	var notify = newNotification(title, message, duration, type, position);
+	notify._onready = () => {
+		var box = notify.getBoundingClientRect();
+		var list = MessageList[notify._positon];
+		list.push({
+			ele: notify,
+			width: box.width,
+			height: box.height,
+		});
+		if (notify._positon.indexOf('Top') > 0) {
+			topPositionUpdater(list);
+		}
+		else if (notify._positon.indexOf('Bottom') > 0) {
+			bottomPositionUpdater(list);
+		}
+		else if (notify._positon.indexOf('Center') > 0) {
+			centerPositionUpdater(list);
+		}
+	};
+	notify._onhide = () => {
+		var list = MessageList[notify._positon];
+		var idx = -1;
+		list.some((item, i) => {
+			if (item.ele === notify) {
+				idx = i;
+				return true;
+			}
+		});
+		if (idx < 0) return;
+		list.splice(idx, 1);
+		if (notify._positon.indexOf('Top') > 0) {
+			topPositionUpdater(list);
+		}
+		else if (notify._positon.indexOf('Bottom') > 0) {
+			bottomPositionUpdater(list);
+		}
+		else if (notify._positon.indexOf('Center') > 0) {
+			centerPositionUpdater(list);
+		}
+	};
+	notify._onclose = () => {
+		document.body.removeChild(notify);
+	};
+	document.body.appendChild(notify);
+
+	notify._show();
+	return notify;
+};

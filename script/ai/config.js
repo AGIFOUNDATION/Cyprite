@@ -1,1 +1,452 @@
-globalThis.ModelContinueRequestLoopLimit=10,globalThis.ModelList=[],globalThis.Model2AI={"gemini-1.5-flash-exp-0827":"Gemini","gemini-1.5-pro-exp-0827":"Gemini","gemini-1.5-flash-002":"Gemini","gemini-1.5-pro-002":"Gemini","claude-3-5-sonnet-20240620":"Claude","claude-3-opus-20240229":"Claude","claude-3-haiku-20240307":"Claude","chatgpt-4o-latest":"OpenAI","gpt-4o-mini":"OpenAI","o1-preview":"OpenAI","o1-mini":"OpenAI","moonshot-v1-auto":"MoonShot","moonshot-web-search":"MoonShot","deepseek-chat":"DeepSeek","deepseek-coder":"DeepSeek","abab6.5s-chat":"MiniMax","glm-4-plus":"GLM","glm-4-long":"GLM","glm-4-flash":"GLM","glm-web-search-pro":"GLM","ernie-4.0-8k":"Ernie","open-mixtral-8x22b":"Mixtral","open-mistral-7b":"Mixtral","open-mistral-nemo":"Mixtral","open-codestral-mamba":"Mixtral","pixtral-12b-latest":"Mixtral","gemma2-9b-it":"Groq","llama-3.1-70b-versatile":"Groq","llama-3.2-11b-vision-preview":"Groq","llama-3.2-90b-text-preview":"Groq"},globalThis.AI2Model={gemini:["gemini-1.5-flash-exp-0827","gemini-1.5-pro-exp-0827","gemini-1.5-flash-002","gemini-1.5-pro-002"],claude:["claude-3-5-sonnet-20240620","claude-3-opus-20240229","claude-3-haiku-20240307"],openai:["chatgpt-4o-latest","gpt-4o-mini","o1-preview","o1-mini"],moonshot:["moonshot-v1-auto"],deepseek:["deepseek-chat","deepseek-coder"],minimax:["abab6.5s-chat"],glm:["glm-4-plus","glm-4-long","glm-4-flash"],ernie:["ernie-4.0-8k"],mixtral:["open-mixtral-8x22b","open-mistral-7b","open-mistral-nemo","open-codestral-mamba","pixtral-12b-latest"],groq:["gemma2-9b-it","llama-3.1-70b-versatile","llama-3.2-11b-vision-preview","llama-3.2-90b-text-preview"]},globalThis.FastAI={Gemini:"gemini-1.5-flash-002",Claude:"claude-3-5-sonnet-20240620",OpenAI:"gpt-4o-mini",GLM:"glm-4-flash",Ernie:"ernie-4.0-8k"},globalThis.DeepAI={Gemini:"gemini-1.5-pro-002",Claude:"claude-3-opus-20240229",Openai:"o1-preview",GLM:"glm-4-plus",Ernie:"ernie-4.0-8k"},globalThis.ModelOrder=["gemini","claude","openai","deepseek","moonshot","glm","ernie","minimax","groq","mixtral"],globalThis.ModelNameList={"gemini-1.5-flash-exp-0827":"GeminiFlash","gemini-1.5-pro-exp-0827":"GeminiPro","claude-3-5-sonnet-20240620":"Sonnet3.5","claude-3-opus-20240229":"Opus3","chatgpt-4o-latest":"GPT","gpt-4o-mini":"GPTMini","o1-preview":"O1","o1-mini":"O1-Mini","moonshot-v1-auto":"KIMI","deepseek-chat":"DeepSeek","abab6.5s-chat":"MiniMax","glm-4-plus":"GLMPlus","glm-4-long":"GLMLong","glm-4-flash":"GLMFlash","ernie-4.0-8k":"Ernie","open-mixtral-8x22b":"OpenMixtral","open-mistral-nemo":"MistralNemo","pixtral-12b-latest":"Pixtral","gemma2-9b-it":"Gemma2","llama-3.1-70b-versatile":"LLaMa3.1","llama-3.2-90b-text-preview":"LLaMa3.2"},globalThis.ModelDefaultConfig={Gemini:{header:{"content-type":"application/json"},chat:{generationConfig:{temperature:1,topP:.95,topK:32,candidateCount:1,maxOutputTokens:8192,responseMimeType:"text/plain",stopSequences:[]},safetySettings:[{category:"HARM_CATEGORY_HARASSMENT",threshold:"BLOCK_NONE"},{category:"HARM_CATEGORY_HATE_SPEECH",threshold:"BLOCK_NONE"},{category:"HARM_CATEGORY_SEXUALLY_EXPLICIT",threshold:"BLOCK_NONE"},{category:"HARM_CATEGORY_DANGEROUS_CONTENT",threshold:"BLOCK_NONE"}]}},Claude:{header:{Accept:"application/json","content-type":"application/json","anthropic-version":"2023-06-01","anthropic-beta":"messages-2023-12-15","anthropic-dangerous-direct-browser-access":!0},chat:{top_k:3,temperature:1,max_tokens:4096}},OpenAI:{header:{"Content-Type":"application/json"},chat:{temperature:1,max_tokens:4096}},GLM:{header:{"Content-Type":"application/json"},chat:{temperature:.95,max_tokens:4095}},MoonShot:{header:{"Content-Type":"application/json"},chat:{temperature:1,max_tokens:8192}},DeepSeek:{header:{Accept:"application/json","Content-Type":"application/json"},chat:{temperature:1,max_tokens:8192}},MiniMax:{header:{"Content-Type":"application/json"},chat:{temperature:.9,max_tokens:245760}},Ernie:{header:{"Content-Type":"application/json;charset=utf-8",Accept:"application/json"},chat:{temperature:.95,max_output_tokens:2048}},Mixtral:{header:{"Content-Type":"application/json",Accept:"application/json"},chat:{temperature:.95,max_tokens:32e3}},Groq:{header:{"Content-Type":"application/json"},chat:{temperature:.95,max_tokens:8192}},"claude-3-5-sonnet-20240620":{header:{"anthropic-beta":"max-tokens-3-5-sonnet-2024-07-15"},chat:{max_tokens:8192}},"chatgpt-4o-latest":{chat:{max_tokens:16384}},"gpt-4o-mini":{chat:{max_tokens:16384}},"o1-preview":{chat:{max_tokens:32768}},"o1-mini":{chat:{max_tokens:65536}},"open-mixtral-8x22b":{chat:{max_tokens:64e3}},"open-codestral-mamba":{chat:{max_tokens:256e3}},"open-mistral-nemo":{chat:{max_tokens:128e3}},"llama-3.1-70b-versatile":{chat:{max_tokens:8e3}}},globalThis.SearchAIModel=["GLM","MoonShot"],globalThis.getFunctionalModelList=e=>{var i=[];return(FunctionalModel[e]||[]).forEach(e=>{var t=Model2AI[e];if(t){if("ernie"===(t=t.toLowerCase())){var a=myInfo.apiKey[t];if(!a||!a.api||!a.secret)return}else if(!myInfo.apiKey[t])return;i.push(e)}}),i.includes(myInfo.model)||i.push(myInfo.model),i},globalThis.FunctionalModel={excludeIrrelevants:["gemini-1.5-flash-exp-0827","gemini-1.5-flash-002","o1-mini","deepseek-chat","moonshot-v1-auto"],identityRelevants:["gemini-1.5-flash-exp-0827","gemini-1.5-flash-002","chatgpt-4o-latest","deepseek-chat","glm-4-plus","claude-3-5-sonnet-20240620"],analyzeSearchKeywords:["gemini-1.5-flash-exp-0827","gemini-1.5-flash-002","llama-3.2-90b-text-preview","claude-3-haiku-20240307","glm-4-long"]},globalThis.ModelRateLimit={OpenAI:{rpm:5e3,tpm:8e5},Claude:{rpm:2e3,tpm:16e4},Gemini:{rpm:15,tpm:32e3},GLM:{rpm:20,tpm:0},MoonShot:{rpm:3,tpm:32e3},MiniMax:{rpm:6,tpm:24e3},Mixtral:{rpm:1,tpm:5e5},Groq:{rpm:30,tpm:15e3},"chatgpt-4o-latest":{rpm:1e4,tpm:3e7},"gpt-4o-mini":{rpm:3e4,tpm:15e7},"o1-preview":{rpm:500,tpm:3e7},"o1-mini":{rpm:1e3,tpm:15e7},"claude-3-opus-20240229":{tpm:8e4},"gemini-1.5-flash-exp-0827":{rpm:15,tpm:1e6},"gemini-1.5-pro-exp-0827":{rpm:2,tpm:32e3},"gemini-1.5-flash-002":{rpm:15,tpm:1e6},"gemini-1.5-pro-002":{rpm:2,tpm:32e3},"glm-4-long":{rpm:5},"glm-4-flash":{rpm:200}};let OneMinute=6e4,ModelRequestHistory={},ModelRequestPending={},getRateLimitHistory=e=>{var t=ModelRequestHistory[e];return t||(t={start:[],finish:[]},ModelRequestHistory[e]=t),t};globalThis.requestRateLimitLock=s=>new Promise(async e=>{var t=Model2AI[s]||"",t=(ModelRateLimit[s]||{}).rpm||(ModelRateLimit[t]||{}).rpm||0;if(t<=0)return e();var a=Date.now(),i=getRateLimitHistory(s),o=0,n=0,l=(i.start=i.start.filter(e=>a-e<=OneMinute),i.start.length>=t&&(o=OneMinute-a+i.start[0]),i.finish=i.finish.filter(e=>a-e<=OneMinute),i.finish.length>=t&&(n=OneMinute-a+i.finish[0]),Math.max(o,n)),o=(logger.strong("RPM","RPM "+s+" : "+t+" ("+i.start.length+", "+i.finish.length+") "+l),ModelRequestPending[s]);if(o||(o=[],ModelRequestPending[s]=o),o.push(e),0!==l){for(logger.strong("RPM","RPM Waiting: "+s);0<l;)5e3<l?(l-=5e3,await wait(5e3)):(await wait(l),l=0);await requestRateLimitLock(s),logger.strong("RPM","RPM Continue: "+s)}e=o[0],o.shift(),e&&e()}),globalThis.updateRateLimitLock=(e,t,a,i)=>{var o=Date.now(),e=getRateLimitHistory(e);(t?e.start:e.finish).unshift(o),e.start=e.start.filter(e=>o-e<=OneMinute),e.finish=e.finish.filter(e=>o-e<=OneMinute)};
+globalThis.ModelContinueRequestLoopLimit = 10;
+globalThis.ModelList = [];
+globalThis.Model2AI = {
+	"gemini-1.5-flash-exp-0827": "Gemini",
+	"gemini-1.5-pro-exp-0827": "Gemini",
+	"gemini-1.5-flash-002": "Gemini",
+	"gemini-1.5-pro-002": "Gemini",
+	"claude-3-5-sonnet-20240620": "Claude",
+	"claude-3-opus-20240229": "Claude",
+	"claude-3-haiku-20240307": "Claude",
+	"chatgpt-4o-latest": "OpenAI",
+	"gpt-4o-mini": "OpenAI",
+	"o1-preview": "OpenAI",
+	"o1-mini": "OpenAI",
+	"open-mixtral-8x22b": "Mixtral",
+	"open-mistral-7b": "Mixtral",
+	"open-mistral-nemo": "Mixtral",
+	"open-codestral-mamba": "Mixtral",
+	"pixtral-12b-latest": "Mixtral",
+	"gemma2-9b-it": "Groq",
+	"llama-3.1-70b-versatile": "Groq",
+	"llama-3.2-11b-vision-preview": "Groq",
+	"llama-3.2-90b-text-preview": "Groq",
+};
+globalThis.AI2Model = {
+	"gemini": [
+		"gemini-1.5-flash-exp-0827",
+		"gemini-1.5-pro-exp-0827",
+		"gemini-1.5-flash-002",
+		"gemini-1.5-pro-002",
+	],
+	"claude": [
+		"claude-3-5-sonnet-20240620",
+		"claude-3-opus-20240229",
+		"claude-3-haiku-20240307",
+	],
+	"openai": [
+		"chatgpt-4o-latest",
+		"gpt-4o-mini",
+		"o1-preview",
+		"o1-mini",
+	],
+	"mixtral": [
+		"open-mixtral-8x22b",
+		"open-mistral-7b",
+		"open-mistral-nemo",
+		"open-codestral-mamba",
+		"pixtral-12b-latest",
+	],
+	"groq": [
+		"gemma2-9b-it",
+		"llama-3.1-70b-versatile",
+		"llama-3.2-11b-vision-preview",
+		"llama-3.2-90b-text-preview",
+	],
+};
+globalThis.FastAI = {
+	"Gemini": "gemini-1.5-flash-002",
+	"Claude": "claude-3-5-sonnet-20240620",
+	"OpenAI": "gpt-4o-mini",
+	"GLM": "glm-4-flash",
+	"Ernie": "ernie-4.0-8k",
+};
+globalThis.DeepAI = {
+	"Gemini": "gemini-1.5-pro-002",
+	"Claude": "claude-3-opus-20240229",
+	"Openai": "o1-preview",
+	"GLM": "glm-4-plus",
+	"Ernie": "ernie-4.0-8k",
+};
+globalThis.ModelOrder = [
+	"gemini",
+	"claude",
+	"openai",
+	"groq",
+	"mixtral",
+];
+globalThis.ModelNameList = {
+	"gemini-1.5-flash-exp-0827": "GeminiFlash",
+	"gemini-1.5-pro-exp-0827": "GeminiPro",
+	// "gemini-1.5-flash-002": "GeminiFlash2",
+	// "gemini-1.5-pro-002": "GeminiPro2",
+	"claude-3-5-sonnet-20240620": "Sonnet3.5",
+	"claude-3-opus-20240229": "Opus3",
+	// "claude-3-haiku-20240307": "Haiku",
+	"chatgpt-4o-latest": "GPT",
+	"gpt-4o-mini": "GPTMini",
+	"o1-preview": "O1",
+	"o1-mini": "O1-Mini",
+	"open-mixtral-8x22b": "OpenMixtral",
+	// "open-mistral-7b": "OpenMistral",
+	"open-mistral-nemo": "MistralNemo",
+	// "open-codestral-mamba": "CodestralMamba",
+	"pixtral-12b-latest": "Pixtral",
+	"gemma2-9b-it": "Gemma2",
+	"llama-3.1-70b-versatile": "LLaMa3.1",
+	"llama-3.2-90b-text-preview": "LLaMa3.2",
+};
+globalThis.ModelDefaultConfig = {
+	Gemini: {
+		header: {
+			"content-type": "application/json"
+		},
+		chat: {
+			generationConfig: {
+				temperature: 1.0,
+				topP: 0.95,
+				topK: 32,
+				candidateCount: 1,
+				maxOutputTokens: 8192,
+				responseMimeType: "text/plain",
+				stopSequences: [],
+			},
+			safetySettings: [
+				{
+					"category": "HARM_CATEGORY_HARASSMENT",
+					"threshold": "BLOCK_NONE"
+				},
+				{
+					"category": "HARM_CATEGORY_HATE_SPEECH",
+					"threshold": "BLOCK_NONE"
+				},
+				{
+					"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+					"threshold": "BLOCK_NONE"
+				},
+				{
+					"category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+					"threshold": "BLOCK_NONE"
+				}
+			]
+		}
+	},
+	Claude: {
+		header: {
+			Accept: "application/json",
+			"content-type": "application/json",
+			"anthropic-version": "2023-06-01",
+			"anthropic-beta": "messages-2023-12-15",
+			"anthropic-dangerous-direct-browser-access": true
+		},
+		chat: {
+			top_k: 3,
+			temperature: 1.0,
+			max_tokens: 4096,
+		}
+	},
+	OpenAI: {
+		header: {
+			"Content-Type": "application/json",
+		},
+		chat: {
+			temperature: 1.0,
+			max_tokens: 4096,
+		},
+	},
+	Mixtral: {
+		header: {
+			"Content-Type": "application/json",
+			"Accept": "application/json",
+		},
+		chat: {
+			temperature: 0.95,
+			max_tokens: 32000,
+		},
+	},
+	Groq: {
+		header: {
+			"Content-Type": "application/json",
+		},
+		chat: {
+			temperature: 0.95,
+			max_tokens: 8192,
+		},
+	},
+	"claude-3-5-sonnet-20240620": {
+		header: {
+			"anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
+		},
+		chat: {
+			max_tokens: 8192,
+		}
+	},
+	"chatgpt-4o-latest": {
+		chat: {
+			max_tokens: 16384,
+		}
+	},
+	"gpt-4o-mini": {
+		chat: {
+			max_tokens: 16384,
+		}
+	},
+	"o1-preview": {
+		chat: {
+			max_tokens: 32768,
+		}
+	},
+	"o1-mini": {
+		chat: {
+			max_tokens: 65536,
+		}
+	},
+	"open-mixtral-8x22b": {
+		chat: {
+			max_tokens: 64000,
+		}
+	},
+	"open-codestral-mamba": {
+		chat: {
+			max_tokens: 256000,
+		}
+	},
+	"open-mistral-nemo": {
+		chat: {
+			max_tokens: 128000,
+		}
+	},
+	"llama-3.1-70b-versatile": {
+		chat: {
+			max_tokens: 8000,
+		},
+	},
+};
+globalThis.SearchAIModel = ['GLM', 'MoonShot'];
+
+/* Long COntext Control */
+
+globalThis.AILongContextLimit = 200000;
+const LongContextModel = [
+	'gemini-1.5-pro-exp-0827',
+	'gemini-1.5-pro-002',
+];
+LongContextModel.idx = -1;
+globalThis.PickLongContextModel = () => {
+	var count = 0, model = null;
+	while (true) {
+		count ++;
+		LongContextModel.idx ++;
+		if (LongContextModel.idx >= LongContextModel.length) {
+			LongContextModel.idx = 0;
+		}
+		let mdl = LongContextModel[LongContextModel.idx];
+		let ai = Model2AI[mdl];
+		if (!ai) {
+			if (count >= LongContextModel.length) break;
+			else continue;
+		}
+		ai = ai.toLowerCase();
+		if (ai === 'ernie') {
+			let key = myInfo.apiKey[ai];
+			if (!key || !key.api || !key.secret) {
+				if (count >= LongContextModel.length) break;
+				else continue;
+			}
+		}
+		else {
+			if (!myInfo.apiKey[ai]) {
+				if (count >= LongContextModel.length) break;
+				else continue;
+			}
+		}
+		model = mdl;
+		break;
+	}
+	if (!model) {
+		model = myInfo.model;
+	}
+	else {
+		logger.blank('LongContextModel', 'Switch AI model to ' + model);
+	}
+	return model;
+};
+
+/* Functional Model Allocation */
+
+const FunctionalModel = {
+	excludeIrrelevants: [
+		"gemini-1.5-flash-exp-0827",
+		"gemini-1.5-flash-002",
+		"o1-mini",
+		"deepseek-chat",
+		"moonshot-v1-auto",
+	],
+	identityRelevants: [
+		"gemini-1.5-flash-exp-0827",
+		"gemini-1.5-flash-002",
+		"chatgpt-4o-latest",
+		"deepseek-chat",
+		"glm-4-plus",
+		"claude-3-5-sonnet-20240620",
+	],
+	analyzeSearchKeywords: [
+		'gemini-1.5-flash-exp-0827',
+		"gemini-1.5-flash-002",
+		'llama-3.2-90b-text-preview',
+		'claude-3-haiku-20240307',
+		'glm-4-long',
+	],
+};
+globalThis.getFunctionalModelList = fun => {
+	var modelList = [];
+	var models = FunctionalModel[fun];
+	if (!models) models = [];
+	models.forEach(m => {
+		var ai = Model2AI[m];
+		if (!ai) return;
+		ai = ai.toLowerCase();
+		if (ai === 'ernie') {
+			let key = myInfo.apiKey[ai];
+			if (!key || !key.api || !key.secret) return;
+		}
+		else {
+			if (!myInfo.apiKey[ai]) return;
+		}
+		modelList.push(m);
+	});
+	if (!modelList.includes(myInfo.model)) modelList.push(myInfo.model);
+	return modelList;
+};
+
+/* Rate Limit Controller */
+
+globalThis.ModelRateLimit= {
+	OpenAI: {
+		rpm: 5000,
+		tpm: 800000,
+	},
+	Claude: {
+		rpm: 2000,
+		tpm: 160000,
+	},
+	Gemini: {
+		rpm: 15,
+		tpm: 32000,
+	},
+	Mixtral: {
+		rpm: 1,
+		tpm: 500000
+	},
+	Groq: {
+		rpm: 30,
+		tpm: 15000
+	},
+	"chatgpt-4o-latest": {
+		rpm: 10000,
+		tpm: 30000000,
+	},
+	"gpt-4o-mini": {
+		rpm: 30000,
+		tpm: 150000000,
+	},
+	"o1-preview": {
+		rpm: 500,
+		tpm: 30000000,
+	},
+	"o1-mini": {
+		rpm: 1000,
+		tpm: 150000000,
+	},
+	"claude-3-opus-20240229": {
+		tpm: 80000,
+	},
+	"gemini-1.5-flash-exp-0827": {
+		rpm: 15,
+		tpm: 1000000,
+	},
+	"gemini-1.5-pro-exp-0827": {
+		rpm: 2,
+		tpm: 32000,
+	},
+	"gemini-1.5-flash-002": {
+		rpm: 15,
+		tpm: 1000000,
+	},
+	"gemini-1.5-pro-002": {
+		rpm: 2,
+		tpm: 32000,
+	},
+};
+const OneMinute = 60 * 1000;
+const ModelRequestHistory = {};
+const ModelRequestPending = {};
+const getRateLimitHistory = (model) => {
+	var list = ModelRequestHistory[model];
+	if (!list) {
+		list = {
+			start: [],
+			finish: [],
+		};
+		ModelRequestHistory[model] = list;
+	}
+	return list;
+};
+globalThis.requestRateLimitLock = (model) => new Promise(async res => {
+	var aiName = Model2AI[model] || '';
+	var rpm = (ModelRateLimit[model] || {}).rpm || (ModelRateLimit[aiName] || {}).rpm || 0;
+	if (rpm <= 0) return res();
+
+	var time = Date.now();
+	var rateLimiter = getRateLimitHistory(model);
+	var delayS = 0, delayF = 0;
+	rateLimiter.start = rateLimiter.start.filter(t => time - t <= OneMinute);
+	if (rateLimiter.start.length >= rpm) delayS = OneMinute - time + rateLimiter.start[0];
+	rateLimiter.finish = rateLimiter.finish.filter(t => time - t <= OneMinute);
+	if (rateLimiter.finish.length >= rpm) delayF = OneMinute - time + rateLimiter.finish[0];
+
+	var delay = Math.max(delayS, delayF);
+	logger.strong('RPM', 'RPM ' + model + ' : ' + rpm + ' (' + rateLimiter.start.length + ', ' + rateLimiter.finish.length + ') ' + delay);
+	var pending = ModelRequestPending[model];
+	if (!pending) {
+		pending = [];
+		ModelRequestPending[model] = pending;
+	}
+	pending.push(res);
+	if (delay === 0) {
+		res = pending[0];
+		pending.shift();
+		if (!!res) res();
+		return;
+	}
+
+	logger.strong('RPM', 'RPM Waiting: ' + model);
+	while (delay > 0) {
+		if (delay > 5000) {
+			delay -= 5000;
+			await wait(5000);
+		}
+		else {
+			await wait(delay);
+			delay = 0;
+		}
+	}
+	await requestRateLimitLock(model);
+	logger.strong('RPM', 'RPM Continue: ' + model);
+	res = pending[0];
+	pending.shift();
+	if (!!res) res();
+});
+globalThis.updateRateLimitLock = (model, isStart, input, output) => {
+	var time = Date.now();
+
+	var rateLimiter = getRateLimitHistory(model);
+	if (isStart) {
+		rateLimiter.start.unshift(time);
+	}
+	else {
+		rateLimiter.finish.unshift(time);
+	}
+	rateLimiter.start = rateLimiter.start.filter(t => time - t <= OneMinute);
+	rateLimiter.finish = rateLimiter.finish.filter(t => time - t <= OneMinute);
+};

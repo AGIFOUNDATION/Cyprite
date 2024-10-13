@@ -1,1 +1,270 @@
-globalThis.AI=globalThis.AI||{},globalThis.AI.Gemini={};let DefaultChatModel=AI2Model.gemini[0],DefaultEmbeddingModel="text-embedding-004",combineObject=(...e)=>{var t=[],n=(e.forEach(e=>{Object.keys(e).forEach(e=>{t.includes(e)||t.push(e)})}),{});return t.forEach(t=>{var a=[],o=!1;e.forEach(e=>{e=e[t];void 0!==e&&(a.push(e),o=isObject(e))}),0!==a.length&&(1===a.length?n[t]=a[0]:o?1===(a=a.filter(e=>isObject(e))).length?n[t]=a[0]:n[t]=combineObject(...a):n[t]=a[a.length-1])}),n},getRequestHeader=e=>Object.assign(ModelDefaultConfig.Gemini.header,(ModelDefaultConfig[e]||{}).header||{}),getRequestPackage=(e,t,a)=>combineObject(ModelDefaultConfig.Gemini[t],(ModelDefaultConfig[e]||{})[t]||{},a||{}),assembleConversation=e=>{var t="",a=[];return e.forEach(e=>{"system"===e[0]?t={parts:{text:e[1]}}:"human"===e[0]?a.push({role:"user",parts:[{text:e[1]}]}):"ai"===e[0]&&a.push({role:"model",parts:[{text:e[1]}]})}),a={contents:a},t&&(a.system_instruction=t),a},scoreContent=e=>{var t=0;return e=(e=(e=e.replace(/[a-zA-Z]+/g,()=>(t+=2.5," "))).replace(/[\d\.]+/g,()=>(t+=1," "))).replace(/[\u4e00-\u9fa5]/g,()=>(t+=1," ")),Math.floor(t)};AI.Gemini.list=async()=>{var e,t="https://generativelanguage.googleapis.com/v1beta/models?key="+myInfo.apiKey.gemini,a={method:"GET",headers:getRequestHeader()},o=Date.now();try{e=await waitUntil(fetchWithCheck(t,a))}catch(e){throw e}return o=Date.now()-o,logger.info("Gemini","List: "+o/1e3+"s"),e=await e.json()},AI.Gemini.chat=async(n,i=DefaultChatModel,e={})=>{for(var r=getRequestPackage(i,"chat",e),s=(Object.assign(r,assembleConversation(n)),getRequestHeader(i)),g="https://generativelanguage.googleapis.com/",l=g+"v1beta/models/"+i+":generateContent?key="+myInfo.apiKey.gemini,u=r,r={method:"POST",headers:s,body:JSON.stringify(u)},c=[],m={count:0,input:0,output:0},h=!0,e=Date.now(),d=0;;){let e;try{await requestRateLimitLock(i),updateRateLimitLock(i,!0),e=await waitUntil(fetchWithCheck(l,r,g)),updateRateLimitLock(i,!1)}catch(e){throw updateRateLimitLock(i,!1),e}e=await e.json(),logger.info("Gemini",e);var p=e.usageMetadata;m.count++,p&&(m.input+=p.promptTokenCount,m.output+=p.candidatesTokenCount);let t=e.candidates,a="",o="";if(!(t=t&&t[0]))throw p=e.error?.message||"Error Occur!",logger.error("Gemini",p),new Error(p);if(o=t.content?.parts,a=t.finishReason||"",!(o=o&&o[0]))throw o="",p=e.error?.message||"Error Occur!",logger.error("Gemini",p),new Error(p);if(o=(o=o.text||"").trim(),c.push(o),"max_tokens"!==a.toLowerCase())break;if(h?(n.push(["ai",o]),n.push(["human",PromptLib.continueOutput]),h=!1):n[n.length-2][1]=c.join(" "),u.contents=assembleConversation(n).contents,r={method:"POST",headers:s,body:JSON.stringify(u)},++d>=ModelContinueRequestLoopLimit)break}return e=Date.now()-e,logger.info("Gemini","Timespent: "+e/1e3+"s; Input: "+m.input+"; Output: "+m.output),recordAIUsage(i,"Gemini",m),c.join(" ")},AI.Gemini.embed=async(e,t=DefaultEmbeddingModel,a={})=>{var o,n=getRequestHeader(t),i=(t="models/"+t,[]),r=[],e=(e.forEach(e=>{r.push(scoreContent(e.content)),i.push({model:t,taskType:a.taskType||"RETRIEVAL_DOCUMENT",title:e.title,content:{parts:[{text:e.content}]}})}),i={requests:i},i={method:"POST",headers:n,body:JSON.stringify(i)},"https://generativelanguage.googleapis.com/"),n=e+"v1beta/"+t+":batchEmbedContents?key="+myInfo.apiKey.gemini,s=Date.now();try{o=await waitUntil(fetchWithCheck(n,i,e))}catch(e){throw e}return s=Date.now()-s,logger.info("Gemini","Embed: "+s/1e3+"s"),(o=await o.json()).embeddings?.map?o=o.embeddings.map((e,t)=>({weight:r[t],vector:e.values})):(logger.error("Gemini","Abnormal Response:",o),null)};
+globalThis.AI = globalThis.AI || {};
+globalThis.AI.Gemini = {};
+
+const DefaultChatModel = AI2Model.gemini[0];
+const DefaultEmbeddingModel = 'text-embedding-004';
+
+const combineObject = (...objs) => {
+	var keys = [];
+	objs.forEach(obj => {
+		Object.keys(obj).forEach(key => {
+			if (!keys.includes(key)) keys.push(key);
+		});
+	});
+
+	var value = {};
+	keys.forEach(key => {
+		var list = [];
+		var needCombine = false;
+		objs.forEach(obj => {
+			var v = obj[key];
+			if (v !== undefined) {
+				list.push(v);
+				needCombine = isObject(v);
+			}
+		});
+		if (list.length === 0) return;
+		if (list.length === 1) {
+			value[key] = list[0];
+		}
+		else if (needCombine) {
+			list = list.filter(v => isObject(v));
+			if (list.length === 1) {
+				value[key] = list[0];
+			}
+			else {
+				value[key] = combineObject(...list);
+			}
+		}
+		else {
+			value[key] = list[list.length - 1];
+		}
+	});
+
+	return value;
+};
+const getRequestHeader = (model) => {
+	var header = Object.assign(ModelDefaultConfig.Gemini.header, (ModelDefaultConfig[model]|| {}).header || {});
+	return header;
+};
+const getRequestPackage = (model, action, options) => {
+	var request = combineObject(ModelDefaultConfig.Gemini[action], (ModelDefaultConfig[model]|| {})[action] || {}, options || {});
+	return request;
+};
+const assembleConversation = conversation => {
+	var sp = '';
+	var prompt = [];
+	conversation.forEach(item => {
+		if (item[0] === 'system') {
+			sp = {
+				parts: {
+					text: item[1]
+				}
+			};
+		}
+		else if (item[0] === 'human') {
+			prompt.push({
+				role: "user",
+				parts: [
+					{
+						text: item[1]
+					}
+				]
+			});
+		}
+		else if (item[0] === 'ai') {
+			prompt.push({
+				role: "model",
+				parts: [
+					{
+						text: item[1]
+					}
+				]
+			});
+		}
+	});
+	prompt = {
+		contents: prompt
+	};
+	if (!!sp) {
+		prompt.system_instruction = sp;
+	}
+	return prompt;
+};
+const scoreContent = content => {
+	var score = 0;
+	content = content.replace(/[a-zA-Z]+/g, () => {
+		score += 2.5;
+		return ' ';
+	});
+	content = content.replace(/[\d\.]+/g, () => {
+		score += 1;
+		return ' ';
+	});
+	content = content.replace(/[\u4e00-\u9fa5]/g, () => {
+		score += 1;
+		return ' ';
+	});
+	return Math.floor(score);
+};
+
+AI.Gemini.list = async () => {
+	var url = 'https://generativelanguage.googleapis.com/v1beta/models?key=' + myInfo.apiKey.gemini;
+
+	var header = getRequestHeader();
+	var request = {
+		method: "GET",
+		headers: header,
+	};
+
+	var response, time = Date.now();
+	try {
+		response = await waitUntil(fetchWithCheck(url, request));
+	}
+	catch (err) {
+		throw err;
+	}
+	time = Date.now() - time;
+	logger.info('Gemini', 'List: ' + (time / 1000) + 's');
+
+	response = await response.json();
+	return response;
+};
+AI.Gemini.chat = async (conversation, model=DefaultChatModel, options={}) => {
+	var request = getRequestPackage(model, 'chat', options);
+	Object.assign(request, assembleConversation(conversation));
+
+	var header = getRequestHeader(model);
+	const baseUrl = "https://generativelanguage.googleapis.com/"
+	const url = baseUrl + "v1beta/models/" + model + ':generateContent?key=' + myInfo.apiKey.gemini;
+	var originRequest = request;
+	request = {
+		method: "POST",
+		headers: header,
+		body: JSON.stringify(originRequest),
+	};
+
+	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
+	while (true) {
+		let response;
+		try {
+			await requestRateLimitLock(model);
+			updateRateLimitLock(model, true);
+			response = await waitUntil(fetchWithCheck(url, request, baseUrl));
+			updateRateLimitLock(model, false);
+		}
+		catch (err) {
+			updateRateLimitLock(model, false);
+			throw err;
+		}
+		response = await response.json();
+		logger.info('Gemini', response);
+
+		let usg = response.usageMetadata;
+		usage.count ++;
+		if (!!usg) {
+			usage.input += usg.promptTokenCount;
+			usage.output += usg.candidatesTokenCount;
+		}
+
+		let candidate = response.candidates, reason = '', reply = '';
+		if (!!candidate) candidate = candidate[0];
+		if (!candidate) {
+			let errMsg = response.error?.message || 'Error Occur!';
+			logger.error('Gemini', errMsg);
+			throw new Error(errMsg);
+		}
+		else {
+			reply = candidate.content?.parts;
+			reason = candidate.finishReason || "";
+			if (!!reply) reply = reply[0];
+			if (!reply) {
+				reply = "";
+				let errMsg = response.error?.message || 'Error Occur!';
+				logger.error('Gemini', errMsg);
+				throw new Error(errMsg);
+			}
+			else {
+				reply = reply.text || "";
+				reply = reply.trim();
+			}
+		}
+		replies.push(reply);
+		if (reason.toLowerCase() !== 'max_tokens') {
+			break;
+		}
+		else {
+			if (isFirst) {
+				conversation.push(['ai', reply]);
+				conversation.push(['human', PromptLib.continueOutput]);
+				isFirst = false;
+			}
+			else {
+				conversation[conversation.length - 2][1] = replies.join(' ');
+			}
+			originRequest.contents = assembleConversation(conversation).contents;
+			request = {
+				method: "POST",
+				headers: header,
+				body: JSON.stringify(originRequest),
+			};
+		}
+
+		loop ++;
+		if (loop >= ModelContinueRequestLoopLimit) break;
+	}
+	time = Date.now() - time;
+	logger.info('Gemini', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
+	recordAIUsage(model, 'Gemini', usage);
+
+	return replies.join(' ');
+};
+AI.Gemini.embed = async (contents, model=DefaultEmbeddingModel, options={}) => {
+	var header = getRequestHeader(model);
+	model = 'models/' + model;
+
+	var requests = [], weights = [];
+	contents.forEach(item => {
+		weights.push(scoreContent(item.content));
+		requests.push({
+			model,
+			taskType: options.taskType || "RETRIEVAL_DOCUMENT",
+			title: item.title,
+			content: {
+				parts: [{text: item.content}]
+			},
+			// outputDimensionality: 16,
+		});
+	});
+	requests = {requests};
+	requests = {
+		method: "POST",
+		headers: header,
+		body: JSON.stringify(requests),
+	};
+	const baseUrl = "https://generativelanguage.googleapis.com/"
+	const url = baseUrl + "v1beta/" + model + ':batchEmbedContents?key=' + myInfo.apiKey.gemini;
+
+	var response, time = Date.now();
+	try {
+		response = await waitUntil(fetchWithCheck(url, requests, baseUrl));
+	}
+	catch (err) {
+		throw err;
+	}
+	time = Date.now() - time;
+	logger.info('Gemini', 'Embed: ' + (time / 1000) + 's');
+
+	response = await response.json();
+	if (!response.embeddings?.map) {
+		logger.error('Gemini', "Abnormal Response:", response);
+		return null;
+	}
+	response = response.embeddings.map((embed, i) => {
+		return {
+			weight: weights[i],
+			vector: embed.values
+		};
+	});
+	return response;
+};

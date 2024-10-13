@@ -1,1 +1,160 @@
-globalThis.AI=globalThis.AI||{},globalThis.AI.Claude={};let DefaultChatModel=AI2Model.claude[0],convertClaudeChinese=e=>(e=e&&e.trim())?e=(e=(e=e.split(/\r*\n\r*/)).map(e=>e=(e=(e=(e=(e=e.replace(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]\s*[\(\)]|[\(\)]\s*[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/gi,e=>e=e.replace(/\s*([\(\)])\s*/g,(e,t)=>","===t?"，":":"===t?"：":";"===t?"；":"?"===t?"？":"!"===t?"！":"("===t?"（":")"===t?"）":t))).replace(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]\s*[,:;\?\!]/gi,e=>e=e.replace(/\s*([,:;\?\!\(\)])\s*/g,(e,t)=>","===t?"，":":"===t?"：":";"===t?"；":"?"===t?"？":"!"===t?"！":"("===t?"（":")"===t?"）":t))).replace(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]\s*\.+/gi,e=>e=e.replace(/\s*(\.+)\s*/g,(e,t)=>1===t.length?"。":"……"))).replace(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]\s*\-{2,}|\-{2,}\s*[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/gi,e=>e=e.replace(/\s*(\-{2,})\s*/g,(e,t)=>"——"))).replace(/[\(（]\s*([\w\d_\-\+\*\\\/:;,\.\?\!@%#\^\&\(\)=]+)\s*[\)）]/g,(e,t)=>"("+t+")"))).join("\n"):"",assembleConversation=e=>{var t={messages:[]};return e.forEach(e=>{"system"===e[0]?t.system=e[1]:"human"===e[0]?t.messages.push({role:"user",content:e[1]}):"ai"===e[0]&&t.messages.push({role:"assistant",content:e[1]})}),"assistant"!==t.messages[t.messages.length-1].role&&t.messages.push({role:"assistant",content:""}),t};AI.Claude.chat=async(a,s=DefaultChatModel,e={})=>{for(var t=Object.assign({},ModelDefaultConfig.Claude.header,(ModelDefaultConfig[s]||{}).header||{}),u=(t["x-api-key"]=myInfo.apiKey.claude,Object.assign({},ModelDefaultConfig.Claude.chat,(ModelDefaultConfig[s]||{}).chat||{},e)),o=(u.model=s,Object.assign(u,assembleConversation(a)),{method:"POST",headers:t,body:JSON.stringify(u)}),n=[],i={count:0,input:0,output:0},r=!0,e=Date.now(),f=0;;){let e;try{await requestRateLimitLock(s),updateRateLimitLock(s,!0),e=await waitUntil(fetchWithCheck("https://api.anthropic.com/v1/messages",o)),updateRateLimitLock(s,!1)}catch(e){throw updateRateLimitLock(s,!1),e}e=await e.json(),logger.info("Claude",e);var l=e.usage;i.count++,l&&(i.input+=l.input_tokens,i.output+=l.output_tokens);let t=e.content;if(!(t=t&&t[0]))throw t="",l=e.error?.message||"Error Occur!",logger.error("Claude",l),new Error(l);if(t=convertClaudeChinese(t.text),n.push(t),"max_tokens"!==(e.stop_reason||"").toLowerCase())break;if(r?(a.push(["ai",t]),a.push(["human",PromptLib.continueOutput]),r=!1):a[a.length-2][1]=n.join(" "),Object.assign(u,assembleConversation(a)),o.body=JSON.stringify(u),++f>=ModelContinueRequestLoopLimit)break}return e=Date.now()-e,logger.info("Claude","Timespent: "+e/1e3+"s; Input: "+i.input+"; Output: "+i.output),recordAIUsage(s,"Claude",i),n.join(" ")};
+globalThis.AI = globalThis.AI || {};
+globalThis.AI.Claude = {};
+
+const DefaultChatModel = AI2Model.claude[0];
+
+const convertClaudeChinese = content => {
+	if (!content) return '';
+	content = content.trim();
+	if (!content) return '';
+
+	content = content.split(/\r*\n\r*/);
+	content = content.map(line => {
+		line = line.replace(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]\s*[\(\)]|[\(\)]\s*[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/gi, (m) => {
+			m = m.replace(/\s*([\(\)])\s*/g, (m, o) => {
+				if (o === ',') return '，';
+				if (o === ':') return '：';
+				if (o === ';') return '；';
+				if (o === '?') return '？';
+				if (o === '!') return '！';
+				if (o === '(') return '（';
+				if (o === ')') return '）';
+				return o;
+			});
+			return m;
+		});
+		line = line.replace(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]\s*[,:;\?\!]/gi, (m) => {
+			m = m.replace(/\s*([,:;\?\!\(\)])\s*/g, (m, o) => {
+				if (o === ',') return '，';
+				if (o === ':') return '：';
+				if (o === ';') return '；';
+				if (o === '?') return '？';
+				if (o === '!') return '！';
+				if (o === '(') return '（';
+				if (o === ')') return '）';
+				return o;
+			});
+			return m;
+		});
+		line = line.replace(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]\s*\.+/gi, (m) => {
+			m = m.replace(/\s*(\.+)\s*/g, (m, o) => {
+				if (o.length === 1) return '。';
+				return "……";
+			});
+			return m;
+		});
+		line = line.replace(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]\s*\-{2,}|\-{2,}\s*[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/gi, (m) => {
+			m = m.replace(/\s*(\-{2,})\s*/g, (m, o) => {
+				return "——";
+			});
+			return m;
+		});
+		line = line.replace(/[\(（]\s*([\w\d_\-\+\*\\\/:;,\.\?\!@%#\^\&\(\)=]+)\s*[\)）]/g, (m, a) => '(' + a + ')');
+		return line;
+	});
+	content = content.join('\n');
+
+	return content;
+};
+const assembleConversation = conversation => {
+	var data = { messages: [] };
+	conversation.forEach(item => {
+		if (item[0] === 'system') {
+			data.system = item[1];
+		}
+		else if (item[0] === 'human') {
+			data.messages.push({
+				role: 'user',
+				content: item[1]
+			});
+		}
+		else if (item[0] === 'ai') {
+			data.messages.push({
+				role: "assistant",
+				content: item[1]
+			});
+		}
+	});
+	if (data.messages[data.messages.length - 1].role !== 'assistant') {
+		data.messages.push({
+			role: 'assistant',
+			content: ''
+		});
+	}
+	return data;
+};
+
+AI.Claude.chat = async (conversation, model=DefaultChatModel, options={}) => {
+	var header = Object.assign({}, ModelDefaultConfig.Claude.header, (ModelDefaultConfig[model] || {}).header || {});
+	header["x-api-key"] = myInfo.apiKey.claude;
+	var url = "https://api.anthropic.com/v1/messages";
+	var data = Object.assign({}, ModelDefaultConfig.Claude.chat, (ModelDefaultConfig[model] || {}).chat || {}, options);
+	data.model = model;
+	Object.assign(data, assembleConversation(conversation));
+	var request = {
+		method: "POST",
+		headers: header,
+		body: JSON.stringify(data),
+	};
+
+	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
+	while (true) {
+		let response;
+		try {
+			await requestRateLimitLock(model);
+			updateRateLimitLock(model, true);
+			response = await waitUntil(fetchWithCheck(url, request));
+			updateRateLimitLock(model, false);
+		}
+		catch (err) {
+			updateRateLimitLock(model, false);
+			throw err;
+		}
+
+		response = await response.json();
+		logger.info('Claude', response);
+
+		let usg = response.usage;
+		usage.count ++;
+		if (!!usg) {
+			usage.input += usg.input_tokens;
+			usage.output += usg.output_tokens;
+		}
+		let reply = response.content;
+		if (!!reply) reply = reply[0];
+		if (!reply) {
+			reply = "";
+			let errMsg = response.error?.message || 'Error Occur!';
+			logger.error('Claude', errMsg);
+			throw new Error(errMsg);
+		}
+		else {
+			reply = convertClaudeChinese(reply.text);
+			replies.push(reply);
+		}
+
+		let reason = response.stop_reason || '';
+		if (reason.toLowerCase() !== 'max_tokens') {
+			break;
+		}
+		else {
+			if (isFirst) {
+				conversation.push(['ai', reply]);
+				conversation.push(['human', PromptLib.continueOutput]);
+				isFirst = false;
+			}
+			else {
+				conversation[conversation.length - 2][1] = replies.join(' ');
+			}
+		}
+		Object.assign(data, assembleConversation(conversation));
+		request.body = JSON.stringify(data);
+		loop ++;
+		if (loop >= ModelContinueRequestLoopLimit) break;
+	}
+	time = Date.now() - time;
+	logger.info('Claude', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
+	recordAIUsage(model, 'Claude', usage);
+
+	return replies.join(' ');
+};

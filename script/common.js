@@ -1,1 +1,300 @@
-globalThis.ForceBackend=!1,globalThis.DefaultLang="en",globalThis.i18nList=["en","zh","fr","de","it","jp"],globalThis.LangName={zh:"中文",en:"English",fr:"Français",de:"Deutsch",it:"Italiano",jp:"日本語"},globalThis.wait=e=>new Promise(r=>setTimeout(r,e)),globalThis.PoolWaitLock=class{#limit=1;#count=0;#pool=[];constructor(r=1){!isNumber(r)||r<1||(this.#limit=r)}start(){return this.#count++,new Promise(r=>{if(this.#count<=this.#limit)return r();this.#pool.push(r)})}finish(){this.#count--,0!==this.#pool.length&&this.#pool.shift()()}},globalThis.newID=(e=16)=>{var o=[];for(let r=0;r<e;r++){var t=Math.floor(36*Math.random()).toString(36);o.push(t)}return o.join("")},globalThis.parseValue=(r,e=!1)=>{if(isString(r)){var o=+r;if(!isNaN(o)&&""!==r)return o;o=r.toLowerCase();if(e){if(["true","ok","yes"].includes(o))return!0;if(["false","no","not"].includes(o))return!1}else{if(["true"].includes(o))return!0;if(["false"].includes(o))return!1}}return r},globalThis.readData=(r,e)=>0===(e=isString(e)?e.split(".").map(r=>r.trim()).filter(r=>!!r):e).length?r:1===e.length?r[e[0]]:(r=r[e.shift()],isObject(r)?readData(r,e):r),globalThis.writeData=(r,e,o)=>{var t,a;isObject(r)&&0!==(e=isString(e)?e.split(".").map(r=>r.trim()).filter(r=>!!r):e).length&&(1===e.length&&(r[e[0]]=o),void 0===(a=r[t=e.shift()])&&(r[t]=a={}),writeData(a,e,o))},globalThis.parseURL=e=>{if(e.match(/\/#[\w\W]*[\?\/]/)){let r=(e=e.replace(/\/#/,"/")).match(/[\w\d\-_]+=[\w\d\-_\.\/]+/gi);e=e.replace(/[#\?][\w\W]*$/,""),r&&((r=r.map(r=>r=r.split("="))).sort((r,e)=>r[0]>e[0]?1:r[0]<e[0]?-1:0),e=(e=e+"/"+(r=r.map(r=>r.join("/")).join("/"))).replace(/\/\/+/g,"/"))}else e=e.replace(/[#\?][\w\W]*$/,"");return e},globalThis.newEle=(r,...e)=>{var o=document.createElement(r);return e.forEach(r=>o.classList.add(r)),o},globalThis.calculateHash=async(r,e="SHA-256")=>{r=(new TextEncoder).encode(r),e=await crypto.subtle.digest(e,r);return Array.from(new Uint8Array(e)).map(r=>r.toString(16).padStart(2,"0")).join("")},globalThis.calculateWordCount=r=>{var e,o,r=r.match(/(\p{L}+)/gu);return r?(o=e=0,r.forEach(r=>{r=(r=r.replace(/(\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|\p{Script=Thai}|\p{Script=Arabic})/gu,r=>(o+=r.length," "))).match(/(\p{L}+)/gu)||[];e+=r.length}),{total:e+o,latin:e,unlatin:o}):0},globalThis.logger={},logger.log=(r,...e)=>{console.log(`%c[${r}]`,"color: blue; font-weight: bolder; padding: 2px 5px; border-radius: 5px; background-color: rgb(250, 250, 250);",...e)},logger.info=(r,...e)=>{console.info(`%c[${r}]`,"color: green; font-weight: bolder; padding: 2px 5px; border-radius: 5px; background-color: rgb(250, 250, 250);",...e)},logger.warn=(r,...e)=>{console.warn(`%c[${r}]`,"color: magenta; font-weight: bolder; padding: 2px 5px; border-radius: 5px; background-color: rgb(250, 250, 250);",...e)},logger.error=(r,...e)=>{console.error(`%c[${r}]`,"color: red; font-weight: bolder; padding: 2px 5px; border-radius: 5px; background-color: rgb(250, 250, 250);",...e)},logger.em=(r,...e)=>{console.log(`%c[${r}]`,"background-color: blue; color: white; font-weight: bolder; padding: 2px 5px; border-radius: 5px; border: 1px solid white;",...e)},logger.strong=(r,...e)=>{console.log(`%c[${r}]`,"background-color: red; color: white; font-weight: bolder; padding: 2px 5px; border-radius: 5px; border: 1px solid white;",...e)},logger.blank=(r,...e)=>{console.log(`%c[${r}]`,"background-color: black; color: white; font-weight: bolder; padding: 2px 5px; border-radius: 5px; border: 1px solid white;",...e)},globalThis.AsyncFunction=async function(){}.__proto__,globalThis.isArray=r=>null!=r&&!!r.__proto__&&r.__proto__.constructor===Array,globalThis.isString=r=>null!=r&&!!r.__proto__&&r.__proto__.constructor===String,globalThis.isNumber=r=>null!=r&&!!r.__proto__&&r.__proto__.constructor===Number,globalThis.isBoolean=r=>null!=r&&!!r.__proto__&&r.__proto__.constructor===Boolean,globalThis.isObject=r=>null!=r&&!!r.__proto__&&r.__proto__.constructor===Object,globalThis.isFunction=r=>null!=r&&!!r.__proto__&&(r.__proto__.constructor===Function||r.__proto__.constructor===AsyncFunction),globalThis.isAsyncFunction=r=>null!=r&&!!r.__proto__&&r.__proto__.constructor===AsyncFunction;let WeekDayNames={enS:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],enL:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],zhM:["周日","周一","周二","周三","周四","周五","周六"],zhT:["日曜日","月曜日","火曜日","水曜日","木曜日","金曜日","土曜日"]},getLongString=(r,e=2,o=!0)=>{for(var t=r+"";t.length<e;)o?t="0"+t:t+="0";return t},getInfoStrings=(r,e)=>{var o,t;return"Y"===e?o=(t=r+"").substring(2):t="ms"===e?(o=r+"",getLongString(r,3,!1)):(o=r+"",getLongString(r)),[o,t]};globalThis.timestmp2str=(r,e)=>{isString(r)&&!isString(e)&&(e=r,r=null),isString(e)||(e="YYYY/MM/DD hh:mm:ss"),r=r||new Date,isNumber(r)&&(r=new Date(r));var[o,t]=getInfoStrings(r.getYear()+1900,"Y"),[a,n]=getInfoStrings(r.getMonth()+1,"M"),[l,i]=getInfoStrings(r.getDate(),"D"),[g,s]=getInfoStrings(r.getHours(),"h"),[c,p]=getInfoStrings(r.getMinutes(),"m"),[h,u]=getInfoStrings(r.getSeconds(),"s"),[d,b]=getInfoStrings(r.getMilliseconds(),"ms"),_=WeekDayNames.enS[r.getDay()],m=WeekDayNames.enL[r.getDay()],f=WeekDayNames.zhM[r.getDay()],r=WeekDayNames.zhT[r.getDay()];return e.match(/YYYY+/)?e=e.replace(/YYYY+/g,t):e.match(/Y+/)&&(e=e.replace(/Y+/g,o)),e.match(/MM+/)?e=e.replace(/MM+/g,n):e.match(/M+/)&&(e=e.replace(/M+/g,a)),e.match(/DD+/)?e=e.replace(/DD+/g,i):e.match(/D+/)&&(e=e.replace(/D+/g,l)),e.match(/hh+/)?e=e.replace(/hh+/g,s):e.match(/h+/)&&(e=e.replace(/h+/g,g)),e.match(/mm+/)?e=e.replace(/mm+/g,p):e.match(/m+/)&&(e=e.replace(/m+/g,c)),e.match(/ss+/)?e=e.replace(/ss+/g,u):e.match(/s+/)&&(e=e.replace(/s+/g,h)),e.match(/xxx+/)?e=e.replace(/xxx+/g,b):e.match(/x+/)&&(e=e.replace(/x+/g,d)),e=(e=(e=(e=e.replace(/:wde:/g,_)).replace(/:WDE:/g,m)).replace(/:wdz:/g,f)).replace(/:WDZ:/g,r)};
+globalThis.ForceServer = false;
+globalThis.TrialVersion = true;
+
+globalThis.DefaultLang = 'en';
+globalThis.i18nList = ['en', 'zh', 'fr', 'de', 'it', 'jp'];
+globalThis.LangName = {
+	'zh': "中文",
+	'en': "English",
+	'fr': 'Français',
+	'de': 'Deutsch',
+	'it': 'Italiano',
+	'jp': "日本語",
+};
+
+globalThis.wait = delay => new Promise(res => setTimeout(res, delay));
+globalThis.PoolWaitLock = class PoolWaitLock {
+	#limit = 1;
+	#count = 0;
+	#pool = [];
+	constructor (limit=1) {
+		if (!isNumber(limit) || limit < 1) return;
+		this.#limit = limit;
+	}
+	start () {
+		this.#count ++;
+		return new Promise(res => {
+			if (this.#count <= this.#limit) return res();
+			this.#pool.push(res);
+		});
+	}
+	finish () {
+		this.#count --;
+		if (this.#pool.length === 0) return;
+		var res = this.#pool.shift();
+		res();
+	}
+};
+
+globalThis.newID = (len=16) => {
+	var id = [];
+	for (let i = 0; i < len; i ++) {
+		let d = Math.floor(Math.random() * 36).toString(36);
+		id.push(d);
+	}
+	return id.join('');
+};
+
+globalThis.parseValue = (value, grant=false) => {
+	if (!isString(value)) return value;
+	var num = value * 1;
+	if (!isNaN(num) && value !== '') return num;
+	var low = value.toLowerCase();
+	if (grant) {
+		if (['true', 'ok', 'yes'].includes(low)) return true;
+		if (['false', 'no', 'not'].includes(low)) return false;
+	}
+	else {
+		if (['true'].includes(low)) return true;
+		if (['false'].includes(low)) return false;
+	}
+	return value;
+};
+globalThis.readData = (data, path) => {
+	if (isString(path)) {
+		path = path.split('.').map(line => line.trim()).filter(line => !!line);
+	}
+	if (path.length === 0) return data;
+	if (path.length === 1) return data[path[0]];
+	var key = path.shift();
+	data = data[key];
+	if (!isObject(data)) return data;
+	return readData(data, path);
+};
+globalThis.writeData = (data, path, value) => {
+	if (!isObject(data)) return;
+	if (isString(path)) {
+		path = path.split('.').map(line => line.trim()).filter(line => !!line);
+	}
+	if (path.length === 0) return;
+	if (path.length === 1) data[path[0]] = value;
+	var key = path.shift();
+	var next = data[key];
+	if (next === undefined) {
+		next = {};
+		data[key]  = next;
+	}
+	writeData(next, path, value);
+};
+globalThis.parseURL = url => {
+	// For VUE SPA
+	if (url.match(/\/#[\w\W]*[\?\/]/)) {
+		url = url.replace(/\/#/, '/');
+		let match = url.match(/[\w\d\-_]+=[\w\d\-_\.\/]+/gi);
+		url = url.replace(/[#\?][\w\W]*$/, '');
+		if (!!match) {
+			match = match.map(item => {
+				item = item.split('=');
+				return item;
+			});
+			match.sort((a, b) => a[0] > b[0] ? 1 : (a[0] < b[0] ? -1 : 0));
+			match = match.map(item => item.join('/')).join('/');
+			url = url + '/' + match;
+			url = url.replace(/\/\/+/g, '/');
+		}
+	}
+	else {
+		url = url.replace(/[#\?][\w\W]*$/, '');
+	}
+	return url;
+};
+
+globalThis.newEle = (tag, ...classList) => {
+	var ele = document.createElement(tag);
+	classList.forEach(cls => ele.classList.add(cls));
+	return ele;
+};
+
+globalThis.calculateHash = async (content, algorithm='SHA-256') => {
+	const encoder = new TextEncoder();
+	const data = encoder.encode(content);
+
+	var buffer = await crypto.subtle.digest(algorithm, data);
+
+	const hashArray = Array.from(new Uint8Array(buffer));
+	const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+	return hashHex;
+};
+
+globalThis.calculateWordCount = (text) => {
+	var match = text.match(/(\p{L}+)/ug);
+	if (!match) return 0;
+	var countLatin = 0, countUnlatin = 0;
+	match.forEach(part => {
+		part = part.replace(/(\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|\p{Script=Thai}|\p{Script=Arabic})/gu, (m) => {
+			countUnlatin += m.length;
+			return ' ';
+		});
+		var match = part.match(/(\p{L}+)/ug) || [];
+		countLatin += match.length;
+	});
+	return {
+		total: countLatin + countUnlatin,
+		latin: countLatin,
+		unlatin: countUnlatin
+	};
+};
+globalThis.calculateByteSize = (obj) => {
+	obj = JSON.stringify(obj);
+	var size = new Blob([obj]).size;
+	return size;
+};
+globalThis.estimateTokenCount = (obj) => {
+	var wc = calculateWordCount(JSON.stringify(obj));
+	var bytes = calculateByteSize(obj);
+	return Math.min(wc.unlatin + wc.latin * 3, Math.ceil(bytes / 3));
+};
+
+/* Log Utils */
+
+globalThis.logger = {};
+logger.log = (tag, ...logs) => {
+	console.log(`%c[${tag}]`, "color: blue; font-weight: bolder; padding: 2px 5px; border-radius: 5px; background-color: rgb(250, 250, 250);", ...logs);
+};
+logger.info = (tag, ...logs) => {
+	console.info(`%c[${tag}]`, "color: green; font-weight: bolder; padding: 2px 5px; border-radius: 5px; background-color: rgb(250, 250, 250);", ...logs);
+};
+logger.warn = (tag, ...logs) => {
+	console.warn(`%c[${tag}]`, "color: magenta; font-weight: bolder; padding: 2px 5px; border-radius: 5px; background-color: rgb(250, 250, 250);", ...logs);
+};
+logger.error = (tag, ...logs) => {
+	console.error(`%c[${tag}]`, "color: red; font-weight: bolder; padding: 2px 5px; border-radius: 5px; background-color: rgb(250, 250, 250);", ...logs);
+};
+logger.em = (tag, ...logs) => {
+	console.log(`%c[${tag}]`, "background-color: blue; color: white; font-weight: bolder; padding: 2px 5px; border-radius: 5px; border: 1px solid white;", ...logs);
+};
+logger.strong = (tag, ...logs) => {
+	console.log(`%c[${tag}]`, "background-color: red; color: white; font-weight: bolder; padding: 2px 5px; border-radius: 5px; border: 1px solid white;", ...logs);
+};
+logger.blank = (tag, ...logs) => {
+	console.log(`%c[${tag}]`, "background-color: black; color: white; font-weight: bolder; padding: 2px 5px; border-radius: 5px; border: 1px solid white;", ...logs);
+};
+
+/* Type Tools */
+
+globalThis.AsyncFunction = (async function() {}).__proto__;
+globalThis.isArray = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === Array;
+globalThis.isString = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === String;
+globalThis.isNumber = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === Number;
+globalThis.isBoolean = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === Boolean;
+globalThis.isObject = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === Object;
+globalThis.isFunction = obj => obj !== null && obj !== undefined && !!obj.__proto__ && (obj.__proto__.constructor === Function || obj.__proto__.constructor === AsyncFunction);
+globalThis.isAsyncFunction = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === AsyncFunction;
+
+/* Auxillary Utils and Extends for DateTime */
+
+const WeekDayNames = {
+	enS: ['Sun', "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+	enL: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+	zhM: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
+	zhT: ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'],
+};
+
+const getLongString = (short, len=2, isLeft=true) => {
+	var long = short + '';
+	while (long.length < len) {
+		if (isLeft) long = '0' + long;
+		else long = long + '0';
+	}
+	return long;
+};
+const getInfoStrings = (info, type) => {
+	var short, long;
+
+	if (type === 'Y') {
+		long = info + '';
+		short = long.substring(2);
+	}
+	else if (type === 'ms') {
+		short = info + '';
+		long = getLongString(info, 3, false);
+	}
+	else {
+		short = info + '';
+		long = getLongString(info);
+	}
+
+	return [short, long];
+};
+globalThis.timestmp2str = (time, format) => {
+	if (isString(time) && !isString(format)) {
+		format = time;
+		time = null;
+	}
+	if (!isString(format)) format = "YYYY/MM/DD hh:mm:ss";
+
+	time = time || new Date();
+	if (isNumber(time)) time = new Date(time);
+
+	var [shortYear       , longYear       ] = getInfoStrings(time.getYear() + 1900, 'Y');
+	var [shortMonth      , longMonth      ] = getInfoStrings(time.getMonth() + 1, 'M');
+	var [shortDay        , longDay        ] = getInfoStrings(time.getDate(), 'D');
+	var [shortHour       , longHour       ] = getInfoStrings(time.getHours(), 'h');
+	var [shortMinute     , longMinute     ] = getInfoStrings(time.getMinutes(), 'm');
+	var [shortSecond     , longSecond     ] = getInfoStrings(time.getSeconds(), 's');
+	var [shortMilliSecond, longMilliSecond] = getInfoStrings(time.getMilliseconds(), 'ms');
+	var weekdayES = WeekDayNames.enS[time.getDay()];
+	var weekdayEL = WeekDayNames.enL[time.getDay()];
+	var weekdayZM = WeekDayNames.zhM[time.getDay()];
+	var weekdayZT = WeekDayNames.zhT[time.getDay()];
+
+	if (!!format.match(/YYYY+/)) {
+		format = format.replace(/YYYY+/g, longYear);
+	}
+	else if (!!format.match(/Y+/)) {
+		format = format.replace(/Y+/g, shortYear);
+	}
+	if (!!format.match(/MM+/)) {
+		format = format.replace(/MM+/g, longMonth);
+	}
+	else if (!!format.match(/M+/)) {
+		format = format.replace(/M+/g, shortMonth);
+	}
+	if (!!format.match(/DD+/)) {
+		format = format.replace(/DD+/g, longDay);
+	}
+	else if (!!format.match(/D+/)) {
+		format = format.replace(/D+/g, shortDay);
+	}
+	if (!!format.match(/hh+/)) {
+		format = format.replace(/hh+/g, longHour);
+	}
+	else if (!!format.match(/h+/)) {
+		format = format.replace(/h+/g, shortHour);
+	}
+	if (!!format.match(/mm+/)) {
+		format = format.replace(/mm+/g, longMinute);
+	}
+	else if (!!format.match(/m+/)) {
+		format = format.replace(/m+/g, shortMinute);
+	}
+	if (!!format.match(/ss+/)) {
+		format = format.replace(/ss+/g, longSecond);
+	}
+	else if (!!format.match(/s+/)) {
+		format = format.replace(/s+/g, shortSecond);
+	}
+	if (!!format.match(/xxx+/)) {
+		format = format.replace(/xxx+/g, longMilliSecond);
+	}
+	else if (!!format.match(/x+/)) {
+		format = format.replace(/x+/g, shortMilliSecond);
+	}
+
+	format = format.replace(/:wde:/g, weekdayES);
+	format = format.replace(/:WDE:/g, weekdayEL);
+	format = format.replace(/:wdz:/g, weekdayZM);
+	format = format.replace(/:WDZ:/g, weekdayZT);
+
+	return format;
+};

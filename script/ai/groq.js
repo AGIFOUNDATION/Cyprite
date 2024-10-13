@@ -1,1 +1,100 @@
-globalThis.AI=globalThis.AI||{},globalThis.AI.Groq={};let DefaultGroqChatModel=AI2Model.groq[0],assemblePayload=(e,t)=>{var a={model:e,messages:[]};return t.forEach(e=>{var t,o=e[1];"system"===e[0]?t="system":"human"===e[0]?t="user":"ai"===e[0]&&(t="assistant"),a.messages.push({role:t,content:o})}),a};AI.Groq.chat=async(r,s,e={})=>{for(var t=myInfo.apiKey.groq||"",o=Model2AI[s],t=Object.assign({},ModelDefaultConfig[o].header,(ModelDefaultConfig[s]||{}).header||{},{Authorization:"Bearer "+t}),i=assemblePayload(s,r),i=Object.assign({},ModelDefaultConfig[o].chat,(ModelDefaultConfig[s]||{}).chat||{},e||{},i),n={method:"POST",headers:t,body:JSON.stringify(i)},u=[],l={count:0,input:0,output:0},h=!0,o=Date.now(),c=0;;){let e;try{await requestRateLimitLock(s),updateRateLimitLock(s,!0),e=await waitUntil(fetchWithCheck("https://api.groq.com/openai/v1/chat/completions",n)),updateRateLimitLock(s,!1)}catch(e){throw updateRateLimitLock(s,!1),e}e=await e.json(),logger.info("Groq",e);var g=e.error?.message;if(g)throw new Error(g);let t=e.usage,o=((e.choices||[])[0]||{}).message?.content,a=((e.choices||[])[0]||{}).finish_reason;if(l.count++,t&&(l.input+=t.prompt_tokens,l.output+=t.completion_tokens),!o)throw o="",g="Error Occur!",logger.error("Groq",g),new Error(g);if(o=o.trim(),u.push(o),"length"!==a)break;if(h?(r.push(["ai",o]),r.push(["human",PromptLib.continueOutput]),h=!1):r[r.length-2][1]=u.join(" "),i.messages=assemblePayload(s,r).messages,n.body=JSON.stringify(i),++c>=ModelContinueRequestLoopLimit)break}return o=Date.now()-o,logger.info("Groq","Timespent: "+o/1e3+"s; Input: "+l.input+"; Output: "+l.output),recordAIUsage(s,"Groq",l),u.join(" ")};
+globalThis.AI = globalThis.AI || {};
+globalThis.AI.Groq = {};
+
+const DefaultGroqChatModel = AI2Model.groq[0];
+
+const assemblePayload = (model, conversation) => {
+	var payload = {
+		model,
+		messages: [],
+	};
+
+	conversation.forEach(item => {
+		var role, content = item[1];
+		if (item[0] === 'system') role = 'system';
+		else if (item[0] === 'human') role = 'user';
+		else if (item[0] === 'ai') role = 'assistant';
+		payload.messages.push({ role, content });
+	});
+	return payload;
+};
+
+AI.Groq.chat = async (conversation, model, options={}) => {
+	const apiKey = myInfo.apiKey.groq || '';
+	const AI = Model2AI[model];
+
+	// Assemble Conversation
+	var url = 'https://api.groq.com/openai/v1/chat/completions';
+	var header = Object.assign({}, ModelDefaultConfig[AI].header, (ModelDefaultConfig[model] || {}).header || {}, {
+		"Authorization": "Bearer " + apiKey
+	});
+	var payload = assemblePayload(model, conversation);
+	payload = Object.assign({}, ModelDefaultConfig[AI].chat, (ModelDefaultConfig[model] || {}).chat || {}, options || {}, payload);
+	var request = {
+		method: "POST",
+		headers: header,
+		body: JSON.stringify(payload)
+	};
+
+	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
+	while (true) {
+		let response;
+		try {
+			await requestRateLimitLock(model);
+			updateRateLimitLock(model, true);
+			response = await waitUntil(fetchWithCheck(url, request));
+			updateRateLimitLock(model, false);
+		}
+		catch (err) {
+			updateRateLimitLock(model, false);
+			throw err;
+		}
+
+		response = await response.json();
+		logger.info('Groq', response);
+
+		let error = response.error?.message;
+		if (!!error) throw new Error(error);
+
+		let usg = response.usage, reply = ((response.choices || [])[0] || {}).message?.content, reason = ((response.choices || [])[0] || {}).finish_reason;
+		usage.count ++;
+		if (!!usg) {
+			usage.input += usg.prompt_tokens;
+			usage.output += usg.completion_tokens
+		}
+		if (!reply) {
+			reply = "";
+			let errMsg = 'Error Occur!';
+			logger.error('Groq', errMsg);
+			throw new Error(errMsg);
+		}
+		else {
+			reply = reply.trim();
+			replies.push(reply);
+		}
+
+		if (reason !== 'length') {
+			break;
+		}
+		else {
+			if (isFirst) {
+				conversation.push(['ai', reply]);
+				conversation.push(['human', PromptLib.continueOutput]);
+				isFirst = false;
+			}
+			else {
+				conversation[conversation.length - 2][1] = replies.join(' ');
+			}
+			payload.messages = assemblePayload(model, conversation).messages;
+			request.body = JSON.stringify(payload);
+		}
+
+		loop ++;
+		if (loop >= ModelContinueRequestLoopLimit) break;
+	}
+	time = Date.now() - time;
+	logger.info('Groq', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
+	recordAIUsage(model, 'Groq', usage);
+
+	return replies.join(' ');
+};

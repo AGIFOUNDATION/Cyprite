@@ -1,1 +1,300 @@
-globalThis.AI=globalThis.AI||{},globalThis.AI.OpenAI={},globalThis.AI.MoonShot={},globalThis.AI.DeepSeek={},globalThis.AI.GLM={},globalThis.AI.MiniMax={},globalThis.AI.Mixtral={};let DefaultOpenAIChatModel=AI2Model.openai[0],DefaultOpenAIDrawModel="dall-e-3",DefaultMoonShotChatModel=AI2Model.moonshot[0],DefaultDeepSeekChatModel=AI2Model.deepseek[0],DefaultGLMChatModel=AI2Model.glm[0],DefaultGLMDrawModel="cogview-3-plus",DefaultMiniMaxChatModel=AI2Model.minimax[0],DefaultMixtralChatModel=AI2Model.mixtral[0],MoonShotSearchModel="moonshot-v1-auto",assembleMessages=(e,i=!0,s=!0)=>{var r=[];return e.forEach(e=>{var t,o=e[1],a=null,e=("system"===e[0]?s?t="system":(t="user",o=e[1]+"\n\nKeep in mind the above requirements and instructions.",a={role:"assistant",content:i?[{type:"text",text:"I remembered it."}]:"I remembered it."}):"human"===e[0]?t="user":"ai"===e[0]&&(t="assistant"),i?[{type:"text",text:o}]:o);r.push({role:t,content:e}),a&&r.push(a)}),r},assembleDataPack=(e,t,o)=>{var a=Model2AI[e],i=Object.assign({},ModelDefaultConfig[a].header,(ModelDefaultConfig[e]||{}).header||{}),a=Object.assign({},ModelDefaultConfig[a].chat,(ModelDefaultConfig[e]||{}).chat||{},t||{});return i.Authorization="Bearer "+o,a.model=e,[i,a]};AI.OpenAI.list=async()=>{var e,t={method:"GET",headers:{"Content-Type":"application/json",Authorization:"Bearer "+myInfo.apiKey.openai}},o=Date.now();try{e=await waitUntil(fetchWithCheck("https://api.openai.com/v1/models",t))}catch(e){throw e}return o=Date.now()-o,logger.info("OpenAI","List: "+o/1e3+"s"),e=(e=await e.json()).data||e},AI.OpenAI.chat=async(s,r=DefaultOpenAIChatModel,e={})=>{for(var n="o1-preview"===r||"o1-mini"===r,u=assembleMessages(s,!0,!n),[e,p]=assembleDataPack(r,e,myInfo.apiKey.openai),h=(p.messages=u,n&&(p.max_completion_tokens=p.max_tokens,delete p.max_tokens),{method:"POST",headers:e,body:JSON.stringify(p)}),c=[],l={count:0,input:0,output:0},m=!0,e=Date.now(),g=0;;){let t;try{await requestRateLimitLock(r),updateRateLimitLock(r,!0),t=await waitUntil(fetchWithCheck("https://api.openai.com/v1/chat/completions",h)),updateRateLimitLock(r,!1)}catch(e){throw updateRateLimitLock(r,!1),e}let e=await t.text();try{e.match(/^\s*b'\{[\w\W]+\}'\s*$/)&&(e=e.replace(/^\s*b'|'\s*$/g,"").replace(/\\n/g,"\n")),t=JSON.parse(e)}catch(e){logger.error("OpenAI",e),t={}}logger.info("OpenAI",t);var d=t.error;if(d&&d.message)throw new Error(d.message);let o=t.usage,a=t.choices,i=(l.count++,o&&(l.input+=o.prompt_tokens,l.output+=o.completion_tokens),"");if((a=a&&a[0])&&(i=a.finish_reason||"",a=a.message?.content),!a)throw a="",d=t.error?.message||"Error Occur!",logger.error("OpenAI",d),new Error(d);if(a=a.trim(),c.push(a),"length"!==i.toLowerCase())break;if(m?(s.push(["ai",a]),s.push(["human",PromptLib.continueOutput]),m=!1):s[s.length-2][1]=c.join(" "),u=assembleMessages(s,!0,!n),p.messages=u,h.body=JSON.stringify(p),++g>=ModelContinueRequestLoopLimit)break}return e=Date.now()-e,logger.info("OpenAI","Timespent: "+e/1e3+"s; Input: "+l.input+"; Output: "+l.output),recordAIUsage(r,"OpenAI",l),c.join(" ")},AI.OpenAI.draw=async(e,t=DefaultOpenAIDrawModel,o={})=>{t={model:t,prompt:e,n:o.n||1,quality:o.quality||"standard",size:o.size||"1024x1024",style:o.style||"vivid"},e={method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+myInfo.apiKey.openai},body:JSON.stringify(t)},o=Date.now();try{a=await waitUntil(fetchWithCheck("https://api.openai.com/v1/images/generations",e))}catch(e){throw e}o=Date.now()-o,logger.info("OpenAI","Chat: "+o/1e3+"s");var a,t=a=await a.json(),e=a.data;if(e)return e=e.map(e=>e.url);throw o=t.error?.message||"Error Occur!",logger.error("OpenAI",o),new Error(o)},AI.MoonShot.list=async()=>{var e,t={method:"GET",headers:{"Content-Type":"application/json",Authorization:"Bearer "+myInfo.apiKey.moonshot}},o=Date.now();try{e=await waitUntil(fetchWithCheck("https://api.moonshot.cn/v1/models",t))}catch(e){throw e}return o=Date.now()-o,logger.info("MoonShot","List: "+o/1e3+"s"),e=(e=await e.json()).data||e},AI.MoonShot.chat=async(a,i=DefaultMoonShotChatModel,e={})=>{for(var s=assembleMessages(a,!1),[e,r]=assembleDataPack(i,e,myInfo.apiKey.moonshot),n=(r.messages=s,{method:"POST",headers:e,body:JSON.stringify(r)}),u=[],p={count:0,input:0,output:0},h=!0,e=Date.now(),c=0;;){let e;try{await requestRateLimitLock(i),updateRateLimitLock(i,!0),e=await waitUntil(fetchWithCheck("https://api.moonshot.cn/v1/chat/completions",n)),updateRateLimitLock(i,!1)}catch(e){throw updateRateLimitLock(i,!1),e}e=await e.json(),logger.info("MoonShot",e);var l=e.error;if(l&&l.message)throw new Error(l.message);let t=e.usage,o=e.choices;p.count++,t&&(p.input+=t.prompt_tokens,p.output+=t.completion_tokens);var m,l=(o=o&&o[0]).finish_reason||"";if(!(o=o&&o.message?.content))throw o="",m=e.error?.message||"Error Occur!",logger.error("MoonShot",m),new Error(m);if(o=o.trim(),u.push(o),"length"!==l.toLowerCase())break;if(h?(a.push(["ai",o]),a.push(["human",PromptLib.continueOutput]),h=!1):a[a.length-2][1]=u.join(" "),s=assembleMessages(a,!1),r.messages=s,n.body=JSON.stringify(r),++c>=ModelContinueRequestLoopLimit)break}return e=Date.now()-e,logger.info("MoonShot","Timespent: "+e/1e3+"s; Input: "+p.input+"; Output: "+p.output),recordAIUsage(i,"MoonShot",p),u.join(" ")},AI.MoonShot.search=async(e,t={})=>{var o,a=MoonShotSearchModel,[t,i]=assembleDataPack(a,t,myInfo.apiKey.moonshot),e=[["human","Please search the entire web for all webpages related to the following question/task/topic and list them in an unordered Markdown format:\n\n"+e]],e=assembleMessages(e,!1),e=(i.temperature=.3,i.messages=e,i.tools=[{type:"builtin_function",function:{name:"$web_search"}}],{method:"POST",headers:t,body:JSON.stringify(i)}),s="https://api.moonshot.cn/v1/chat/completions",r={count:0,input:0,output:0},n=Date.now();try{await requestRateLimitLock(a),updateRateLimitLock(a,!0),o=await waitUntil(fetchWithCheck(s,e)),updateRateLimitLock(a,!1)}catch(e){throw updateRateLimitLock(a,!1),e}o=await o.json(),logger.info("MoonShot[Search]",o);var u=o.error;if(u&&u.message)throw new Error(u.message);var p=o.usage,h=o.choices;if(r.count++,p&&(r.input+=p.prompt_tokens,r.output+=p.completion_tokens),h&&"tool_calls"===((h=h[0]).finish_reason||"")&&((h=h&&h.message)&&(i.messages.push(h),h=h.tool_calls),h=(h=h&&h[0])&&{tool_call_id:h.id,name:h.function.name,content:h.function.arguments}),recordAIUsage("moonshot-web-search","MoonShot",r),!h)return n=Date.now()-n,logger.info("MoonShot[Search]","Timespent: "+n/1e3+"s; Input: "+r.input+"; Output: "+r.output),[];h.role="tool",i.messages.push(h),e={method:"POST",headers:t,body:JSON.stringify(i)},r={count:0,input:0,output:0};try{await requestRateLimitLock(a),updateRateLimitLock(a,!0),o=await waitUntil(fetchWithCheck(s,e)),updateRateLimitLock(a,!1)}catch(e){throw updateRateLimitLock(a,!1),e}if(o=await o.json(),logger.info("MoonShot[Search]",o),(u=o.error)&&u.message)throw new Error(u.message);return p=o.usage,r.count++,p&&(r.input+=p.prompt_tokens,r.output+=p.completion_tokens),h=(h=(h=o.choices)&&"stop"===((h=h[0]).finish_reason||"")?(h=(h=h&&h.message)&&h.content)&&(h=h.replace(/[\n\r]+/g,"\n").split("\n")).map(e=>{if(e=e.match(/\[([^\]]+)\]\s*\(([^\)]+)\)/i))return{title:e[1],url:e[2]}}).filter(e=>!!e):h)||[],n=Date.now()-n,logger.info("MoonShot[Search]","Timespent: "+n/1e3+"s; Input: "+r.input+"; Output: "+r.output),recordAIUsage("moonshot-web-search","MoonShot",r),h},AI.DeepSeek.list=async()=>{var e,t={method:"GET",headers:{"Content-Type":"application/json",Accept:"application/json",Authorization:"Bearer "+myInfo.apiKey.deepseek}},o=Date.now();try{e=await waitUntil(fetchWithCheck("https://api.deepseek.com/models",t))}catch(e){throw e}return o=Date.now()-o,logger.info("DeepSeek","List: "+o/1e3+"s"),e=(e=await e.json()).data||e},AI.DeepSeek.chat=async(a,i=DefaultDeepSeekChatModel,e={})=>{for(var s=assembleMessages(a,!1),[e,r]=assembleDataPack(i,e,myInfo.apiKey.deepseek),n=(r.messages=s,{method:"POST",headers:e,body:JSON.stringify(r)}),u=[],p={count:0,input:0,output:0},h=!0,e=Date.now(),c=0;;){let e;try{await requestRateLimitLock(i),updateRateLimitLock(i,!0),e=await waitUntil(fetchWithCheck("https://api.deepseek.com/beta/chat/completions",n)),updateRateLimitLock(i,!1)}catch(e){throw updateRateLimitLock(i,!1),e}e=await e.json(),logger.info("DeepSeek",e);var l=e.error;if(l&&l.message)throw new Error(l.message);let t=e.usage,o=e.choices;p.count++,t&&(p.input+=t.prompt_tokens,p.output+=t.completion_tokens);var m,l=(o=o&&o[0]).finish_reason||"";if(!(o=o&&o.message?.content))throw o="",m=e.error?.message||"Error Occur!",logger.error("DeepSeek",m),new Error(m);if(o=o.trim(),u.push(o),"length"!==l.toLowerCase())break;if(h?(a.push(["ai",o]),a.push(["human",PromptLib.continueOutput]),h=!1):a[a.length-2][1]=u.join(" "),s=assembleMessages(a,!1),r.messages=s,n.body=JSON.stringify(r),++c>=ModelContinueRequestLoopLimit)break}return e=Date.now()-e,logger.info("DeepSeek","Timespent: "+e/1e3+"s; Input: "+p.input+"; Output: "+p.output),recordAIUsage(i,"DeepSeek",p),u.join(" ")},AI.GLM.chat=async(a,i=DefaultGLMChatModel,e={})=>{for(var s=assembleMessages(a,!1),t=JWSgenerate(myInfo.apiKey.glm,31536e3),[e,r]=assembleDataPack(i,e,t),n=(r.messages=s,{method:"POST",headers:e,body:JSON.stringify(r)}),u=[],p={count:0,input:0,output:0},h=!0,t=Date.now(),c=0;;){let e;try{await requestRateLimitLock(i),updateRateLimitLock(i,!0),e=await waitUntil(fetchWithCheck("https://open.bigmodel.cn/api/paas/v4/chat/completions",n)),updateRateLimitLock(i,!1)}catch(e){throw updateRateLimitLock(i,!1),e}e=await e.json(),logger.info("GLM",e);var l=e.error;if(l&&l.message)throw new Error(l.message);let t=e.usage,o=e.choices;p.count++,t&&(p.input+=t.prompt_tokens,p.output+=t.completion_tokens);var m,l=(o=o&&o[0]).finish_reason||"";if(!(o=o&&o.message?.content))throw o="",m=e.error?.message||"Error Occur!",logger.error("GLM",m),new Error(m);if(o=o.trim(),u.push(o),"length"!==l.toLowerCase())break;if(h?(a.push(["ai",o]),a.push(["human",PromptLib.continueOutput]),h=!1):a[a.length-2][1]=u.join(" "),s=assembleMessages(a,!1),r.messages=s,n.body=JSON.stringify(r),++c>=ModelContinueRequestLoopLimit)break}return t=Date.now()-t,logger.info("GLM","Timespent: "+t/1e3+"s; Input: "+p.input+"; Output: "+p.output),recordAIUsage(i,"GLM",p),u.join(" ")},AI.GLM.search=async(e,t={})=>{var o,a="glm-web-search-pro",i=JWSgenerate(myInfo.apiKey.glm,31536e3),[t,,]=assembleDataPack(a,t,i),i={method:"POST",headers:t,body:JSON.stringify({tool:"web-search-pro",messages:[{role:"user",content:e}],stream:!1})},s=[],t={count:0,input:0,output:0},e=Date.now();try{await requestRateLimitLock(a),updateRateLimitLock(a,!0),o=await waitUntil(fetchWithCheck("https://open.bigmodel.cn/api/paas/v4/tools",i)),updateRateLimitLock(a,!1)}catch(e){throw updateRateLimitLock(a,!1),e}o=await o.json(),logger.info("GLM[Search]",o);i=o.error;if(i&&i.message)throw new Error(i.message);let r=o.usage,n=o.choices;return t.count++,r&&(t.input+=r.prompt_tokens,t.output+=r.completion_tokens),n&&("stop"!==(i=(n=n[0]).finish_reason||"")?logger.error("GLM[Search]",i):(n=n&&n.message?.tool_calls)&&n.forEach(e=>{e.search_result&&e.search_result.length&&e.search_result.forEach(e=>{s.push({url:e.link,title:e.title,summary:e.content})})})),e=Date.now()-e,logger.info("GLM[Search]","Timespent: "+e/1e3+"s; Input: "+t.input+"; Output: "+t.output),recordAIUsage(a,"GLM",t),s},AI.GLM.draw=async(e,t=DefaultGLMDrawModel,o={})=>{t={model:t,prompt:e,n:o.n||1,quality:o.quality||"standard",size:o.size||"1024x1024",style:o.style||"vivid"},e={method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+JWSgenerate(myInfo.apiKey.glm,31536e3)},body:JSON.stringify(t)},o=Date.now();try{a=await waitUntil(fetchWithCheck("https://open.bigmodel.cn/api/paas/v4/images/generations",e))}catch(e){throw e}o=Date.now()-o,logger.info("GLM","Chat: "+o/1e3+"s");var a,t=a=await a.json(),e=a.data;if(e)return e=e.map(e=>e.url);throw o=t.error?.message||"Error Occur!",logger.error("GLM",o),new Error(o)},AI.MiniMax.chat=async(i,s=DefaultMiniMaxChatModel,e={})=>{for(var r=assembleMessages(i,!1),[e,n]=assembleDataPack(s,e,myInfo.apiKey.minimax),u=(n.messages=r,{method:"POST",headers:e,body:JSON.stringify(n)}),p=[],h={count:0,input:0,output:0},c=!0,e=Date.now(),l=0;;){let e;try{await requestRateLimitLock(s),updateRateLimitLock(s,!0),e=await waitUntil(fetchWithCheck("https://api.minimax.chat/v1/text/chatcompletion_v2",u)),updateRateLimitLock(s,!1)}catch(e){throw updateRateLimitLock(s,!1),e}e=await e.json(),logger.info("MiniMax",e);var m=e.error;if(m&&m.message)throw new Error(m.message);let t=e.usage,o=e.choices,a=(h.count++,t&&(h.output+=t.total_tokens),"");if((o=o&&o[0])&&(o=o.message?.content,a=o.finish_reason||""),!o)throw o="",m=e.base_resp?.status_msg||"Error Occur!",logger.error("MiniMax",m),new Error(m);if(o=o.trim(),p.push(o),"length"!==a.toLowerCase())break;if(c?(i.push(["ai",o]),i.push(["human",PromptLib.continueOutput]),c=!1):i[i.length-2][1]=p.join(" "),r=assembleMessages(i,!1),n.messages=r,u.body=JSON.stringify(n),++l>=ModelContinueRequestLoopLimit)break}return e=Date.now()-e,logger.info("MiniMax","Timespent: "+e/1e3+"s; Input: "+h.input+"; Output: "+h.output),recordAIUsage(s,"MiniMax",h),p.join(" ")},AI.Mixtral.chat=async(i,s=DefaultMixtralChatModel,e={})=>{for(var r=assembleMessages(i,!1),[e,n]=assembleDataPack(s,e,myInfo.apiKey.mixtral),u=(n.messages=r,{method:"POST",headers:e,body:JSON.stringify(n)}),p=[],h={count:0,input:0,output:0},c=!0,e=Date.now(),l=0;;){let e;try{await requestRateLimitLock(s),updateRateLimitLock(s,!0),e=await waitUntil(fetchWithCheck("https://api.mistral.ai/v1/chat/completions",u)),updateRateLimitLock(s,!1)}catch(e){throw updateRateLimitLock(s,!1),e}e=await e.json(),logger.info("Mixtral",e);var m=e.detail;if(m&&m[0]&&m[0].msg)throw new Error(m[0].msg);let t=e.usage,o=e.choices,a=(h.count++,t&&(h.input+=t.prompt_tokens,h.output+=t.completion_tokens),"");if((o=o&&o[0])&&(o=o.message?.content,a=o.finish_reason||""),!o)throw o="",m=m||"Error Occur!",logger.error("Mixtral",m),new Error(m);if(o=o.trim(),p.push(o),"length"!==a.toLowerCase())break;if(c?(i.push(["ai",o]),i.push(["human",PromptLib.continueOutput]),c=!1):i[i.length-2][1]=p.join(" "),r=assembleMessages(i,!1),n.messages=r,u.body=JSON.stringify(n),++l>=ModelContinueRequestLoopLimit)break}return e=Date.now()-e,logger.info("Mixtral","Timespent: "+e/1e3+"s; Input: "+h.input+"; Output: "+h.output),recordAIUsage(s,"Mixtral",h),p.join(" ")};
+globalThis.AI = globalThis.AI || {};
+globalThis.AI.OpenAI = {};
+globalThis.AI.Mixtral = {};
+
+const DefaultOpenAIChatModel = AI2Model.openai[0];
+const DefaultOpenAIDrawModel = 'dall-e-3';
+const DefaultMixtralChatModel = AI2Model.mixtral[0];
+
+const assembleMessages = (conversation, full=true, useSP=true) => {
+	var messages = [];
+	conversation.forEach(item => {
+		var role, prompt = item[1], extra = null;
+		if (item[0] === 'system') {
+			if (useSP) {
+				role = 'system';
+			}
+			else {
+				role = 'user';
+				prompt = item[1] + '\n\nKeep in mind the above requirements and instructions.';
+				extra = {
+					role: 'assistant',
+					content: full ? [{
+						type: 'text',
+						text: 'I remembered it.'
+					}] : 'I remembered it.'
+				};
+			}
+		}
+		else if (item[0] === 'human') role = 'user';
+		else if (item[0] === 'ai') role = 'assistant';
+		var content = full ? [{
+			type: "text",
+			text: prompt
+		}] : prompt;
+		messages.push({
+			role,
+			content
+		});
+		if (extra) {
+			messages.push(extra);
+		}
+	});
+	return messages;
+};
+const assembleDataPack = (model, options, key) => {
+	var AI = Model2AI[model];
+
+	var header = Object.assign({}, ModelDefaultConfig[AI].header, (ModelDefaultConfig[model] || {}).header || {});
+	var data = Object.assign({}, ModelDefaultConfig[AI].chat, (ModelDefaultConfig[model] || {}).chat || {}, options || {});
+
+	header.Authorization = 'Bearer ' + key;
+
+	data.model = model;
+
+	return [header, data];
+};
+
+AI.OpenAI.list = async () => {
+	var request = {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
+			"Authorization": 'Bearer ' + myInfo.apiKey.openai
+		},
+	};
+	var url = 'https://api.openai.com/v1/models';
+
+	var response, time = Date.now();
+	try {
+		response = await waitUntil(fetchWithCheck(url, request));
+	}
+	catch (err) {
+		throw err;
+	}
+	time = Date.now() - time;
+	logger.info('OpenAI', 'List: ' + (time / 1000) + 's');
+
+	response = await response.json();
+	response = response.data || response;
+	return response;
+};
+AI.OpenAI.chat = async (conversation, model=DefaultOpenAIChatModel, options={}) => {
+	var isO1Preview = model === 'o1-preview' || model === 'o1-mini';
+	var messages = assembleMessages(conversation, true, !isO1Preview);
+	var [header, data] = assembleDataPack(model, options, myInfo.apiKey.openai);
+	data.messages = messages;
+	if (isO1Preview) {
+		data.max_completion_tokens = data.max_tokens;
+		delete data.max_tokens;
+	}
+
+	var request = {
+		method: "POST",
+		headers: header,
+		body: JSON.stringify(data),
+	};
+	var url = "https://api.openai.com/v1/chat/completions";
+
+	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
+	while (true) {
+		let response;
+		try {
+			await requestRateLimitLock(model);
+			updateRateLimitLock(model, true);
+			response = await waitUntil(fetchWithCheck(url, request));
+			updateRateLimitLock(model, false);
+		}
+		catch (err) {
+			updateRateLimitLock(model, false);
+			throw err;
+		}
+
+		let text = await response.text();
+		// Occasionally, abnormal JSON structures may appear in OpenAI's returned data, requiring additional processing.
+		try {
+			let inner = text.match(/^\s*b'\{[\w\W]+\}'\s*$/);
+			if (!!inner) {
+				text = text.replace(/^\s*b'|'\s*$/g, '').replace(/\\n/g, '\n');
+			}
+			response = JSON.parse(text);
+		}
+		catch (err) {
+			logger.error('OpenAI', err);
+			response = {};
+		}
+		logger.info('OpenAI', response);
+
+		let error = response.error;
+		if (!!error && !!error.message) throw new Error(error.message);
+
+		let usg = response.usage, reply = response.choices;
+		usage.count ++;
+		if (!!usg) {
+			usage.input += usg.prompt_tokens;
+			usage.output += usg.completion_tokens
+		}
+		if (!!reply) reply = reply[0];
+		let reason = '';
+		if (!!reply) {
+			reason = reply.finish_reason || '';
+			reply = reply.message?.content;
+		}
+		if (!reply) {
+			reply = "";
+			let errMsg = response.error?.message || 'Error Occur!';
+			logger.error('OpenAI', errMsg);
+			throw new Error(errMsg);
+		}
+		else {
+			reply = reply.trim();
+			replies.push(reply);
+		}
+
+		if (reason.toLowerCase() !== 'length') {
+			break;
+		}
+		else {
+			if (isFirst) {
+				conversation.push(['ai', reply]);
+				conversation.push(['human', PromptLib.continueOutput]);
+				isFirst = false;
+			}
+			else {
+				conversation[conversation.length - 2][1] = replies.join(' ');
+			}
+			messages = assembleMessages(conversation, true, !isO1Preview);
+			data.messages = messages;
+			request.body = JSON.stringify(data);
+		}
+
+		loop ++;
+		if (loop >= ModelContinueRequestLoopLimit) break;
+	}
+	time = Date.now() - time;
+	logger.info('OpenAI', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
+	recordAIUsage(model, 'OpenAI', usage);
+
+	return replies.join(' ');
+};
+AI.OpenAI.draw = async (prompt, model=DefaultOpenAIDrawModel, options={}) => {
+	var data = {
+		model,
+		prompt,
+		n: options.n || 1,
+		quality: options.quality || 'standard', // standard or hd
+		size: options.size || "1024x1024",
+		style: options.style || 'vivid', // vivid or natural
+	};
+	var request = {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"Authorization": 'Bearer ' + myInfo.apiKey.openai
+		},
+		body: JSON.stringify(data),
+	};
+	var url = "https://api.openai.com/v1/images/generations";
+
+	var response, time = Date.now();
+	try {
+		response = await waitUntil(fetchWithCheck(url, request));
+	}
+	catch (err) {
+		throw err;
+	}
+	time = Date.now() - time;
+	logger.info('OpenAI', 'Chat: ' + (time / 1000) + 's');
+
+	response = await response.json();
+	var json = response;
+	var reply = response.data;
+	if (!reply) {
+		let errMsg = json.error?.message || 'Error Occur!';
+		logger.error('OpenAI', errMsg);
+		throw new Error(errMsg);
+	}
+	reply = reply.map(item => item.url);
+	return reply;
+};
+
+AI.Mixtral.chat = async (conversation, model=DefaultMixtralChatModel, options={}) => {
+	var messages = assembleMessages(conversation, false);
+	var [header, data] = assembleDataPack(model, options, myInfo.apiKey.mixtral);
+	data.messages = messages;
+
+	var request = {
+		method: "POST",
+		headers: header,
+		body: JSON.stringify(data),
+	};
+	var url = 'https://api.mistral.ai/v1/chat/completions';
+
+	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
+	while (true) {
+		let response;
+		try {
+			await requestRateLimitLock(model);
+			updateRateLimitLock(model, true);
+			response = await waitUntil(fetchWithCheck(url, request));
+			updateRateLimitLock(model, false);
+		}
+		catch (err) {
+			updateRateLimitLock(model, false);
+			throw err;
+		}
+		response = await response.json();
+		logger.info('Mixtral', response);
+
+		let error = response.detail;
+		if (!!error && !!error[0] && !!error[0].msg) throw new Error(error[0].msg);
+
+		let usg = response.usage, reply = response.choices;
+		usage.count ++;
+		if (!!usg) {
+			usage.input += usg.prompt_tokens;
+			usage.output += usg.completion_tokens;
+		}
+		if (!!reply) reply = reply[0];
+		let reason = '';
+		if (!!reply) {
+			reply = reply.message?.content;
+			reason = reply.finish_reason || '';
+		}
+		if (!reply) {
+			reply = "";
+			let errMsg = error || 'Error Occur!';
+			logger.error('Mixtral', errMsg);
+			throw new Error(errMsg);
+		}
+		else {
+			reply = reply.trim();
+			replies.push(reply);
+		}
+
+		if (reason.toLowerCase() !== 'length') {
+			break;
+		}
+		else {
+			if (isFirst) {
+				conversation.push(['ai', reply]);
+				conversation.push(['human', PromptLib.continueOutput]);
+				isFirst = false;
+			}
+			else {
+				conversation[conversation.length - 2][1] = replies.join(' ');
+			}
+			messages = assembleMessages(conversation, false);
+			data.messages = messages;
+			request.body = JSON.stringify(data);
+		}
+
+		loop ++;
+		if (loop >= ModelContinueRequestLoopLimit) break;
+	}
+	time = Date.now() - time;
+	logger.info('Mixtral', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
+	recordAIUsage(model, 'Mixtral', usage);
+
+	return replies.join(' ');
+};

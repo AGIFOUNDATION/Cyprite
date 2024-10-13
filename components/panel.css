@@ -382,12 +382,19 @@ body.showCypriteAccess .cyprite_access {
 	padding: 5px;
 	text-align: justify !important;
 	color: var(--back-color) !important;
-	font-size: 14px;
+	font-size: 14px !important;
+	line-height: 1.5em !important;
 	outline: none;
 }
 .panel_container .input_container .input_area[contentEditable="false"] {
 	color: rgb(157, 157, 157) !important;
 	user-select: none;
+}
+.panel_container .input_container .input_area div {
+	text-align: justify !important;
+	color: var(--back-color) !important;
+	font-size: 14px !important;
+	line-height: 1.5em !important;
 }
 .panel_container .input_sender {
 	position: absolute;

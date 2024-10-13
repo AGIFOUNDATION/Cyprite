@@ -1,1 +1,2242 @@
-import"./components/jsrsasign.all.min.js";import"./script/i18n.js";import"./script/ai/config.js";import"./script/common.js";import"./script/cachedDB.js";import"./script/ai.js";let UtilList={notification:{js:["/components/notification.js"],css:["/components/notification.css","/components/mention.css"]},panel:{js:["/components/marked.min.js","/pages/inner.js"],css:["/components/panel.css"]}},SimilarLimit=20,updateAIModelList=(globalThis.myInfo={inited:!1,useLocalKV:!0,apiKey:"",lang:DefaultLang,name:"主人",info:"(Not set yet)",model:ModelList[0]},()=>{var e,a=!1;for(e in ModelList.splice(0),myInfo.apiKey)myInfo.apiKey[e]&&(a=!0,AI2Model[e])&&ModelList.push(...AI2Model[e]);myInfo.edgeAvailable=a}),callLLMOneByOne=(globalThis.getWSConfig=async()=>{var[e,a]=await Promise.all([chrome.storage.local.get(["wsHost","apiKey","AImodel"]),chrome.storage.sync.get(["name","info","lang"])]),t=(logger.em("EXT","Config Loaded"),[]);return myInfo.inited=!0,myInfo.name=a.name||myInfo.name,myInfo.info=a.info||myInfo.info,myInfo.lang=a.lang,myInfo.lang&&(myInfo.lang=myInfo.lang.toLowerCase(),i18nList.includes(myInfo.lang))||(myInfo.lang=DefaultLang),myInfo.lang!==a.lang&&t.push(chrome.storage.sync.set({lang:myInfo.lang})),myInfo.apiKey=e.apiKey||{},isString(myInfo.apiKey)&&(a={},myInfo.apiKey&&(a.gemini=myInfo.apiKey),myInfo.apiKey=a,t.push(chrome.storage.local.set({apiKey:myInfo.apiKey}))),myInfo.useLocalKV=!ForceBackend&&!e.wsHost,myInfo.model=e.AImodel||myInfo.model||ModelList[0],updateAIModelList(),logger.em("EXT",myInfo),0<t.length&&await Promise.all(t),e.wsHost},async(e,a,t=!0,n="CallAI")=>{var i,r;for(r of e){var s=Date.now();try{i=await callAIandWait("directAskAI",{conversation:a,model:r})}catch(e){i=null,logger.error(n+": "+r,e);continue}s=Date.now()-s,logger.info(n,r+" : "+s+"ms"),t&&(i=parseReplyAsXMLToJSON(i));break}return i}),DBs={},initDB=async()=>{let e=new CachedDB("PageInfos",1);e.onUpdate(()=>{e.open("tabInfo","tid"),e.open("pageInfo","url"),e.open("notifyChecker","url"),e.open("pageConversation","url"),logger.info("DB","Updated")}),e.onConnect(()=>{globalThis.dbPageInfos=e,logger.info("DB","Connected")}),await e.connect(),DBs.pageInfo=e},gotoUniquePage=(globalThis.DefaultSendMessage||(globalThis.DefaultSendMessage=()=>{}),globalThis.sendMessage||(globalThis.sendMessage=DefaultSendMessage),async e=>{console.log(">>>>>>>>>>>>>>>>    1",e);var a=(a=await chrome.tabs.query({url:e}))&&a[0];return console.log(">>>>>>>>>>>>>>>>    2",a),a?(console.log(">>>>>>>>>>>>>>>>    4"),await chrome.tabs.update(a.id,{active:!0,highlighted:!0})):(console.log(">>>>>>>>>>>>>>>>    3"),a=await chrome.tabs.create({url:e})),a}),configureCyberButler=()=>{gotoUniquePage(chrome.runtime.getURL("pages/config.html"))},showSystemNotification=(globalThis.checkAvailability=async()=>{myInfo.inited||await getWSConfig();var e=!0;return(e=myInfo.useLocalKV?myInfo.edgeAvailable:!!await getWSConfig())||configureCyberButler(),e},e=>{var a=I18NMessages[myInfo.lang]||I18NMessages[DefaultLang];isString(e)||(e=e.message||e.msg||e.data||e.toString()),chrome.notifications.create({title:a.cypriteName,message:e,type:"basic",iconUrl:"/images/cyprite.png"})}),isPageForbidden=(chrome.runtime.onInstalled.addListener(async()=>{var e,a,t=(await chrome.storage.sync.get("lang")).lang||DefaultLang,t=(I18NMessages[t]||I18NMessages[DefaultLang]).contextMenus,t=(chrome.contextMenus.create({id:"launchCyprite",title:t.launch,contexts:["all"]}),chrome.contextMenus.create({id:"translateSelection",title:t.translate,contexts:["selection"]}),chrome.contextMenus.create({id:"autoWrite",title:t.autoWrite,contexts:["editable"],enabled:!1}),chrome.runtime.getManifest().content_scripts);for(e of t)for(a of await chrome.tabs.query({url:e.matches}))if(!a.url.match(/^chrome/i))try{await chrome.scripting.executeScript({files:e.js,target:{tabId:a.id,allFrames:e.all_frames},injectImmediately:"document_start"===e.run_at})}catch{}}),chrome.storage.local.onChanged.addListener(e=>{e.AImodel?.newValue&&(myInfo.model=e.AImodel.newValue)}),chrome.storage.sync.onChanged.addListener(e=>{e.lang?.newValue&&(e=e.lang.newValue||myInfo.lang,e=(I18NMessages[e]||I18NMessages[DefaultLang]).contextMenus,chrome.contextMenus.update("launchCyprite",{title:e.launch}),chrome.contextMenus.update("translateSelection",{title:e.translate}),chrome.contextMenus.update("autoWrite",{title:e.autoWrite}))}),e=>!e||0===e.indexOf("chrome://")),onPageActivityChanged=async(a,t)=>{if(a){var n=await getTabInfo(a);if(n.active){if("show"===t)return}else if("hide"===t)return;try{i=await chrome.tabs.get(a)}catch{i=null}if(!i){if(await delTabInfo(a),"close"!==t)return;i={}}var{title:i,url:r,active:e}=i,s=Date.now();if(["open","show","active","update","loaded"].includes(t))if(e)if(isPageForbidden(r))await inactivePage(n,s,!0);else{let e="open"===t;r!==n.url&&(e=!0,await inactivePage(n,s,!0)),n.active&&"open"!==t||(n.open=s),n.title||(n.title=i),n.active=!0,n.url=r,e&&n.isArticle&&!n.requested&&(n.requested=!0,dispatchEvent({event:"requestCypriteNotify",target:"FrontEnd",tid:a})),await setTabInfo(a,n)}else await inactivePage(n,s);else["hide","idle"].includes(t)?await inactivePage(n,s):"close"===t&&(await inactivePage(n,s,!0),await delTabInfo(a))}},inactivePage=async(e,a,t=!1)=>{var n=!!e.url;0<e.open?e.duration+=a-e.open:n=!1,e.open=-1,e.active=!1,n&&await onPageDurationUpdated(t,e.url,e.duration,e.title),t&&(e.duration=0)},onPageDurationUpdated=async(e,a,t,n)=>{logger.log("PageActivity","Save Data: "+a),await savePageActivities(a,t,n,e);try{sendMessage("SavePageActivity",{url:a,duration:t,title:n,closed:e},"BackEnd")}catch{}},savePageActivities=async(e,a,t,n)=>{var i=await getPageInfo(e);i.reading=!n,i.title||(i.title=t),i.viewed++,i.totalDuration+=a,i.currentDuration=a,i.timestamp=timestmp2str("YYYY/MM/DD hh:mm:ss :WDE:"),console.log(i),await setPageInfo(e,i)},getPageInfo=async e=>{if(e.match(/^chrome/i))return{totalDuration:0,viewed:0};e=parseURL(e);var a=TabInfo[e];return a||(DBs.pageInfo||await initDB(),a=await DBs.pageInfo.get("pageInfo",e),logger.log("DB","Get Page Info: "+e),a=a||{totalDuration:0,viewed:0}),a},setPageInfo=async(e,a,t=!1)=>{e.match(/^chrome/i)||(a.url=e,e=parseURL(e),DBs.tmrPageInfos&&clearTimeout(DBs.tmrPageInfos),t?(delete DBs.tmrPageInfos,DBs.pageInfo||await initDB(),await DBs.pageInfo.set("pageInfo",e,a),logger.log("DB","Set Page Info: "+e)):DBs.tmrPageInfos=setTimeout(async()=>{delete DBs.tmrPageInfos,DBs.pageInfo||await initDB(),await DBs.pageInfo.set("pageInfo",e,a),logger.log("DB","Set Page Info: "+e)},200))},delPageInfo=async(e,a=!1)=>{var t=parseURL(e);DBs.tmrPageInfos&&clearTimeout(DBs.tmrPageInfos),a?(delete DBs.tmrPageInfos,delete TabInfo[t],DBs.pageInfo||await initDB(),await DBs.pageInfo.del("pageInfo",t),logger.log("DB","Del Page Info: "+t)):DBs.tmrPageInfos=setTimeout(async()=>{delPageInfo(e,!0)},200)},getTabInfo=async e=>{var a=TabInfo[e];return a||(DBs.pageInfo||await initDB(),DBs.pageInfo&&(a=await DBs.pageInfo.get("tabInfo","T-"+e),logger.log("DB","Get TabInfo: "+e)),a=a||{active:!1,duration:0,open:-1}),a},setTabInfo=async(e,a)=>{TabInfo[e]=a,DBs.tmrTabInfos&&clearTimeout(DBs.tmrTabInfos),DBs.tmrTabInfos=setTimeout(async()=>{delete DBs.tmrTabInfos,DBs.pageInfo||await initDB(),await DBs.pageInfo.set("tabInfo","T-"+e,a),logger.log("DB","Set TabInfo: "+e)},200)},delTabInfo=async e=>{for(var a in delete TabInfo[e],DBs.tmrTabInfos&&(clearTimeout(DBs.tmrTabInfos),delete DBs.tmrTabInfos),DBs.pageInfo||await initDB(),await DBs.pageInfo.all("tabInfo")){var t=a.replace(/^T\-/,"");try{await chrome.tabs.get(+t)}catch{await DBs.pageInfo.del("tabInfo",a),logger.log("DB","Del TabInfo: "+t)}}},TabInfo={};var LastActiveTab=null;let TabPorts=new Map;chrome.tabs.onActivated.addListener(e=>{LastActiveTab=e.tabId,chrome.tabs.connect(LastActiveTab)}),chrome.tabs.onRemoved.addListener(e=>{LastActiveTab===e&&(LastActiveTab=null),onPageActivityChanged(e,"close"),removeAIChatHistory(e),chrome.storage.session.remove(e+":mode")}),chrome.idle.onStateChanged.addListener(e=>{logger.info("Ext","Idle State Changed: "+e),LastActiveTab&&("idle"===e?onPageActivityChanged(LastActiveTab,"idle"):(onPageActivityChanged(LastActiveTab,"active"),chrome.tabs.connect(LastActiveTab)))}),chrome.runtime.onMessage.addListener((e,a)=>{"PopupEnd"!==e.sender&&(a=a.tab?.id,e.sid=a,"me"===e.tid)&&(e.tid=a),dispatchEvent(e)}),chrome.runtime.onConnect.addListener(e=>{var a;"cyberbutler_contentscript"===e.name&&(a=e.sender?.tab?.id)&&(logger.info("PORT","Connect: "+a),TabPorts.set(a,e),e.onMessage.addListener(e=>{"PopupEnd"!==e.sender&&(e.sid=a,"me"===e.tid)&&(e.tid=a),dispatchEvent(e)}),e.onDisconnect.addListener(()=>{logger.info("PORT","Disconnect: "+a),TabPorts.delete(a)}))}),chrome.action.onClicked.addListener(async()=>{var e,a;await checkAvailability()&&([e]=await chrome.tabs.query({active:!0,lastFocusedWindow:!0}),isPageForbidden(e?.url)?await gotoUniquePage(chrome.runtime.getURL("/pages/newtab.html")):((a=await getTabInfo(e.id)).requested=!0,await setTabInfo(e.id,a),dispatchEvent({event:"requestCypriteNotify",data:{forceShow:!0},target:"FrontEnd",tid:e.id})))}),chrome.contextMenus.onClicked.addListener((e,a)=>{0!==e.pageUrl.indexOf("chrome")&&0!==e.frameUrl.indexOf("chrome")&&dispatchEvent({event:"onContextMenuAction",data:{action:e.menuItemId,text:e.selectionText},target:"FrontEnd",tid:a.id})});var lastRequest=[];let EventHandler={},CacheLimit=(globalThis.dispatchEvent=async a=>{if(a.sender=a.sender||"BackEnd","ServerEnd"===a.target)try{sendMessage(a.event,a.data,a.sender,a.sid)}catch{}else if("FrontEnd"===a.target||"PageEnd"===a.target){let e=a.tid;if(e||([t]=await chrome.tabs.query({active:!0,lastFocusedWindow:!0}),t&&(e=t.id)),e=e||LastActiveTab){var t=TabPorts.get(e);if(t)try{await t.postMessage(a)}catch{}}}else if("BackEnd"===a.target){t=EventHandler[a.event];if(!t)return logger.log("SW","Got Event",a);t(a.data,a.sender,a.sid,a.target,a.tid)}else{t=a.tid;if(t)try{await chrome.tabs.sendMessage(t,a)}catch{}}},EventHandler.gotServerReply=e=>{e.ok?getReplyFromServer(e.taskId,e.data):getReplyFromServer(e.taskId,void 0,e.err)},EventHandler.SetConfig=async(e,a,t)=>{if("ConfigPage"===a&&(logger.log("WS","Set Host: "+e.wsHost),myInfo.name=e.name||"",myInfo.info=e.info||"",myInfo.lang=e.lang||DefaultLang,myInfo.apiKey=e.apiKey,myInfo.useLocalKV=!0,updateAIModelList(),myInfo.useLocalKV)){globalThis.sendMessage=DefaultSendMessage,chrome.tabs.sendMessage(t,{event:"connectWSHost",data:{wsHost:e.wsHost,ok:!0},target:a,sender:"BackEnd"});try{AIHandler.sayHello()}catch(e){logger.error("AI:SayHello",e)}}},EventHandler.PageStateChanged=async(e,a,t)=>{"FrontEnd"===a&&(logger.log("Page","State Changed: "+e.state),a=await getTabInfo(t),e&&e.pageInfo&&(a.title=e.pageInfo.title||a.title,a.isArticle=(isBoolean(e.pageInfo.isArticle)?e.pageInfo:a).isArticle,await setTabInfo(t,a)),onPageActivityChanged(t,e.state))},EventHandler.VisibilityChanged=(e,a,t)=>{"FrontEnd"===a&&onPageActivityChanged(t,e)},EventHandler.MountUtil=async(e,a,t)=>{var n;"FrontEnd"===a&&((a=UtilList[e])&&(n=[],a.css&&n.push(chrome.scripting.insertCSS({target:{tabId:t},files:a.css})),a.js&&n.push(chrome.scripting.executeScript({target:{tabId:t},files:a.js,injectImmediately:!0})),await Promise.all(n),logger.log("Page","Notification has mounted!")),dispatchEvent({event:"utilMounted",data:e,target:"FrontEnd",tid:t}))},EventHandler.AskAIAndWait=async(a,e,t)=>{lastRequest[0]=e,lastRequest[1]=t;var n={id:a.id},i="";if(a.action){var r=AIHandler[a.action];try{var s=await r(a.data,e,t);n.result=s,logger.log("AI","Task "+a.action+" Finished")}catch(e){n.result="",i=e.message||e.msg||e.data||e.toString?e.toString():e,logger.error("AI","Task "+a.action+" Failed:"),console.error(e),showSystemNotification(i)}}dispatchEvent({event:"replyAskAndWait",data:{ok:!i,data:n,error:i},target:e,tid:t})},EventHandler.AskSWAndWait=async(a,e,t)=>{lastRequest[0]=e,lastRequest[1]=t;var n={id:a.id},i="";if(a.action){var r=EventHandler[a.action];try{var s=await r(a.data,e,t);n.result=s,logger.log("SW","Task "+a.action+" Finished")}catch(e){n.result="",i=e.message||e.msg||e.data||e.toString?e.toString():e,logger.error("SW","Task "+a.action+" Failed:",i)}}dispatchEvent({event:"replyAskAndWait",data:{ok:!i,data:n,error:i},target:e,tid:t})},EventHandler.SavePageSummary=async(e,a,t)=>{var n=await getTabInfo(t),i=await getPageInfo(n.url);i.title||(i.title=e.title||i.title),e.content&&(i.content=e.content),i.description=e.summary||i.description,i.hash=e.hash||i.hash,i.embedding=e.embedding||i.embedding,await Promise.all([setTabInfo(t,n),setPageInfo(n.url,i)])},EventHandler.GotoConversationPage=async()=>{var e={};e[(await gotoUniquePage(chrome.runtime.getURL("/pages/newtab.html"))).id+":mode"]="crossPageConversation",await chrome.storage.session.set(e)},EventHandler.CalculateHash=async e=>{var a,t=e.content;return t?a=e.algorithm:t=e,calculateHash(t,a)},EventHandler.CheckPageNeedAI=async e=>getPageNeedAIInfo(e),EventHandler.UpdatePageNeedAIInfo=async e=>{var a=await getPageNeedAIInfo(e);a.page.visited++,a.path.visited++,a.host.visited++,e.need&&(a.page.need++,a.path.need++,a.host.need++),await updatePageNeedAIInfo(e,a)},EventHandler.LoadPageSummary=async(e,a,t)=>{t=await chrome.tabs.get(t);return t&&!isPageForbidden(t.url)?getPageInfo(t.url):null},EventHandler.FindSimilarArticle=async e=>{var a=e.vector,t=parseURL(e.url||"");if(!a)return[];DBs.pageInfo||await initDB();var n,i=await DBs.pageInfo.all("pageInfo"),r=[];for(n in i)if(n!==t){var s=i[n];if(s&&s.embedding&&(!e.needContent||s.content)){var o,l={};for(o in s)l[o]=s[o];var g=calculateSimilarityRate(l.embedding,a);0<(l.similar=g)&&r.push(l)}}return logger.log("SIMI",e.url||"(NONE)"),(r=r.filter(e=>.05<=e.similar)).sort((e,a)=>a.similar-e.similar),console.table(r.map(e=>({title:e.title,similar:e.similar}))),r},EventHandler.FindRelativeArticles=async(e,a,t)=>{if(e.url=parseURL(e.url||""),e.url){var n=RelativeHandler[t];if(n!==e.url){RelativeHandler[t]=e.url;var i,n=I18NMessages[myInfo.lang]||I18NMessages[DefaultLang];e.isWebPage=!1,dispatchEvent({event:"updateCurrentStatus",data:n.crossPageConv.statusFindingSimilarFiles,target:a,tid:t});try{e.articles=await EventHandler.FindSimilarArticle(e),i=await findRelativeArticles(e,a,t)}catch{i=null}dispatchEvent({event:"updateCurrentStatus",target:a,tid:t}),i&&(dispatchEvent({event:"foundRelativeArticles",data:i,target:"FrontEnd",tid:t}),await wait(ColdDownDuration),logger.log("SW","Cold Down finished for "+e.url))}delete RelativeHandler[t]}},EventHandler.GetConversation=async e=>{e=parseURL(e),DBs.pageInfo||await initDB();e=await DBs.pageInfo.get("pageConversation",e);return e?e.conversation:null},EventHandler.ClearSummaryConversation=async e=>{e=parseURL(e);try{return DBs.pageInfo||await initDB(),await DBs.pageInfo.del("pageConversation",e),!0}catch{return!1}},EventHandler.GetArticleInfo=async e=>{DBs.pageInfo||await initDB();var a,t,n=await DBs.pageInfo.all("pageInfo"),n=Object.keys(n).map(e=>n[e]),i=null,r=!1;return isArray(e)?(a=e[0],t=e[1],!1===a?r=!1:!0!==a&&isArray(a)?(r=!0,i=a):r=!0):e||(r=!0),r&&(n=n.filter(e=>!!e.content&&!!e.hash)),i&&(n=n.filter(e=>i.includes(e.url))),"LastVisit"===t?(n.forEach(e=>{var a=e.timestamp;e._time=a?new Date(a.replace(/\s+[a-z]+$/i,"")).getTime():Date.now()}),n.sort((e,a)=>a._time-e._time)):n.sort((e,a)=>a.totalDuration-e.totalDuration),n},EventHandler.SearchGoogle=async e=>{e=encodeURIComponent(e);var{key:a,cx:t}=myInfo.apiKey?.google||{};if(a&&t){logger.log("GoogleSearch","Search By API");a=`https://www.googleapis.com/customsearch/v1?key=${myInfo.apiKey.google.key}&cx=${myInfo.apiKey.google.cx}&q=${e}&num=10&sort=date-sdate:d:s`;try{var r,n=await waitUntil(fetchWithCheck(a));r=(r=await n.json()).error?(logger.error("GoogleSearch["+r.error.code+"]",r.error.message),null):(logger.info("GoogleSearch",r),r.items?r.items.map(e=>({title:e.title,url:e.link,summary:(e.snippet||"").trim()})):null)}catch(e){logger.error("GoogleSearch",e),r=null}}if(!r){logger.log("GoogleSearch","Search Via Crab");t=`https://www.google.com/search?q=${e}&hl=en-US&start=0&num=10&ie=UTF-8&oe=UTF-8&gws_rd=ssl`;try{let n=await waitUntil(fetchWithCheck(t));for(n=(n=(n=await n.text()).replace(/<![^>]*?>/gi,"").replace(/<(noscript|script|title|style|header|footer|head|ul|ol)[\w\W]*?>[\w\W]*?<\/\1>/gi,"").replace(/<(meta|input|img)[\w\W]*?>/gi,"").replace(/<[^\/\\]*?[\/\\]>/gi,"").replace(/<\/?(html|body)[^>]*?>/gi,"").replace(/<\/?span[^>]*?>/gi,"").replace(/<\/?(div|br|hr)[^>]*?>/gi,"\n")).replace(/<a[^>]*href=('|")([^'"]*)\1[^>]*>([\w\W]*?)<\/a>/gi,(e,a,t,n)=>t.match(/^https?:\/\/.*?\.google/)||t.match(/^\s*\//)&&!t.match(/^\s*\/url\?/)?"":e);;){var s=n.replace(/<([\w\-_]+)[^>]*?>[\s\r\t\n]*<\/\1>/gi,"");if(n===s)break;n=s}n=n.replace(/^[\w\W]*?<a/i,"<a").replace(/Related searches[\w\W]*?$/i,"").replace(/[\s\r\t]*\n+[\s\r\t]*/g,"\n").replace(/\n+/g,"\n");let i=[];n.replace(/<a[^>]*?>[\s\r\n]*/gi,(e,a)=>{i.push(a)}),i.push(n.length);for(let t=0;t<i.length-1;t++){var o=i[t],l=i[t+1];let e=n.substring(o,l),a=e.match(/^[\s\r\n]*<a[^>]*?href=('|")?([^'"]*?)\1[^>]*?>/i);if(a&&a[2]&&(a=a[2]).match(/^(f|ht)tps?/)){var g,c=parseParams(a);for(g in c){var d=c[g];if(d.match(/^https?/i)){a=decodeURI(d);break}}e=e.replace(/<h3[^>]*>/gi,"\n  Title: ").replace(/<\/h3[^>]*>/gi,"\n  Description: ").replace(/<\/?\w+[^>]*?>/gi,"").replace(/[\s\r\t]*\n+[\s\r\t]*/g,"\n").replace(/\n+/g,"\n").replace(/^\n+|\n+$/g,"").replace(/\n  Title:\s*\n\s*/gi,"\n  Title: ").replace(/\n  Description:\s*\n\s*/gi,"\n  Description: ").replace(/&#(\d+);/g,(e,a)=>{var t;try{t=String.fromCharCode(+a)}catch{t=e}return t}),i[t]=[a,e]}}(i=i.filter(e=>isArray(e))).length?(r=[],i.forEach(e=>{var a,n;e&&e[0]&&(a=(a=(a=e[1]||"").split("\n")).map(e=>e.replace(/^\-\s*/,"\n  ")).join("\n  "),n={url:e[0]},a.replace(/Title:\s*([\w\W]*?)\s*Description:|Title:\s*([\w\W]*?)\s*$/i,(e,a,t)=>{a=a||t;a&&(n.title=a)}),a.replace(/Description:\s*([\w\W]*?)\s*Title:|Description:\s*([\w\W]*?)\s*$/i,(e,a,t)=>{a=a||t;a&&(n.summary=a)}),n.title||(n.title=e[1]||""),n.summary||(n.summary=e[1]||""),r.push(n))})):r=[]}catch(e){return logger.error("GoogleCrab",e),[]}}return r},EventHandler.ReadWebPage=async e=>{var a;try{a=await(a=await waitUntil(fetch(e))).text()}catch{return null}return a},EventHandler.RemovePageInfo=async e=>{await delPageInfo(e,!0)},EventHandler.RemovePageInfos=async e=>{DBs.pageInfo||await initDB();var a,t=await DBs.pageInfo.all("pageInfo"),n=(console.log(t),[]);for(a in t){var i=t[a];e?i.content||n.push(a):i.hash&&i.embedding||n.push(a)}console.log(n),await Promise.all(n.map(async e=>{await delPageInfo(e,!0)}))},EventHandler.ChangePageTitle=async e=>{var a=await getPageInfo(e.url);a.title=e.title,await setPageInfo(e.url,a,!0)},globalThis.AIHandler={},432e5),removeAIChatHistory=async e=>{var a,t=[];if(e&&(a=Tab2Article[e])){delete Tab2Article[e],DBs.pageInfo||await initDB();for(var n of a)t.push(DBs.pageInfo.del("pageConversation",n));t.length&&(await Promise.all(t),logger.log("Chat","Remove Inside Tab History:",a))}var i,t=[],r=Date.now(),s=(DBs.pageInfo||await initDB(),[]);for(i in a=await DBs.pageInfo.all("pageConversation"))r-a[i].timestamp>=CacheLimit&&(s.push(i),t.push(DBs.pageInfo.del("pageConversation",i)));t.length&&(await Promise.all(t),logger.log("Chat","Remove Expired History:",s))},parseReplyAsXMLToJSON=(r,e=!0)=>{var s={_origin:r.trim()},o=-1,l=0;let g=/<(\/?)([^>\n\r\t ]+?[^>\n\r]*?)>/gi;if(e){let i=[],n=0,e=(r.replace(g,(e,a,t)=>{(a=!!a)?n--:n++,i.push([t,a,n])}),!0);for(;e;){let t=[],n=[];i.forEach((e,a)=>{e[0]===t[0]&&!t[1]&&e[1]&&(n.push(a-1),n.push(a)),t=e}),0===n.length||0===i.length?e=!1:(e=!0,n.reverse(),n.forEach(e=>i.splice(e,1)))}let a=[],t=[];i.some(e=>{if(!e[1])return!0;a.push(e[0])}),i.reverse().some(e=>{if(e[1])return!0;t.push(e[0])}),a.forEach(e=>{r="<"+e+">"+r}),t.forEach(e=>{r=r+"</"+e+">"})}return r.replace(g,(e,a,t,n)=>{var i;(a=!!a)?0===--l&&0<=o?(a=r.substring(o,n).trim(),o=-1,a.match(g)?s[t]=parseReplyAsXMLToJSON(a,!1):"true"===(i=a.toLowerCase())?s[t]=!0:"false"===i?s[t]=!1:a.match(/^(\d+|\d+\.|\.\d+|\d+\.\d+)$/)?s[t]=+a:s[t]=a):l<0&&(l=0):1===++l&&(o=n+e.length)}),s},Tab2Article=(AIHandler.sayHello=async()=>{var e=timestmp2str("YYYY/MM/DD"),a=(await chrome.storage.session.get("lastHello")).lastHello;a&&a===e||(chrome.storage.session.set({lastHello:e}),a=await callAIandWait("sayHello"),showSystemNotification(a))},AIHandler.summarizeArticle=async e=>{var a,t;if(await checkAvailability())return[a,t]=await Promise.all([callAIandWait("summarizeArticle",e.article),(async()=>{try{return await callAIandWait("embeddingArticle",e)}catch(e){logger.error("SummarizeArticle",e)}})()]),{summary:a,embedding:t}},AIHandler.embeddingContent=async e=>await callAIandWait("embeddingArticle",e),AIHandler.askArticle=async(a,e,t)=>{var n=Tab2Article[t],i=parseURL(a.url),t=(n||(n=[],Tab2Article[t]=n),n=null,DBs.pageInfo||await initDB(),n=(n=await DBs.pageInfo.get("pageConversation",i))?n.conversation:[],{lang:LangName[myInfo.lang]});if(t.content="<currentArticle>\n"+a.content.trim()+"\n</currentArticle>",a.related){let e=await Promise.all(a.related.map(async e=>{var a=await getPageInfo(parseURL(e.url));return a?'<referenceMaterial title="'+(e.title||a.title)+'" url="'+a.url+'">\n'+a.description.trim()+"\n</referenceMaterial>":null}));e=e.filter(e=>!!e),t.related=e.join("\n")}else t.related="(No Reference Material)";t=PromptLib.assemble(PromptLib.askPageSystem,t),(n=n.filter(e=>"system"!==e[0])).unshift(["system",t]),n.push(["human",a.question]),console.log(n),t=await callAIandWait("directAskAI",[...n]);return n.push(["ai",t]),DBs.pageInfo||await initDB(),await DBs.pageInfo.set("pageConversation",i,{conversation:n,timestamp:Date.now()}),removeAIChatHistory(),t},AIHandler.translateContent=async(e,a,t)=>{if(!await checkAvailability())return"";var n=I18NMessages[myInfo.lang]||I18NMessages[DefaultLang];e.requirement=e.requirement||"(No Extra Requirement)",e.myLang=LangName[myInfo.lang]||myInfo.lang;var i=[["human",PromptLib.assemble(PromptLib.firstTranslation,e)]],i=await callAIandWait("directAskAI",i),r=parseReplyAsXMLToJSON(i),s=(logger.log("Translate",r),r.translation&&(i=r.translation._origin||r.translation),dispatchEvent({event:"updateCurrentStatus",data:n.translation.afterFirstTranslate,target:a,tid:t}),dispatchEvent({event:"finishFirstTranslation",data:i,target:a,tid:t}),e.translation=i,r=PromptLib.assemble(PromptLib.reflectTranslation,e),await callAIandWait("directAskAI",[["human",r]]));return(s=parseReplyAsXMLToJSON(s)).needOptimize&&(s.deficiencies||s.suggestions)&&(dispatchEvent({event:"updateCurrentStatus",data:n.translation.afterReflect,target:a,tid:t}),(n=[]).push("#\tDeficiencies"),s.deficiencies?(s.deficiencies=s.deficiencies._origin||s.deficiencies,n.push(s.deficiencies)):n.push("(No deficiency be mentioned.)"),n.push("#\tSuggestions"),s.suggestions?(s.suggestions=s.suggestions._origin||s.suggestions,n.push(s.suggestions)):n.push("(No suggestion be provided.)"),e.suggestions=n.join("\n\n"),r=PromptLib.assemble(PromptLib.deepTranslation,e),console.log(r),i=await callAIandWait("directAskAI",[["human",r]])),dispatchEvent({event:"updateCurrentStatus",data:"",target:a,tid:t}),i},AIHandler.translateSentence=async(e,a,t)=>{var n;if(await checkAvailability())return e.myLang=LangName[myInfo.lang]||myInfo.lang,e=await callAIandWait("translateSentence",e),n=parseReplyAsXMLToJSON(e),logger.log("Translate",n),e=(e=(n||{}).translation||e)._origin?e._origin:e},AIHandler.selectArticlesAboutConversation=async(e,a,t)=>{var n,i,r=I18NMessages[myInfo.lang]||I18NMessages[DefaultLang],s=SimilarLimit;isObject(e)&&(s=e.limit||s,e=e.request),dispatchEvent({event:"updateCurrentStatus",data:r.crossPageConv.statusAnalyzeRequest,target:a,tid:t});try{var o=await AIHandler.embeddingContent({article:e});dispatchEvent({event:"updateCurrentStatus",data:r.crossPageConv.statusFindingSimilarFiles,target:a,tid:t}),n=await EventHandler.FindSimilarArticle({vector:o,needContent:!0})}catch{DBs.pageInfo||await initDB();let a=await DBs.pageInfo.all("pageInfo");(a=(a=Object.keys(a).map(e=>a[e])).filter(e=>!!e.content&&!!e.hash)).forEach(e=>e._time=new Date(e.timestamp.replace(/\s+[a-z]+$/i,"")).getTime()),a.sort((e,a)=>a._time-e._time),n=a}try{i=await findRelativeArticles({articles:n,requests:[e],isWebPage:!0,limit:s},a,t)}catch{i=[]}return dispatchEvent({event:"updateCurrentStatus",target:a,tid:t}),i},AIHandler.crossPageConversation=async e=>await callAIandWait("directAskAI",e),AIHandler.getSearchKeyWord=async e=>{var a=[],e=(a.push(["human",PromptLib.assemble(PromptLib.analyzeSearchKeyWords,{tasks:e,time:timestmp2str("YYYY/MM/DD hh:mm :WDE:")})]),getFunctionalModelList("analyzeSearchKeywords")),t=await callLLMOneByOne(e,a,!0,"SearchKeywords");return["search","arxiv","wikipedia"].forEach(e=>{var a=(a=t[e]||"").replace(/[\n\r]+/g,"\n").split("\n").map(e=>e.replace(/^[\s\-]*|\s*$/gi,"")).filter(e=>!!e&&!e.match(/^\s*\(?\s*(none|n\/a|null|nil)\s*\)?\s*$/i));t[e]=a}),logger.info("SearchKeywords",t.search.length+t.arxiv.length+t.wikipedia.length+" / "+t.search.length+" / "+t.arxiv.length+" / "+t.wikipedia.length),t},AIHandler.callLLMForSearch=async e=>{var a,t;for(t of SearchAIModel){var n,i=t.toLowerCase();if("ernie"===i){var r=myInfo.apiKey[i];if(!r||!r.api||!r.secret)continue}else if(!myInfo.apiKey[i])continue;try{if((n=await AI[t].search(e))&&n.length){a=n;break}}catch(e){logger.error("LLMSearch["+t+"]",e)}}return a||[]},AIHandler.findRelativeWebPages=async(e,a,t)=>(e.isWebPage=!0,findRelativeArticles(e,a,t)),AIHandler.replyBasedOnSearch=async e=>{logger.info("ReplyBasedOnSearch","Start"),e.webpages=e.webpages.map(e=>{var a=["<webpage>"];return a.push("<title>"+e.title+"</title>"),a.push("<url>"+e.url+"</title>"),e.summary&&(a.push("<summary>"),a.push(e.summary),a.push("</summary>")),a.push("</webpage>"),a.join("\n")}).join("\n\n");var a=PromptLib.assemble(PromptLib.replyBasedOnSearch,{lang:LangName[myInfo.lang]||myInfo.lang,request:e.request}),t=a.indexOf("{{webpages}}"),n=t+"{{webpages}}".length,t=a.substring(0,t),n=a.substring(n),t=[["human",a=t+e.webpages+n]],e=(logger.info("ReplyBasedOnSearch","Prompt Assembled",t),await callAIandWait("directAskAI",t));return(e=parseReplyAsXMLToJSON(e)).reply?e.reply=e.reply._origin||e.reply:e={reply:e._origin},e.more=(e.more||"").replace(/[\n\r]+/g,"\n").split("\n").map(e=>e.replace(/(^\s*([\-\+\*]\s+)*|\s*$)/g,"")).filter(e=>!!e),logger.info("ReplyBasedOnSearch","Got Reply:",e),e},AIHandler.replyAISearch=async e=>{logger.info("AdvAISearch","Start"),e.webpages=e.webpages.map(e=>{var a=["<article>"];return a.push("<title>"+e.title+"</title>"),a.push("<url>"+e.url+"</title>"),a.push("<content>"),a.push(e.content),a.push("</content>"),a.push("</article>"),a.join("\n")}).join("\n\n");var a=PromptLib.assemble(PromptLib.replySearchRequest,{lang:LangName[myInfo.lang]||myInfo.lang,request:e.request}),t=a.indexOf("{{webpages}}"),n=t+"{{webpages}}".length,t=a.substring(0,t),n=a.substring(n),t=[["human",a=t+e.webpages+n]],e=(logger.info("AdvAISearch","Prompt Assembled",t),await callAIandWait("directAskAI",t));return logger.info("AdvAISearch","Got Reply"),e},AIHandler.preliminaryThinking=async(e,a,t)=>{var n,i=I18NMessages[myInfo.lang]||I18NMessages[DefaultLang],e={lang:LangName[myInfo.lang]||myInfo.lang,request:e.request,time:timestmp2str("YYYY/MM/DD hh:mm :WDE:")},e=[["human",PromptLib.assemble(PromptLib.deepThinkingStep0,e)]];logger.info("PreliminaryThinking","Prompt Assembled",[...e]);try{n=(n=await callAIandWait("directAskAI",e)).trim(),logger.info("PreliminaryThinking","Got Reply:\n",n)}catch(e){logger.error("PreliminaryThinking",e),n=i.aiSearch.msgPreliminaryThinkingFailed}return n},AIHandler.deepThinking=async(e,a,t)=>{var n=I18NMessages[myInfo.lang]||I18NMessages[DefaultLang],i={lang:LangName[myInfo.lang]||myInfo.lang,request:e.request,time:timestmp2str("YYYY/MM/DD hh:mm :WDE:")},r=(e.webpages=e.webpages.map(e=>{var a=["<article>"];return a.push("<title>"+e.title.replace(/\s+/g," ")+"</title>"),a.push("<url>"+e.url+"</title>"),a.push("<responseOrSummary>"),a.push(e.reply),a.push("</responseOrSummary>"),a.push("</article>"),a.join("\n")}).join("\n\n"),e.basicAnswer||""),s="",o="",l="",g=(logger.info("DeepThinking","Start Deep Thingking"),dispatchEvent({event:"updateDeepThinkingStatus",data:n.aiSearch.msgLearningMaterial,target:a,tid:t}),PromptLib.assemble(PromptLib.deepThinkingStep1,i)),c=g.indexOf("{{webpages}}"),d=c+"{{webpages}}".length,m=g.substring(0,c),p=g.substring(d),h=[["human",g=m+e.webpages+p]];logger.info("DeepThinking","LRM Prompt Assembled",[...h]);try{console.log("LM:",h),s=(l=await callAIandWait("directAskAI",h)).trim(),logger.info("DeepThinking","LRM Got Reply:\n",s),s=s&&"# "+n.aiSearch.hintLearnFromInternet+"\n\n"+s}catch(e){return logger.error("DeepThinking",e),[""]}dispatchEvent({event:"updateDeepThinkingStatus",data:n.aiSearch.msgDeepThinking,target:a,tid:t}),d=(c=(g=PromptLib.assemble(PromptLib.deepThinkingStep2System,i)).indexOf("{{webpages}}"))+"{{webpages}}".length,m=g.substring(0,c),p=g.substring(d),h=[["system",g=m+e.webpages+p]],g=PromptLib.assemble(PromptLib.deepThinkingStep2Summary,i),h.push(["human",g]),h.push(["ai",s]);a={};r?(a.otheropinion=r,r="# "+n.aiSearch.hintMyPreliminaryThinking+"\n\n"+r):a.otheropinion=n.aiSearch.hintNoOpinion,g=PromptLib.assemble(PromptLib.deepThinkingStep2Running,i,a),h.push(["human",g]),logger.info("DeepThinkingStep2","DT Prompt Assembled",[...h]);try{console.log("DT:",h),l=(l=await callAIandWait("directAskAI",h)).trim(),logger.info("DeepThinkingStep2","DT Got Reply:\n",l);var u=parseReplyAsXMLToJSON(l);o=(o=(u.more||{})._origin||u.more||"").replace(/[\n\r]+/g,"\n").split("\n").map(e=>e.replace(/(^\s*([\-\+\*]\s+)*|\s*$)/g,"")).filter(e=>!!e),l=(u.reply||{})._origin||u.reply||l||n.refreshHint}catch(e){logger.error("DeepThinking",e),l=n.refreshHint}return h.pop(),g=PromptLib.assemble(PromptLib.deepThinkingStep2Replace,i,a),h.push(["human",g]),h.push(["ai",l]),h.push(["human",PromptLib.deepThinkingStep3Running]),h.push(["ai",PromptLib.deepThinkingStep3Reply]),console.log("ED:",h),l=["# "+n.aiSearch.hintMyResponseAfterReflection+"\n\n"+l],s&&l.unshift(s),r&&l.unshift(r),[l=l.join("\n\n----\n\n"),h,o]},AIHandler.raedAndReply=async e=>{logger.info("SummaryAndReply","Start");var a=I18NMessages[myInfo.lang]||I18NMessages[DefaultLang],t=PromptLib.assemble(PromptLib.replyRequestBasedOnArticle,{lang:myInfo.lang,request:e.request}),n=t.indexOf("{{content}}"),i=n+"{{content}}".length,n=t.substring(0,n),i=t.substring(i);t=[["human",t=n+e.content+i]],logger.info("SummaryAndReply","Prompt Assembled");n=(n=await callAIandWait("directAskAI",t)).trim(),e=parseReplyAsXMLToJSON(n);return e.summary?e.summary=e.summary._origin||e.summary:e.summary="",e.reply=e.reply?e.reply._origin||e.reply:n,logger.info("SummaryAndReply","Got Reply"),console.log(e),e.relevant?e.reply&&(i=[],e.summary&&i.push("## "+a.aiSearch.hintPageSummary+"\n\n"+e.summary.trim()),i.push("## "+a.aiSearch.hintPageReply+"\n\n"+e.reply.trim()),n=i.join("\n\n")):n="",n},{}),RelativeHandler={},ColdDownDuration=3e5,WaitDuration=5e3,RelativeArticleRange=40,getPageNeedAIInfo=(globalThis.waitUntil=s=>new Promise((a,t)=>{var[e,n]=lastRequest;let i=setInterval(()=>{logger.log("Ext","Reactive and waiting..."),dispatchEvent({event:"requestHeartBeating",target:e,tid:n}),dispatchEvent({event:"requestHeartBeating",target:"FrontEnd",tid:LastActiveTab}),dispatchEvent({event:"requestHeartBeating",target:"HomeScreen",tid:LastActiveTab})},WaitDuration);if(isFunction(s))if(isAsyncFunction(s))s().then(e=>{a(e)}).catch(e=>{t(e)}).finally(()=>{clearInterval(i)});else{clearInterval(i);try{var r=s();a(r)}catch(e){t(e)}}else s.then(e=>{a(e)}).catch(e=>{t(e)}).finally(()=>{clearInterval(i)})}),globalThis.fetchWithCheck=(e,r,s,o)=>new Promise((a,t)=>{o=o||5e3,s=s||((s=e.match(/\w+:\/+[^\/]+\//))?s[0]:e);var n=!1,i=(fetch(e,r).then(e=>{n||(n=!0,clearTimeout(i),a(e))}).catch(e=>{n||(n=!0,clearTimeout(i),t(e))}),fetch(s).then(()=>{n||clearTimeout(i)}).catch(e=>{n||(n=!0,clearTimeout(i),t(e))}),setTimeout(()=>{n||(n=!0,t(new Error("Check Connection Timeout: "+s)))},o))}),async e=>{DBs.pageInfo||await initDB();e=await Promise.all([DBs.pageInfo.get("notifyChecker",e.page),DBs.pageInfo.get("notifyChecker",e.path),DBs.pageInfo.get("notifyChecker",e.host)]);return(e={page:e[0],path:e[1],host:e[2]}).page||(e.page={need:0,visited:0}),e.path||(e.path={need:0,visited:0}),e.host||(e.host={need:0,visited:0}),e}),updatePageNeedAIInfo=async(e,a)=>{DBs.pageInfo||await initDB(),await Promise.all([DBs.pageInfo.set("notifyChecker",e.page,a.page),DBs.pageInfo.set("notifyChecker",e.path,a.path),DBs.pageInfo.set("notifyChecker",e.host,a.host)])},manhattanOfVectors=(a,t)=>{var n=Math.min(a.length,t.length),i=0;for(let e=0;e<n;e++)i=Math.max(i,Math.abs(a[e]-t[e]));return i},innerProductOfVectors=(a,t)=>{var n=Math.min(a.length,t.length),i=0;for(let e=0;e<n;e++)i+=a[e]*t[e];return i},calculateSimilarityRate=(r,e)=>{var i,a,s,o,l;return r&&e?(s=a=i=0,r.forEach(e=>{e.weight>i&&(i=e.weight)}),e.forEach(e=>{e.weight>a&&(a=e.weight),s+=e.weight**2}),s/=a,o=0,l=[],e.forEach(t=>{var e,a=t.weight,n=(t=t.vector,0),i=-1;r.forEach((e,a)=>{e=e.vector;e=innerProductOfVectors(e,t);n<e&&(i=a,n=e)}),i<0||((e=l[i])||(l[i]=e=[]),e.push([a,n]))}),i=0,l.forEach((e,a)=>{var t,n;e&&(t=r[a].weight,i<t&&(i=t),n=0,e.forEach(e=>{n+=t*e[0]*e[1]}),o+=n/i/s)}),o):0},initInjectScript=async()=>{var e="CypriteInjection";0<(await chrome.userScripts.getScripts({ids:[e]})).length||(chrome.userScripts.configureWorld({messaging:!0}),await chrome.userScripts.register([{id:e,matches:["*://*/*"],js:[{file:"inject.js"}],world:"MAIN"}]))},decomposePackage=(a,e=20)=>{a=[...a];var t=Math.floor(a.length/e);if(0===t)return[a];var n=[];for(let e=0;e<t;e++){var i=Math.round(a.length/(t-e)),i=a.splice(0,i);n.push(i)}return n},getIrrelevants=async(t,e,a,n,i)=>{var r=[],s=[],o=n?PromptLib.excludeIrrelevantsOnTopic:PromptLib.excludeIrrelevantsOnArticle,l={content:a};return n||(l.summary=i),await Promise.all(e.map(async e=>{l.list=e.map(e=>"- ["+e.title+"]("+e.url+")").join("\n");let a=[["human",PromptLib.assemble(o,l)]],n;n=(n=await callLLMOneByOne(t,a,!0,"ExcludeIrrelevants"))||{},["unrelated","related"].forEach(e=>{var a=n[e]||"",t=[],a=a.replace(/[\r\n]+/g,"\n").split(/\n+/).forEach(e=>{var a=(e=e.replace(/^\s*\-\s+/i,"").trim()).match(/\(\s*(https?:[^\[\] ]+[^\\\[\] ])(\\\\)*\)/);if(a)e=a[1];else{if(!(a=e.match(/https?:[^\[\] ]+/)))return;e=a[0]}t.push(e)});n[e]=t}),n.unrelated.forEach(e=>{r.push(e)}),n.related.forEach(e=>{s.push(e)})})),[r,s]},getRelevants=async(a,e,t,n,i)=>{var r=[],s=n?PromptLib.filterRelevantsOnTopic:PromptLib.filterRelevantsOnArticle,o={content:t};return n||(o.summary=i),await Promise.all(e.map(async e=>{o.list=e.map(e=>{var a="<webpage>\n<title>"+e.title+"</title>\n<url>"+e.url+"</url>";return(e.description||e.summary)&&(a=a+"\n<summary>\n"+(e.description||e.summary)+"\n</summary>"),a+="\n</webpage>"}).join("\n");e=[["human",PromptLib.assemble(s,o)]],e=("\n"+await callAIandWait("directAskAI",{conversation:e,model:a})+"\n").match(/[\-\+]\s+[^\n\r]+?[\n\r]/gi);e&&e.forEach(e=>{(e=e.replace(/[\-\+]\s+/i,"").trim()).match(/^\[[^\n\r]+?\]\(/)&&(e=e.replace(/^\[[^\n\r]+?\]\(/,"").replace(/\)$/,"").trim()),r.includes(e)||r.push(e)})})),r},findRelativeArticles=async(i,e,a)=>{if(myInfo.inited||await getWSConfig(),await checkAvailability()){for(var t=I18NMessages[myInfo.lang]||I18NMessages[DefaultLang],n=!isBoolean(i.isWebPage)||i.isWebPage,r=(i.requests||[]).join("\n\n")||"(NONE)",s=(i.content||[]).map(e=>"<summary>\n"+e.trim()+"\n</summary>").join("\n\n")||"(NONE)",o=(logger.log("SW",i.articles.length+" Similar Articles for "+(i.url||"(NONE)")),dispatchEvent({event:"updateCurrentStatus",data:t.crossPageConv.hintExcludeIrrelevants,target:e,tid:a}),getFunctionalModelList("excludeIrrelevants")),l=[...i.articles],g=0,c=[],d=Date.now();;){g++;let e=decomposePackage(l,70),a,t;try{[a,t]=await getIrrelevants(o,e,r,n,s)}catch(e){a=[],t=[],console.error(e)}if(logger.info("Filter Irrelevants","Excludes("+g+"): "+a.length+" / "+t.length),a.forEach(e=>{c.includes(e)||c.push(e)}),l=(l=l.filter(e=>!a.includes(e.url))).filter(e=>!t.includes(e.url)),3<=g||l.length<=20||a.length+t.length<=7)break}d=Date.now()-d,logger.info("Exclude Irrelevants",d+"ms, "+c.length);for(var m,l=i.articles.filter(e=>!c.includes(e.url)),p=i.limit||RelativeArticleRange,h=(l.length>p&&l.splice(p),i.articles=[...l],console.log(l.map(e=>"-\t"+e.title+" : "+e.url).join("\n")),dispatchEvent({event:"updateCurrentStatus",data:t.crossPageConv.statusFindingRelatedFiles,target:e,tid:a}),(o=getFunctionalModelList("identityRelevants"))[0]),u=0,g=0,f=[],d=Date.now();;){g++;let e=decomposePackage(l,5),a;for(;;){logger.log("Identify Relevants","Curent Model: "+h);try{a=await getRelevants(h,e,r,n,s);break}catch(e){if(logger.error("Identify Relevants",e),a=[],++u>=o.length){m=e;break}h=o[u]}}if(logger.info("Identify Relevants","Filter("+g+"): "+a.length),m){showSystemNotification(m);break}if(a.forEach(e=>{f.push(parseURL(e))}),l=l.filter(e=>!a.includes(e.url)),2<=g||a.length<=2||l.length<=3)break}if(d=Date.now()-d,logger.info("Identify Relevants",h+" : "+d+"ms, "+f.length),n){let t=[];f.forEach(a=>{i.articles.some(e=>{if(e.url===a)return t.push(e),!0})}),f=t}else f=(f=await Promise.all(f.map(async e=>{var a=await getPageInfo(e);if(!a||!a.hash||a.hash===i.hash)return null;var t,n={};for(t in a)n[t]=a[t];return n.similar=100,n}))).filter(e=>!!e);return console.log(f.map(e=>"-\t"+e.title+" : "+e.url).join("\n")),dispatchEvent({event:"updateCurrentStatus",target:e,tid:a}),f}},parseParams=e=>{var t={};return(e=(e||"").split("?")).shift(),(e=(e||"").join("?").split("&")).forEach(e=>{var a=(e=e.split("=")).shift();a&&(e=e.join("="),t[a]=e)}),t};initDB(),EventHandler.notify=(e,a,t)=>{var n="Server";"BackEnd"===a?n="Background":"FrontEnd"===a?n="Content":"PageEnd"===a&&(n="Injection"),isString(e)||isNumber(e)||isBoolean(e)||(e=JSON.stringify(e)),logger.log("Notify | "+n,e)};
+import "./components/jsrsasign.all.min.js";
+import "./script/i18n.js";
+import "./script/ai/config.js";
+import "./script/common.js";
+import "./script/cachedDB.js";
+import "./script/ai.js";
+
+const UtilList = {
+	notification: {
+		js : ["/components/notification.js"],
+		css: ["/components/notification.css", "/components/mention.css"],
+	},
+	panel: {
+		js : ['/components/marked.min.js', '/pages/inner.js'],
+		css: ["/components/panel.css"],
+	},
+};
+const HTMLTags = ('a|b|i|strong|em|u|del|img|div|span|p|input|textarea|button|br|hr|h1|h2|h3|h4|h5|h6|ul|ol|li|blockquote').split('|').map(tag => tag.toLowerCase());
+const SimilarLimit = 20;
+
+globalThis.myInfo = {
+	inited: false,
+	useLocalKV: true,
+	apiKey: '',
+	lang: DefaultLang,
+	name: '主人',
+	info: '(Not set yet)',
+	model: ModelList[0]
+};
+
+/* Basic */
+
+const updateAIModelList = () => {
+	var available = false;
+	ModelList.splice(0);
+
+	for (let ai in myInfo.apiKey) {
+		let key = myInfo.apiKey[ai];
+		if (!key) continue;
+		available = true;
+		if (!!AI2Model[ai]) ModelList.push(...AI2Model[ai]);
+	}
+	myInfo.edgeAvailable = available;
+};
+globalThis.getWSConfig = async () => {
+	var [localInfo, remoteInfo] = await Promise.all([
+		chrome.storage.local.get(['wsHost', 'apiKey', 'AImodel']),
+		chrome.storage.sync.get(['name', 'info', 'lang']),
+	]);
+
+	var tasks = [];
+	myInfo.inited = true;
+	myInfo.name = remoteInfo.name || myInfo.name;
+	myInfo.info = remoteInfo.info || myInfo.info;
+	myInfo.lang = remoteInfo.lang;
+	if (!myInfo.lang) {
+		myInfo.lang = DefaultLang;
+	}
+	else {
+		myInfo.lang = myInfo.lang.toLowerCase();
+		if (!i18nList.includes(myInfo.lang)) myInfo.lang = DefaultLang;
+	}
+	if (myInfo.lang !== remoteInfo.lang) {
+		tasks.push(chrome.storage.sync.set({lang: myInfo.lang}));
+	}
+
+	myInfo.apiKey = localInfo.apiKey || {};
+	if (isString(myInfo.apiKey)) {
+		let apiKey = {};
+		if (!!myInfo.apiKey) apiKey.gemini = myInfo.apiKey;
+		myInfo.apiKey = apiKey;
+		tasks.push(chrome.storage.local.set({apiKey: myInfo.apiKey}));
+	}
+	myInfo.useLocalKV = ForceServer ? false : !localInfo.wsHost;
+	myInfo.model = localInfo.AImodel || myInfo.model || ModelList[0];
+	updateAIModelList();
+	logger.em('EXT', 'Config Loaded', myInfo);
+	logger.em('EXT', myInfo);
+
+	if (tasks.length > 0) await Promise.all(tasks);
+
+	return localInfo.wsHost;
+};
+const callLLMOneByOne = async (modelList, conversation, needParse=true, tag="CallAI") => {
+	var result;
+
+	for (let model of modelList) {
+		let time = Date.now();
+		try {
+			result = await callAIandWait('directAskAI', {
+				conversation,
+				model,
+			});
+		}
+		catch (err) {
+			result = null;
+			logger.error(tag + ': ' + model, err);
+			continue;
+		}
+		time = Date.now() - time;
+		logger.info(tag, model + ' : ' + time + 'ms');
+		if (needParse) {
+			result = parseReplyAsXMLToJSON(result);
+		}
+		break;
+	}
+
+	return result;
+};
+
+/* DB */
+
+const DBs = {};
+const initDB = async () => {
+	const dbPageInfos = new CachedDB("PageInfos", 1);
+	dbPageInfos.onUpdate(() => {
+		dbPageInfos.open('tabInfo', 'tid');
+		dbPageInfos.open('pageInfo', 'url');
+		dbPageInfos.open('notifyChecker', 'url');
+		dbPageInfos.open('pageConversation', 'url');
+		logger.info('DB', 'Updated');
+	});
+	dbPageInfos.onConnect(() => {
+		globalThis.dbPageInfos = dbPageInfos; // test
+		logger.info('DB', 'Connected');
+	});
+
+	await dbPageInfos.connect();
+	DBs.pageInfo = dbPageInfos;
+};
+if (!globalThis.DefaultSendMessage) globalThis.DefaultSendMessage = () => {};
+if (!globalThis.sendMessage) globalThis.sendMessage = DefaultSendMessage;
+
+/* Management */
+
+const gotoUniquePage = async (url) => {
+	console.log('>>>>>>>>>>>>>>>>    1', url);
+	var tab = await chrome.tabs.query({url});
+	if (!!tab) tab = tab[0];
+	console.log('>>>>>>>>>>>>>>>>    2', tab);
+	if (!tab) {
+		console.log('>>>>>>>>>>>>>>>>    3');
+		tab = await chrome.tabs.create({url});
+	}
+	else {
+		console.log('>>>>>>>>>>>>>>>>    4');
+		await chrome.tabs.update(tab.id, {active: true, highlighted: true});
+	}
+	return tab;
+};
+const configureCyberButler = () => {
+	gotoUniquePage(chrome.runtime.getURL(`pages/config.html`));
+};
+globalThis.checkAvailability = async () => {
+	if (!myInfo.inited) {
+		await getWSConfig();
+	}
+
+	var available = true;
+	if (!!myInfo.useLocalKV) {
+		available = myInfo.edgeAvailable;
+	}
+	else {
+		let wsHost = await getWSConfig();
+		available = !!wsHost;
+	}
+
+	if (!available) configureCyberButler();
+
+	return available;
+};
+const showSystemNotification = (message) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	if (!isString(message)) {
+		message = message.message || message.msg || message.data || message.toString();
+	}
+	chrome.notifications.create({
+		title: messages.cypriteName,
+		message,
+		type: "basic",
+		iconUrl: "/images/cyprite.png",
+	});
+};
+chrome.runtime.onInstalled.addListener(async () => {
+	const info = await chrome.storage.sync.get('lang');
+	const lang = info.lang || DefaultLang;
+	const messages = (I18NMessages[lang] || I18NMessages[DefaultLang]).contextMenus;
+
+	// Register ContextMenus
+	chrome.contextMenus.create({
+		id: "launchCyprite",
+		title: messages.launch,
+		contexts: ["all"],
+	});
+	chrome.contextMenus.create({
+		id: "translateSelection",
+		title: messages.translate,
+		contexts: ["selection"],
+	});
+	chrome.contextMenus.create({
+		id: "autoWrite",
+		title: messages.autoWrite,
+		contexts: ["editable"],
+		enabled: false,
+	});
+
+	// Refresh all Tabs
+	const csList = chrome.runtime.getManifest().content_scripts;
+	for (const cs of csList) {
+		const tabs = await chrome.tabs.query({url: cs.matches});
+		for (const tab of tabs) {
+			if (tab.url.match(/^chrome/i)) {
+				continue;
+			}
+			try {
+				await chrome.scripting.executeScript({
+					files: cs.js,
+					target: {
+						tabId: tab.id,
+						allFrames: cs.all_frames
+					},
+					injectImmediately: cs.run_at === 'document_start',
+					// world: cs.world, // uncomment if you use it in manifest.json in Chrome 111+
+				});
+			} catch {}
+		}
+	}
+});
+chrome.storage.local.onChanged.addListener(evt => {
+	if (!!evt.AImodel?.newValue) {
+		myInfo.model = evt.AImodel.newValue;
+	}
+});
+chrome.storage.sync.onChanged.addListener(evt => {
+	if (!!evt.lang?.newValue) {
+		let lang = evt.lang.newValue || myInfo.lang;
+		let messages = (I18NMessages[lang] || I18NMessages[DefaultLang]).contextMenus;
+
+		// Update ContextMenus
+		chrome.contextMenus.update("launchCyprite", {
+			title: messages.launch,
+		});
+		chrome.contextMenus.update("translateSelection", {
+			title: messages.translate,
+		});
+		chrome.contextMenus.update("autoWrite", {
+			title: messages.autoWrite,
+		});
+
+	}
+});
+
+/* Page Manager */
+
+const isPageForbidden = (url) => {
+	if (!url) return true;
+	if (url.indexOf('chrome://') === 0) return true;
+	return false;
+};
+const onPageActivityChanged = async (tid, state) => {
+	if (!tid) return;
+
+	var info = await getTabInfo(tid);
+	if (info.active) {
+		if (state === 'show') return;
+	}
+	else {
+		if (state === 'hide') return;
+	}
+
+	var tab;
+	try {
+		tab = await chrome.tabs.get(tid);
+	}
+	catch {
+		tab = null;
+	}
+	if (!tab) {
+		await delTabInfo(tid);
+		if (state === 'close') {
+			tab = {};
+		}
+		else {
+			return;
+		}
+	}
+	var { title, url, active } = tab;
+
+	var now = Date.now();
+	if (['open', 'show', 'active', 'update', 'loaded'].includes(state)) {
+		if (!active) {
+			await inactivePage(info, now);
+		}
+		else if (isPageForbidden(url)) {
+			await inactivePage(info, now, true);
+		}
+		else {
+			let shouldRequest = state === 'open';
+
+			if (url !== info.url) {
+				shouldRequest = true;
+				await inactivePage(info, now, true);
+			}
+
+			if (!info.active || state === 'open') info.open = now;
+			if (!info.title) info.title = title;
+			info.active = true;
+			info.url = url;
+
+			if (shouldRequest && info.isArticle && !info.requested) {
+				info.requested = true;
+				dispatchEvent({
+					event: "requestCypriteNotify",
+					target: "FrontEnd",
+					tid
+				});
+			}
+			await setTabInfo(tid, info);
+		}
+	}
+	else if (['hide', 'idle'].includes(state)) {
+		await inactivePage(info, now);
+	}
+	else if (state === 'close') {
+		await inactivePage(info, now, true);
+		await delTabInfo(tid);
+	}
+};
+const inactivePage = async (info, now, closed=false) => {
+	var shouldCall = !!info.url;
+	if (info.open > 0) info.duration += now - info.open;
+	else shouldCall = false;
+	info.open = -1;
+	info.active = false;
+	if (!shouldCall) {
+		if (closed) info.duration = 0;
+		return;
+	}
+	await onPageDurationUpdated(closed, info.url, info.duration, info.title);
+	if (closed) info.duration = 0;
+};
+const onPageDurationUpdated = async (closed, url, duration, title) => {
+	logger.log('PageActivity', 'Save Data: ' + url);
+
+	// save info locally
+	await savePageActivities(url, duration, title, closed);
+
+	// save into to server
+	try {
+		sendMessage("SavePageActivity", {url, duration, title, closed}, "BackEnd");
+	} catch {}
+};
+const savePageActivities = async (url, duration, title, closed) => {
+	var info = await getPageInfo(url);
+
+	info.reading = !closed;
+	if (!info.title) info.title = title;
+	info.viewed ++;
+	info.totalDuration += duration;
+	info.currentDuration = duration;
+	info.timestamp = timestmp2str("YYYY/MM/DD hh:mm:ss :WDE:");
+	console.log(info);
+
+	await setPageInfo(url, info);
+};
+
+/* Infos */
+
+const getPageInfo = async url => {
+	if (url.match(/^chrome/i)) {
+		return {
+			totalDuration: 0,
+			viewed: 0,
+		}
+	}
+
+	url = parseURL(url);
+	var info = TabInfo[url];
+	if (!info) {
+		if (!DBs.pageInfo) await initDB();
+		info = await DBs.pageInfo.get('pageInfo', url);
+		logger.log('DB', 'Get Page Info: ' + url);
+		if (!info) {
+			info = {
+				totalDuration: 0,
+				viewed: 0,
+			};
+		}
+	}
+	return info;
+};
+const setPageInfo = async (url, info, immediately=false) => {
+	if (url.match(/^chrome/i)) return;
+
+	info.url = url;
+	url = parseURL(url);
+	if (!!DBs.tmrPageInfos) {
+		clearTimeout(DBs.tmrPageInfos);
+	}
+	if (immediately) {
+		delete DBs.tmrPageInfos;
+		if (!DBs.pageInfo) await initDB();
+		await DBs.pageInfo.set('pageInfo', url, info);
+		logger.log('DB', 'Set Page Info: ' + url);
+	}
+	else {
+		DBs.tmrPageInfos = setTimeout(async () => {
+			delete DBs.tmrPageInfos;
+			if (!DBs.pageInfo) await initDB();
+			await DBs.pageInfo.set('pageInfo', url, info);
+			logger.log('DB', 'Set Page Info: ' + url);
+		}, 200);
+	}
+};
+const delPageInfo = async (url, immediately=false) => {
+	var key = parseURL(url);
+	if (!!DBs.tmrPageInfos) {
+		clearTimeout(DBs.tmrPageInfos);
+	}
+	if (immediately) {
+		delete DBs.tmrPageInfos;
+		delete TabInfo[key];
+		if (!DBs.pageInfo) await initDB();
+		await DBs.pageInfo.del('pageInfo', key);
+		logger.log('DB', 'Del Page Info: ' + key);
+		return;
+	}
+	DBs.tmrPageInfos = setTimeout(async () => {
+		delPageInfo(url, true);
+	}, 200);
+};
+const getTabInfo = async tid => {
+	var info = TabInfo[tid];
+	if (!info) {
+		if (!DBs.pageInfo) await initDB();
+		if (!!DBs.pageInfo) {
+			info = await DBs.pageInfo.get('tabInfo', 'T-' + tid);
+			logger.log('DB', 'Get TabInfo: ' + tid);
+		}
+		if (!info) {
+			info = {
+				active: false,
+				duration: 0,
+				open: -1,
+			};
+		}
+	}
+	return info;
+};
+const setTabInfo = async (tid, info) => {
+	TabInfo[tid] = info;
+	if (!!DBs.tmrTabInfos) {
+		clearTimeout(DBs.tmrTabInfos);
+	}
+	DBs.tmrTabInfos = setTimeout(async () => {
+		delete DBs.tmrTabInfos;
+		if (!DBs.pageInfo) await initDB();
+		await DBs.pageInfo.set('tabInfo', 'T-' + tid, info);
+		logger.log('DB', 'Set TabInfo: ' + tid);
+	}, 200);
+};
+const delTabInfo = async (tid) => {
+	delete TabInfo[tid];
+	if (!!DBs.tmrTabInfos) {
+		clearTimeout(DBs.tmrTabInfos);
+		delete DBs.tmrTabInfos;
+	}
+
+	if (!DBs.pageInfo) await initDB();
+	var allTabInfos = await DBs.pageInfo.all('tabInfo');
+	for (let name in allTabInfos) {
+		let tid = name.replace(/^T\-/, '');
+		try {
+			await chrome.tabs.get(tid * 1);
+		}
+		catch {
+			await DBs.pageInfo.del('tabInfo', name);
+			logger.log('DB', 'Del TabInfo: ' + tid);
+		}
+	}
+};
+const TabInfo = {};
+
+/* Tabs */
+
+var LastActiveTab = null;
+const TabPorts = new Map();
+chrome.tabs.onActivated.addListener(tab => {
+	LastActiveTab = tab.tabId;
+	chrome.tabs.connect(LastActiveTab);
+});
+chrome.tabs.onRemoved.addListener(tabId => {
+	if (LastActiveTab === tabId) LastActiveTab = null;
+	onPageActivityChanged(tabId, "close");
+	removeAIChatHistory(tabId);
+	chrome.storage.session.remove(tabId + ':mode');
+});
+chrome.idle.onStateChanged.addListener((state) => {
+	logger.info('Ext', 'Idle State Changed: ' + state);
+	if (!LastActiveTab) return;
+	if (state === 'idle') {
+		onPageActivityChanged(LastActiveTab, "idle");
+	}
+	else {
+		onPageActivityChanged(LastActiveTab, "active");
+		chrome.tabs.connect(LastActiveTab);
+	}
+});
+chrome.runtime.onMessage.addListener((msg, sender) => {
+	if (msg.sender !== "PopupEnd") {
+		let tid = sender.tab?.id;
+		msg.sid = tid;
+		if (msg.tid === 'me') msg.tid = tid;
+	}
+	dispatchEvent(msg);
+});
+chrome.runtime.onConnect.addListener(port => {
+	if (port.name !== "cyberbutler_contentscript") return;
+	var tid = port.sender?.tab?.id;
+	if (!tid) return;
+	logger.info('PORT', 'Connect: ' + tid);
+	TabPorts.set(tid, port);
+	port.onMessage.addListener(msg => {
+		if (msg.sender !== "PopupEnd") {
+			msg.sid = tid;
+			if (msg.tid === 'me') msg.tid = tid;
+		}
+		dispatchEvent(msg);
+	});
+	port.onDisconnect.addListener(() => {
+		logger.info('PORT', 'Disconnect: ' + tid);
+		TabPorts.delete(tid);
+	});
+});
+chrome.action.onClicked.addListener(async () => {
+	var available = await checkAvailability();
+	if (!available) return;
+
+	var [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+	// Call Popup Cyprite
+	if (isPageForbidden(tab?.url)) {
+		await gotoUniquePage(chrome.runtime.getURL('/pages/newtab.html'));
+	}
+	// Call Page Cyprite
+	else {
+		let info = await getTabInfo(tab.id);
+		info.requested = true;
+		await setTabInfo(tab.id, info);
+		dispatchEvent({
+			event: "requestCypriteNotify",
+			data: {forceShow: true},
+			target: "FrontEnd",
+			tid: tab.id
+		});
+	}
+});
+chrome.contextMenus.onClicked.addListener((evt, tab) => {
+	// No action in Extension page.
+	if (evt.pageUrl.indexOf('chrome') === 0 || evt.frameUrl.indexOf('chrome') === 0) {
+		return;
+	}
+	dispatchEvent({
+		event: "onContextMenuAction",
+		data: {
+			action: evt.menuItemId,
+			text: evt.selectionText,
+		},
+		target: "FrontEnd",
+		tid: tab.id,
+	});
+});
+
+/* EventHandler */
+
+var lastRequest = [];
+const EventHandler = {};
+globalThis.AIHandler = {};
+globalThis.dispatchEvent = async (msg) => {
+	msg.sender = msg.sender || 'BackEnd';
+
+	// To Server via WebSocket
+	if (msg.target === 'ServerEnd') {
+		try {
+			sendMessage(msg.event, msg.data, msg.sender, msg.sid);
+		} catch {}
+	}
+	// To ContentScript and UserScript
+	else if (msg.target === "FrontEnd" || msg.target === 'PageEnd') {
+		let tid = msg.tid;
+		if (!tid) {
+			let [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+			if (!!tab) tid = tab.id;
+		}
+		if (!tid) tid = LastActiveTab;
+		if (!tid) return;
+		let port = TabPorts.get(tid);
+		if (!port) return;
+		try {
+			await port.postMessage(msg);
+		} catch {}
+	}
+	// To ServiceWorker itself
+	else if (msg.target === 'BackEnd') {
+		let handler = EventHandler[msg.event];
+		if (!handler) return logger.log('SW', 'Got Event', msg);
+
+		handler(msg.data, msg.sender, msg.sid, msg.target, msg.tid);
+	}
+	// To HomeScreen and ConfigPage
+	else {
+		let tid = msg.tid;
+		if (!tid) return;
+		try {
+			await chrome.tabs.sendMessage(tid, msg);
+		} catch {}
+	}
+};
+
+EventHandler.gotServerReply = (data) => {
+	if (data.ok) {
+		getReplyFromServer(data.taskId, data.data);
+	}
+	else {
+		getReplyFromServer(data.taskId, undefined, data.err);
+	}
+};
+EventHandler.SetConfig = async (data, source, sid) => {
+	if (source !== 'ConfigPage') return;
+	logger.log('WS', 'Set Host: ' + data.wsHost);
+
+	myInfo.name = data.name || '';
+	myInfo.info = data.info || '';
+	myInfo.lang = data.lang || DefaultLang;
+	myInfo.apiKey = data.apiKey;
+	myInfo.useLocalKV = true;
+	updateAIModelList();
+
+	if (myInfo.useLocalKV) {
+		globalThis.sendMessage = DefaultSendMessage;
+		chrome.tabs.sendMessage(sid, {
+			event: "connectWSHost",
+			data: {
+				wsHost: data.wsHost,
+				ok: true,
+			},
+			target: source,
+			sender: 'BackEnd',
+		});
+		try {
+			AIHandler.sayHello();
+		}
+		catch (err) {
+			logger.error('AI:SayHello', err);
+		}
+		return;
+	}
+
+};
+EventHandler.PageStateChanged = async (data, source, sid) => {
+	if (source !== 'FrontEnd') return;
+	logger.log('Page', 'State Changed: ' + data.state);
+
+	var info = await getTabInfo(sid);
+	if (!!data && !!data.pageInfo) {
+		info.title = data.pageInfo.title || info.title;
+		info.isArticle = isBoolean(data.pageInfo.isArticle) ? data.pageInfo.isArticle : info.isArticle;
+		await setTabInfo(sid, info);
+	}
+
+	onPageActivityChanged(sid, data.state);
+};
+EventHandler.VisibilityChanged = (data, source, sid) => {
+	if (source !== 'FrontEnd') return;
+	onPageActivityChanged(sid, data);
+};
+EventHandler.MountUtil = async (util, source, sid) => {
+	if (source !== 'FrontEnd') return;
+
+	var utilFiles = UtilList[util];
+	if (!!utilFiles) {
+		let tasks = [];
+		if (!!utilFiles.css) {
+			tasks.push(chrome.scripting.insertCSS({
+				target: { tabId: sid },
+				files: utilFiles.css,
+			}));
+		}
+		if (!!utilFiles.js) {
+			tasks.push(chrome.scripting.executeScript({
+				target: { tabId: sid },
+				files: utilFiles.js,
+				injectImmediately: true,
+			}));
+		}
+		await Promise.all(tasks);
+		logger.log('Page', 'Notification has mounted!');
+	}
+
+	dispatchEvent({
+		event: "utilMounted",
+		data: util,
+		target: 'FrontEnd',
+		tid: sid
+	});
+};
+EventHandler.AskAIAndWait = async (data, source, sid) => {
+	lastRequest[0] = source;
+	lastRequest[1] = sid;
+
+	var result = {id: data.id}, error = '';
+	if (!!data.action) {
+		let handler = AIHandler[data.action];
+		try {
+			let msg = await handler(data.data, source, sid);
+			result.result = msg;
+			logger.log('AI', 'Task ' + data.action + ' Finished');
+		}
+		catch (err) {
+			result.result = '';
+			error = err.message || err.msg || err.data || !!err.toString ? err.toString() : err;
+			logger.error('AI', 'Task ' + data.action + ' Failed:');
+			console.error(err);
+			showSystemNotification(error);
+		}
+	}
+	dispatchEvent({
+		event: "replyAskAndWait",
+		data: {
+			ok: !error,
+			data: result,
+			error,
+		},
+		target: source,
+		tid: sid
+	});
+};
+EventHandler.AskSWAndWait = async (data, source, sid) => {
+	lastRequest[0] = source;
+	lastRequest[1] = sid;
+
+	var result = {id: data.id}, error = '';
+	if (!!data.action) {
+		let handler = EventHandler[data.action];
+		try {
+			let msg = await handler(data.data, source, sid);
+			result.result = msg;
+			logger.log('SW', 'Task ' + data.action + ' Finished');
+		}
+		catch (err) {
+			result.result = '';
+			error = err.message || err.msg || err.data || !!err.toString ? err.toString() : err;
+			logger.error('SW', 'Task ' + data.action + ' Failed:', error);
+		}
+	}
+	dispatchEvent({
+		event: "replyAskAndWait",
+		data: {
+			ok: !error,
+			data: result,
+			error,
+		},
+		target: source,
+		tid: sid
+	});
+};
+EventHandler.SavePageSummary = async (data, source, sid) => {
+	var tabInfo = await getTabInfo(sid);
+	var pageInfo = await getPageInfo(tabInfo.url);
+	if (!pageInfo.title) pageInfo.title = data.title || pageInfo.title;
+	if (!!data.content) pageInfo.content = data.content;
+	pageInfo.description = data.summary || pageInfo.description;
+	pageInfo.hash = data.hash || pageInfo.hash;
+	pageInfo.embedding = data.embedding || pageInfo.embedding;
+
+	await Promise.all([
+		setTabInfo(sid, tabInfo),
+		setPageInfo(tabInfo.url, pageInfo),
+	]);
+};
+EventHandler.GotoConversationPage = async () => {
+	var tab = await gotoUniquePage(chrome.runtime.getURL('/pages/newtab.html'));
+	var info = {};
+	info[tab.id + ':mode'] = 'crossPageConversation';
+	await chrome.storage.session.set(info);
+};
+
+EventHandler.CalculateHash = async (data) => {
+	// This function is not safe in browser.
+	var content = data.content, algorithm;
+	if (!content) {
+		content = data;
+	}
+	else {
+		algorithm = data.algorithm;
+	}
+	return calculateHash(content, algorithm);
+};
+EventHandler.CheckPageNeedAI = async (data) => {
+	return await getPageNeedAIInfo(data);
+};
+EventHandler.UpdatePageNeedAIInfo = async (data) => {
+	var info = await getPageNeedAIInfo(data);
+	info.page.visited ++;
+	info.path.visited ++;
+	info.host.visited ++;
+	if (data.need) {
+		info.page.need ++;
+		info.path.need ++;
+		info.host.need ++;
+	}
+	await updatePageNeedAIInfo(data, info);
+};
+EventHandler.LoadPageSummary = async (data, source, sid) => {
+	var tab = await chrome.tabs.get(sid);
+	if (!!tab && !isPageForbidden(tab.url)) {
+		return await getPageInfo(tab.url);
+	}
+	else {
+		return null;
+	}
+};
+EventHandler.FindSimilarArticle = async (data) => {
+	var vector = data.vector, tabURL = parseURL(data.url || '');
+	if (!vector) return [];
+
+	if (!DBs.pageInfo) await initDB();
+	var all = await DBs.pageInfo.all('pageInfo');
+	var list = [];
+	var l1 = [], l2 = [], l3 = [], l4 = [];
+	for (let url in all) {
+		if (url === tabURL) continue;
+		let item = all[url];
+		if (!item || !item.embedding) continue;
+		if (data.needContent && !item.content) continue;
+
+		let info = {};
+		for (let key in item) {
+			info[key] = item[key];
+		}
+
+		let similar = calculateSimilarityRate(info.embedding, vector);
+		info.similar = similar;
+		if (similar > 0) list.push(info);
+	}
+	logger.log('SIMI', data.url || '(NONE)');
+	list = list.filter(f => f.similar >= 0.05);
+	list.sort((a, b) => b.similar - a.similar);
+	console.table(list.map(item => {
+		return {
+			title: item.title,
+			similar: item.similar,
+		}
+	}));
+
+	return list;
+};
+EventHandler.FindRelativeArticles = async (data, source, sid) => {
+	data.url = parseURL(data.url || '');
+	if (!data.url) return;
+
+	var url = RelativeHandler[sid];
+	if (url === data.url) {
+		delete RelativeHandler[sid];
+		return;
+	}
+	RelativeHandler[sid] = data.url;
+
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	var relatives;
+
+	data.isWebPage = false;
+	dispatchEvent({
+		event: "updateCurrentStatus",
+		data: messages.crossPageConv.statusFindingSimilarFiles,
+		target: source,
+		tid: sid,
+	});
+	try {
+		data.articles = await EventHandler.FindSimilarArticle(data);
+		relatives = await findRelativeArticles(data, source, sid);
+	}
+	catch {
+		relatives = null;
+	}
+	dispatchEvent({
+		event: "updateCurrentStatus",
+		target: source,
+		tid: sid,
+	});
+
+	// Send to page
+	if (!!relatives) {
+		dispatchEvent({
+			event: "foundRelativeArticles",
+			data: relatives,
+			target: "FrontEnd",
+			tid: sid,
+		});
+
+		// Cold Down
+		await wait(ColdDownDuration);
+		logger.log('SW', 'Cold Down finished for ' + data.url);
+	}
+
+	delete RelativeHandler[sid];
+};
+EventHandler.GetConversation = async (url) => {
+	url = parseURL(url);
+	if (!DBs.pageInfo) await initDB();
+	var conversation = await DBs.pageInfo.get('pageConversation', url);
+	if (!conversation) return null;
+	return conversation.conversation;
+};
+EventHandler.ClearSummaryConversation = async (url) => {
+	url = parseURL(url);
+	try {
+		if (!DBs.pageInfo) await initDB();
+		await DBs.pageInfo.del('pageConversation', url);
+		return true;
+	}
+	catch {
+		return false;
+	}
+};
+EventHandler.GetArticleInfo = async (options) => {
+	if (!DBs.pageInfo) await initDB();
+	var list = await DBs.pageInfo.all('pageInfo');
+	list = Object.keys(list).map(id => list[id]);
+
+	var filterCondition = null, filterNoCache = false, orderType;
+	if (isArray(options)) {
+		let opt = options[0];
+		orderType = options[1];
+		if (opt === false) {
+			filterNoCache = false;
+		}
+		else if (opt === true) {
+			filterNoCache = true;
+		}
+		else if (isArray(opt)) {
+			filterNoCache = true;
+			filterCondition = opt;
+		}
+		else {
+			filterNoCache = true;
+		}
+	}
+	else if (!options) {
+		filterNoCache = true;
+	}
+
+	if (filterNoCache) {
+		list = list.filter(item => !!item.content && !!item.hash);
+	}
+	if (!!filterCondition) {
+		list = list.filter(item => filterCondition.includes(item.url));
+	}
+
+	if (orderType === 'LastVisit') {
+		list.forEach(item => {
+			var timestamp = item.timestamp;
+			if (!timestamp) {
+				item._time = Date.now();
+			}
+			else {
+				item._time = (new Date(timestamp.replace(/\s+[a-z]+$/i, ''))).getTime();
+			}
+		});
+		list.sort((pa, pb) => pb._time - pa._time);
+	}
+	else {
+		list.sort((pa, pb) => pb.totalDuration - pa.totalDuration);
+	}
+	return list;
+};
+AIHandler.getSearchKeyWord = async (request) => {
+	var conversation = [];
+	conversation.push(['human', PromptLib.assemble(PromptLib.analyzeSearchKeyWords, {tasks: request, time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")})]);
+
+	var modelList = getFunctionalModelList('analyzeSearchKeywords');
+	var keywords = await callLLMOneByOne(modelList, conversation, true, 'SearchKeywords');
+	['search', 'arxiv', 'wikipedia'].forEach(tag => {
+		var list = keywords[tag] || '';
+		list = list
+			.replace(/[\n\r]+/g, '\n').split('\n')
+			.map(ctx => ctx.replace(/^[\s\-]*|\s*$/gi, ''))
+			.filter(ctx => !!ctx && !ctx.match(/^\s*\(?\s*(none|n\/a|null|nil)\s*\)?\s*$/i))
+		;
+		keywords[tag] = list;
+	});
+	logger.info('SearchKeywords', (keywords.search.length + keywords.arxiv.length + keywords.wikipedia.length) + ' / ' + keywords.search.length + ' / ' + keywords.arxiv.length + ' / ' + keywords.wikipedia.length);
+
+	return keywords;
+};
+EventHandler.SearchGoogle = async (keywords) => {
+	keywords = encodeURIComponent(keywords);
+
+	var {key, cx} = (myInfo.apiKey?.google || {});
+	var list;
+	if (!!key && !!cx) {
+		logger.log('GoogleSearch', 'Search By API');
+		let url = `https://www.googleapis.com/customsearch/v1?key=${myInfo.apiKey.google.key}&cx=${myInfo.apiKey.google.cx}&q=${keywords}&num=10&sort=date-sdate:d:s`;
+		try {
+			let result = await waitUntil(fetchWithCheck(url));
+			list = await result.json();
+			if (!!list.error) {
+				logger.error('GoogleSearch[' + list.error.code + ']', list.error.message);
+				list = null;
+			}
+			else {
+				logger.info('GoogleSearch', list);
+				if (!!list.items) {
+					list = list.items.map(item => {
+						return {
+							title: item.title,
+							url: item.link,
+							summary: (item.snippet || '').trim(),
+						};
+					});
+				}
+				else {
+					list = null;
+				}
+			}
+		}
+		catch (err) {
+			logger.error('GoogleSearch', err);
+			list = null;
+		}
+	}
+	if (!list) {
+		logger.log('GoogleSearch', 'Search Via Crab');
+		let url = `https://www.google.com/search?q=${keywords}&hl=en-US&start=0&num=10&ie=UTF-8&oe=UTF-8&gws_rd=ssl`;
+		try {
+			let result = await waitUntil(fetchWithCheck(url));
+			result = await result.text();
+
+			// Clear HTML
+			result = result
+				.replace(/<![^>]*?>/gi, '')
+				.replace(/<(noscript|script|title|style|header|footer|head|ul|ol)[\w\W]*?>[\w\W]*?<\/\1>/gi, '')
+				.replace(/<(meta|input|img)[\w\W]*?>/gi, '')
+				.replace(/<[^\/\\]*?[\/\\]>/gi, '')
+				.replace(/<\/?(html|body)[^>]*?>/gi, '')
+				.replace(/<\/?span[^>]*?>/gi, '')
+				.replace(/<\/?(div|br|hr)[^>]*?>/gi, '\n')
+			;
+			result = result.replace(/<a[^>]*href=('|")([^'"]*)\1[^>]*>([\w\W]*?)<\/a>/gi, (match, quote, url, inner) => {
+				if (url.match(/^https?:\/\/.*?\.google/)) return '';
+				if (url.match(/^\s*\//) && !url.match(/^\s*\/url\?/)) return '';
+				return match;
+			});
+			while (true) {
+				let temp = result.replace(/<([\w\-_]+)[^>]*?>[\s\r\t\n]*<\/\1>/gi, '');
+				if (result === temp) break;
+				result = temp;
+			}
+			result = result
+				.replace(/^[\w\W]*?<a/i, '<a')
+				.replace(/Related searches[\w\W]*?$/i, '')
+				.replace(/[\s\r\t]*\n+[\s\r\t]*/g, '\n')
+				.replace(/\n+/g, '\n')
+			;
+
+			// Find out Search Items
+			let stops = [];
+			result.replace(/<a[^>]*?>[\s\r\n]*/gi, (m, pos) => {
+				stops.push(pos);
+			});
+			stops.push(result.length);
+			for (let i = 0; i < stops.length - 1; i ++) {
+				let a = stops[i], b = stops[i + 1];
+				let sub = result.substring(a, b);
+				let url = sub.match(/^[\s\r\n]*<a[^>]*?href=('|")?([^'"]*?)\1[^>]*?>/i);
+				if (!url || !url[2]) continue;
+				url = url[2];
+				if (!url.match(/^(f|ht)tps?/)) continue;
+				let params = parseParams(url);
+				for (let key in params) {
+					let value = params[key];
+					if (value.match(/^https?/i)) {
+						url = decodeURI(value);
+						break;
+					}
+				}
+				sub = sub
+					.replace(/<h3[^>]*>/gi, '\n  Title: ')
+					.replace(/<\/h3[^>]*>[\w\W]*?<\/a>/gi, '\n  Description: ')
+					.replace(/<\/h3[^>]*>/gi, '\n  Description: ')
+					.replace(/<\/?\w+[^>]*?>/gi, '')
+					.replace(/[\s\r\t]*\n+[\s\r\t]*/g, '\n')
+					.replace(/\n+/g, '\n')
+					.replace(/^\n+|\n+$/g, '')
+					.replace(/\n  Title:\s*\n\s*/gi, '\n  Title: ')
+					.replace(/\n  Description:\s*\n\s*/gi, '\n  Description: ')
+					.replace(/&#(\d+);/g, (match, code) => {
+						var char;
+						try {
+							char = String.fromCharCode(code * 1);
+						}
+						catch {
+							char = match;
+						}
+						return char;
+					})
+				;
+				stops[i] = [url, sub];
+			}
+			stops = stops.filter(item => isArray(item));
+
+			// Assemble result
+			if (!stops.length) {
+				list = [];
+			}
+			else {
+				list = [];
+				stops.forEach(item => {
+					if (!item || !item[0]) return;
+					var ctx = item[1] || '';
+					ctx = ctx.split('\n');
+					ctx = ctx.map(line => line.replace(/^\-\s*/, '\n  ')).join('\n  ');
+					var lemma = { url: item[0] };
+					ctx.replace(/Title:\s*([\w\W]*?)\s*Description:|Title:\s*([\w\W]*?)\s*$/i, (m, a, b) => {
+						var t = a || b;
+						if (!t) return;
+						lemma.title = t;
+					});
+					ctx.replace(/Description:\s*([\w\W]*?)\s*Title:|Description:\s*([\w\W]*?)\s*$/i, (m, a, b) => {
+						var t = a || b;
+						if (!t) return;
+						lemma.summary = t;
+					});
+					if (!lemma.title) lemma.title = item[1] || '';
+					if (!lemma.summary) lemma.summary = item[1] || '';
+					list.push(lemma);
+				});
+			}
+		}
+		catch (err) {
+			logger.error('GoogleCrab', err);
+			return [];
+		}
+	}
+
+	return list;
+};
+AIHandler.callLLMForSearch = async (quest) => {
+	var result;
+	for (let model of SearchAIModel) {
+		if (!AI[model] || !AI[model].search) continue;
+
+		let ai = model.toLowerCase();
+		if (ai === 'ernie') {
+			let key = myInfo.apiKey[ai];
+			if (!key || !key.api || !key.secret) continue;
+		}
+		else {
+			if (!myInfo.apiKey[ai]) continue;
+		}
+
+		let list;
+		try {
+			list = await AI[model].search(quest);
+			if (!!list && !!list.length) {
+				result = list;
+				break;
+			}
+		}
+		catch (err) {
+			logger.error('LLMSearch[' + model + ']', err);
+		}
+	}
+	return result || [];
+};
+EventHandler.ReadWebPage = async (url) => {
+	var html;
+	try {
+		html = await waitUntil(fetch(url));
+		html = await html.text();
+	}
+	catch {
+		return null;
+	}
+	return html;
+};
+EventHandler.RemovePageInfo = async (url) => {
+	await delPageInfo(url, true);
+};
+EventHandler.RemovePageInfos = async (isUncached) => {
+	if (!DBs.pageInfo) await initDB();
+	var list = await DBs.pageInfo.all('pageInfo');
+	console.log(list);
+	var targets = [];
+	for (let key in list) {
+		let item = list[key];
+		if (isUncached) {
+			if (!item.content) targets.push(key);
+		}
+		else {
+			if (!item.hash || !item.embedding) targets.push(key);
+		}
+	}
+	console.log(targets);
+	await Promise.all(targets.map(async key => {
+		await delPageInfo(key, true);
+	}));
+};
+EventHandler.ChangePageTitle = async (data) => {
+	var info = await getPageInfo(data.url);
+	info.title = data.title;
+	await setPageInfo(data.url, info, true);
+};
+
+/* AI */
+
+const CacheLimit = 1000 * 60 * 60 * 12;
+const removeAIChatHistory = async (tid) => {
+	var list, tasks = [];
+
+	if (!!tid) {
+		list = Tab2Article[tid];
+		if (!!list) {
+			delete Tab2Article[tid];
+			if (!DBs.pageInfo) await initDB();
+			for (let url of list) {
+				tasks.push(DBs.pageInfo.del('pageConversation', url));
+			}
+			if (!!tasks.length) {
+				await Promise.all(tasks);
+				logger.log('Chat', 'Remove Inside Tab History:', list);
+			}
+		}
+	}
+
+	tasks = [];
+	const current = Date.now();
+	if (!DBs.pageInfo) await initDB();
+	list = await DBs.pageInfo.all('pageConversation');
+	var removes = [];
+	for (let url in list) {
+		let item = list[url];
+		if (current - item.timestamp >= CacheLimit) {
+			removes.push(url);
+			tasks.push(DBs.pageInfo.del('pageConversation', url));
+		}
+	}
+	if (!!tasks.length) {
+		await Promise.all(tasks);
+		logger.log('Chat', 'Remove Expired History:', removes);
+	}
+};
+const parseReplyAsXMLToJSON = (xml, init=true) => {
+	var json = { _origin: xml.trim() };
+	var loc = -1;
+	var lev = 0;
+	const reg = /<(\/?)([^>\n\r\t ]+?[^>\n\r ]*?)>/gi;
+
+	if (init) {
+		let tags = [], lev = 0;
+		xml.replace(reg, (_, end, tag) => {
+			end = !!end;
+			if (end) lev --;
+			else lev ++;
+			tags.push([tag, end, lev]);
+		});
+		let hasChanged = true;
+		while (hasChanged) {
+			let last = [];
+			let removes = [];
+			tags.forEach((tag, i) => {
+				if (tag[0] === last[0] && !last[1] && !!tag[1]) {
+					removes.push(i - 1);
+					removes.push(i);
+				}
+				last = tag;
+			});
+			if (removes.length === 0 || tags.length === 0) {
+				hasChanged = false;
+			}
+			else {
+				hasChanged = true;
+				removes.reverse();
+				removes.forEach(idx => tags.splice(idx, 1));
+			}
+		}
+		let pres = [], posts = [];
+		tags.some(tag => {
+			if (tag[1]) {
+				pres.push(tag[0]);
+			}
+			else {
+				return true;
+			}
+		});
+		tags.reverse().some(tag => {
+			if (tag[1]) {
+				return true;
+			}
+			else {
+				posts.push(tag[0]);
+			}
+		});
+		pres.forEach(tag => {
+			xml = '<' + tag + '>' + xml;
+		});
+		posts.forEach(tag => {
+			xml = xml + '</' + tag + '>';
+		});
+	}
+
+	xml.replace(reg, (m, end, tag, pos) => {
+		tag = tag.toLowerCase();
+		if (HTMLTags.includes(tag)) return;
+		end = !!end;
+		if (end) {
+			lev --;
+			if (lev === 0 && loc >= 0) {
+				let sub = xml.substring(loc, pos).trim();
+				loc = -1;
+				if (!!sub.match(reg)) {
+					json[tag] = parseReplyAsXMLToJSON(sub, false);
+				}
+				else {
+					let low = sub.toLowerCase();
+					if (low === 'true') {
+						json[tag] = true;
+					}
+					else if (low === 'false') {
+						json[tag] = false;
+					}
+					else if (!!sub.match(/^(\d+|\d+\.|\.\d+|\d+\.\d+)$/)) {
+						json[tag] = sub * 1;
+					}
+					else {
+						json[tag] = sub;
+					}
+				}
+			}
+			else if (lev < 0) {
+				lev = 0;
+			}
+		}
+		else {
+			lev ++;
+			if (lev === 1) {
+				loc = pos + m.length;
+			}
+		}
+	});
+
+	return json;
+};
+
+AIHandler.sayHello = async () => {
+	var currentDate = timestmp2str('YYYY/MM/DD');
+	var lastHello = await chrome.storage.session.get('lastHello');
+	lastHello = lastHello.lastHello;
+	if (!!lastHello && lastHello === currentDate) return;
+	chrome.storage.session.set({lastHello: currentDate});
+
+	var reply = await callAIandWait('sayHello');
+	showSystemNotification(reply);
+};
+AIHandler.summarizeArticle = async (data) => {
+	var available = await checkAvailability();
+	if (!available) return;
+
+	var summary, embedding;
+	[summary, embedding] = await Promise.all([
+		callAIandWait('summarizeArticle', data.article),
+		(async () => {
+			try {
+				return await callAIandWait('embeddingArticle', data);
+			}
+			catch (err) {
+				logger.error('SummarizeArticle', err);
+				return;
+			}
+		}) (),
+	]);
+
+	return {summary, embedding};
+};
+AIHandler.embeddingContent = async (data) => {
+	var embedding = await callAIandWait('embeddingArticle', data);
+
+	return embedding;
+};
+AIHandler.askArticle = async (data, source, sid) => {
+	// Get conversation history prompts
+	var list = Tab2Article[sid], url = parseURL(data.url);
+	if (!list) {
+		list = [];
+		Tab2Article[sid] = list;
+	}
+	list = null;
+	if (!DBs.pageInfo) await initDB();
+	list = await DBs.pageInfo.get('pageConversation', url);
+	if (!list) {
+		list = [];
+	}
+	else {
+		list = list.conversation;
+	}
+
+	// Update system prompt for relative articles
+	var config = { lang: LangName[myInfo.lang] };
+	// config.content = '<currentArticle title="' + data.title + '" url="' + data.url + '">\n' + data.content.trim() + '\n</currentArticle>';
+	config.content = '<currentArticle>\n' + data.content.trim() + '\n</currentArticle>';
+	if (!!data.related) {
+		let articles = await Promise.all(data.related.map(async item => {
+			var info = await getPageInfo(parseURL(item.url));
+			if (!info) return null;
+			return '<referenceMaterial title="' + (item.title || info.title) + '" url="' + info.url + '">\n' + info.description.trim() + '\n</referenceMaterial>';
+		}))
+		articles = articles.filter(info => !!info);
+		config.related = articles.join('\n');
+	}
+	else {
+		config.related = '(No Reference Material)';
+	}
+	var systemPrompt = PromptLib.assemble(PromptLib.askPageSystem, config);
+	list = list.filter(item => item[0] !== 'system');
+	list.unshift(['system', systemPrompt]);
+	list.push(['human', data.question]);
+	console.log(list);
+
+	var request = {
+		conversation: [...list],
+		model: myInfo.model,
+	};
+	var tokens = estimateTokenCount(request.conversation);
+	if (tokens > AILongContextLimit) {
+		request.model = PickLongContextModel();
+	}
+	var result = await callAIandWait('directAskAI', request);
+	list.push(['ai', result]);
+	if (!DBs.pageInfo) await initDB();
+	await DBs.pageInfo.set("pageConversation", url, {
+		conversation: list,
+		timestamp: Date.now()
+	});
+
+	removeAIChatHistory();
+	return result;
+};
+AIHandler.translateContent = async (data, source, sid) => {
+	var available = await checkAvailability();
+	if (!available) return '';
+
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	data.requirement = data.requirement || '(No Extra Requirement)';
+	data.myLang = LangName[myInfo.lang] || myInfo.lang;
+	var prompt = PromptLib.assemble(PromptLib.firstTranslation, data);
+	var conversation = [['human', prompt]];
+	var translation = await callAIandWait('directAskAI', conversation);
+	var json = parseReplyAsXMLToJSON(translation);
+	logger.log('Translate[First]', json);
+	if (json.translation) {
+		translation = json.translation._origin || json.translation;
+	}
+	dispatchEvent({
+		event: "updateCurrentStatus",
+		data: messages.translation.afterFirstTranslate,
+		target: source,
+		tid: sid,
+	});
+	dispatchEvent({
+		event: "finishFirstTranslation",
+		data: translation,
+		target: source,
+		tid: sid,
+	});
+
+	data.translation = translation;
+	prompt = PromptLib.assemble(PromptLib.reflectTranslation, data);
+	conversation = [['human', prompt]];
+	var suggestion = await callAIandWait('directAskAI', conversation);
+	suggestion = parseReplyAsXMLToJSON(suggestion);
+	logger.log('Translate[Suggestion]', suggestion);
+	if ((suggestion.needOptimize || suggestion.needoptimize) && (!!suggestion.deficiencies || !!suggestion.suggestions)) {
+		dispatchEvent({
+			event: "updateCurrentStatus",
+			data: messages.translation.afterReflect,
+			target: source,
+			tid: sid,
+		});
+
+		let sug = [];
+		sug.push('#	Deficiencies');
+		if (!!suggestion.deficiencies) {
+			suggestion.deficiencies = suggestion.deficiencies._origin || suggestion.deficiencies;
+			sug.push(suggestion.deficiencies);
+		}
+		else {
+			sug.push('(No deficiency be mentioned.)');
+		}
+		sug.push('#	Suggestions');
+		if (!!suggestion.suggestions) {
+			suggestion.suggestions = suggestion.suggestions._origin || suggestion.suggestions;
+			sug.push(suggestion.suggestions);
+		}
+		else {
+			sug.push('(No suggestion be provided.)');
+		}
+		data.suggestions = sug.join('\n\n');
+
+		prompt = PromptLib.assemble(PromptLib.deepTranslation, data);
+		conversation = [['human', prompt]];
+		translation = await callAIandWait('directAskAI', conversation);
+		logger.log('Translate[Deep]', translation);
+		dispatchEvent({
+			event: "updateCurrentStatus",
+			data: messages.translate.hintRetranslate,
+			target: source,
+			tid: sid,
+		});
+	}
+	else {
+		translation = '';
+	}
+
+	dispatchEvent({
+		event: "updateCurrentStatus",
+		data: '',
+		target: source,
+		tid: sid,
+	});
+
+	return translation;
+};
+AIHandler.translateSentence = async (data, source, sid) => {
+	var available = await checkAvailability();
+	if (!available) return;
+
+	data.myLang = LangName[myInfo.lang] || myInfo.lang;
+
+	var translation = await callAIandWait('translateSentence', data);
+	var json = parseReplyAsXMLToJSON(translation);
+	logger.log('Translate', json);
+	translation = (json || {}).translation || translation;
+	if (!!translation._origin) translation = translation._origin;
+
+	return translation;
+};
+AIHandler.selectArticlesAboutConversation = async (data, source, sid) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	var limit = SimilarLimit;
+	if (isObject(data)) {
+		limit = data.limit || limit;
+		data = data.request;
+	}
+
+	// Get embedding vector
+	dispatchEvent({
+		event: "updateCurrentStatus",
+		data: messages.crossPageConv.statusAnalyzeRequest,
+		target: source,
+		tid: sid,
+	});
+	var similarArticles;
+	try {
+		let requestVector = await AIHandler.embeddingContent({article: data});
+
+		// Find Similar articles
+		dispatchEvent({
+			event: "updateCurrentStatus",
+			data: messages.crossPageConv.statusFindingSimilarFiles,
+			target: source,
+			tid: sid,
+		});
+		similarArticles = await EventHandler.FindSimilarArticle({vector: requestVector, needContent: true});
+	}
+	catch {
+		if (!DBs.pageInfo) await initDB();
+		let list = await DBs.pageInfo.all('pageInfo');
+		list = Object.keys(list).map(id => list[id]);
+		list = list.filter(item => !!item.content && !!item.hash);
+		list.forEach(item => item._time = (new Date(item.timestamp.replace(/\s+[a-z]+$/i, ''))).getTime());
+		list.sort((pa, pb) => pb._time - pa._time);
+		similarArticles = list;
+	}
+
+	// Find Related articles
+	var relatedArticles;
+	try {
+		relatedArticles = await findRelativeArticles({
+			articles: similarArticles,
+			requests: [data],
+			isWebPage: true,
+			limit,
+		}, source, sid);
+	}
+	catch {
+		relatedArticles = [];
+	}
+
+	dispatchEvent({
+		event: "updateCurrentStatus",
+		target: source,
+		tid: sid,
+	});
+
+	return relatedArticles;
+};
+AIHandler.directSendToAI = async (conversation) => {
+	var result = await callAIandWait('directAskAI', conversation);
+
+	return result;
+};
+AIHandler.findRelativeWebPages = async (data, source, sid) => {
+	data.isWebPage = true;
+	return await findRelativeArticles(data, source, sid);
+};
+AIHandler.replyBasedOnSearch = async (data) => {
+	logger.info('ReplyBasedOnSearch', 'Start');
+	data.webpages = data.webpages.map(item => {
+		var article = ['<webpage>'];
+		article.push('<title>' + item.title + '</title>');
+		article.push('<url>' + item.url + '</title>');
+		if (!!item.summary) {
+			article.push('<summary>');
+			article.push(item.summary);
+			article.push('</summary>');
+		}
+		article.push('</webpage>');
+		return article.join('\n');
+	}).join('\n\n');
+
+	var prompt = PromptLib.assemble(PromptLib.replyBasedOnSearch, {
+		lang: LangName[myInfo.lang] || myInfo.lang,
+		request: data.request,
+	});
+	// For hyper-long string
+	var start = prompt.indexOf('{{webpages}}'), end = start + ('{{webpages}}').length;
+	var bra = prompt.substring(0, start), ket = prompt.substring(end);
+	prompt = bra + data.webpages + ket;
+
+	var conversation = [['human', prompt]];
+	logger.info('ReplyBasedOnSearch', 'Prompt Assembled', conversation);
+
+	var request = {
+		conversation,
+		model: myInfo.model,
+	};
+	var tokens = estimateTokenCount(request.conversation);
+	if (tokens > AILongContextLimit) {
+		request.model = PickLongContextModel();
+	}
+	var result = await callAIandWait('directAskAI', request);
+	result = parseReplyAsXMLToJSON(result);
+	if (!result.reply) {
+		result = {
+			reply: result._origin,
+		};
+	}
+	else {
+		result.reply = result.reply._origin || result.reply;
+	}
+	result.more = (result.more || '').replace(/[\n\r]+/g, '\n').split('\n').map(line => line.replace(/(^\s*([\-\+\*]\s+)*|\s*$)/g, '')).filter(line => !!line);
+	logger.info('ReplyBasedOnSearch', 'Got Reply:', result);
+
+	return result;
+};
+AIHandler.replyAISearch = async (data) => {
+	logger.info('AdvAISearch', 'Start');
+	data.webpages = data.webpages.map(item => {
+		var article = ['<article>'];
+		article.push('<title>' + item.title + '</title>');
+		article.push('<url>' + item.url + '</title>');
+		article.push('<content>');
+		article.push(item.content);
+		article.push('</content>');
+		article.push('</article>');
+		return article.join('\n');
+	}).join('\n\n');
+
+	var prompt = PromptLib.assemble(PromptLib.replySearchRequest, {
+		lang: LangName[myInfo.lang] || myInfo.lang,
+		request: data.request,
+	});
+	// For hyper-long string
+	var start = prompt.indexOf('{{webpages}}'), end = start + ('{{webpages}}').length;
+	var bra = prompt.substring(0, start), ket = prompt.substring(end);
+	prompt = bra + data.webpages + ket;
+
+	var conversation = [['human', prompt]];
+	logger.info('AdvAISearch', 'Prompt Assembled', conversation);
+
+	var result = await callAIandWait('directAskAI', conversation);
+	logger.info('AdvAISearch', 'Got Reply');
+
+	return result;
+};
+AIHandler.raedAndReply = async (data) => {
+	logger.info('SummaryAndReply', 'Start');
+
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	var prompt = PromptLib.assemble(PromptLib.replyRequestBasedOnArticle, {
+		lang: myInfo.lang,
+		request: data.request,
+	});
+	// For hyper-long string
+	var start = prompt.indexOf('{{content}}'), end = start + ('{{content}}').length;
+	var bra = prompt.substring(0, start), ket = prompt.substring(end);
+	prompt = bra + data.content + ket;
+
+	prompt = [['human', prompt]];
+	logger.info('SummaryAndReply', 'Prompt Assembled');
+
+	var request = {
+		conversation: prompt,
+		model: myInfo.model,
+	};
+	var tokens = estimateTokenCount(prompt);
+	if (tokens > AILongContextLimit) {
+		request.model = PickLongContextModel();
+	}
+	var result = await callAIandWait('directAskAI', request);
+	result = result.trim();
+	let parsed = parseReplyAsXMLToJSON(result);
+	if (!!parsed.summary) {
+		parsed.summary = parsed.summary._origin || parsed.summary;
+	}
+	else {
+		parsed.summary = '';
+	}
+	if (!!parsed.reply) {
+		parsed.reply = parsed.reply._origin || parsed.reply;
+	}
+	else {
+		parsed.reply = result;
+	}
+	logger.info('SummaryAndReply', 'Got Reply');
+	console.log(parsed);
+	if (!parsed.relevant) {
+		result = '';
+	}
+	else {
+		if (!!parsed.reply) {
+			let list = [];
+			if (!!parsed.summary) {
+				list.push('## ' + messages.aiSearch.hintPageSummary + '\n\n' + parsed.summary.trim());
+			}
+			list.push('## ' + messages.aiSearch.hintPageReply + '\n\n' + parsed.reply.trim());
+			result = list.join('\n\n');
+		}
+	}
+
+	return result;
+};
+AIHandler.preliminaryThinking = async (data, source, sid) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	const options = {
+		lang: LangName[myInfo.lang] || myInfo.lang,
+		request: data.request,
+		time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")
+	};
+
+	var prompt = PromptLib.assemble(PromptLib.preliminaryThinking, options);
+	var conversation = [['human', prompt]];
+	logger.info('PreliminaryThinking', 'Prompt Assembled', [...conversation]);
+	var result;
+	try {
+		result = await callAIandWait('directAskAI', conversation);
+		result = result.trim();
+		logger.info('PreliminaryThinking', 'Got Reply:\n', result);
+	}
+	catch (err) {
+		logger.error('PreliminaryThinking', err);
+		result = messages.aiSearch.msgPreliminaryThinkingFailed;
+	}
+
+	return result;
+};
+
+/* Utils */
+
+const Tab2Article = {}, RelativeHandler = {};
+const ColdDownDuration = 5 * 60 * 1000;
+const WaitDuration = 5 * 1000;
+const RelativeArticleRange = 40;
+globalThis.waitUntil = fun => new Promise((res, rej) => {
+	var [source, sid] = lastRequest;
+
+	const untiler = setInterval(() => {
+		logger.log('Ext', 'Reactive and waiting...');
+		LastActiveTab
+		dispatchEvent({
+			event: "requestHeartBeating",
+			target: source,
+			tid: sid
+		});
+		dispatchEvent({
+			event: "requestHeartBeating",
+			target: 'FrontEnd',
+			tid: LastActiveTab
+		});
+		dispatchEvent({
+			event: "requestHeartBeating",
+			target: 'HomeScreen',
+			tid: LastActiveTab
+		});
+	}, WaitDuration);
+
+	if (isFunction(fun)) {
+		if (isAsyncFunction(fun)) {
+			fun()
+			.then(result => {
+				res(result);
+			})
+			.catch(err => {
+				rej(err);
+			})
+			.finally(() => {
+				clearInterval(untiler);
+			});
+		}
+		else {
+			clearInterval(untiler);
+			try {
+				let result = fun();
+				res(result);
+			}
+			catch (err) {
+				rej(err);
+			}
+		}
+	}
+	else {
+		fun
+		.then(result => {
+			res(result);
+		})
+		.catch(err => {
+			rej(err);
+		})
+		.finally(() => {
+			clearInterval(untiler);
+		});
+	}
+});
+globalThis.fetchWithCheck = (url, requests, baseUrl, timeout) => new Promise((res, rej) => {
+	timeout = timeout || 5 * 1000;
+	if (!baseUrl) {
+		baseUrl = url.match(/\w+:\/+[^\/]+\//);
+		if (!baseUrl) baseUrl = url;
+		else baseUrl = baseUrl[0];
+	}
+
+	var done = false;
+	fetch(url, requests).then(result => {
+		if (done) return;
+		done = true;
+		clearTimeout(timer);
+		res(result);
+	}).catch(err => {
+		if (done) return;
+		done = true;
+		clearTimeout(timer);
+		rej(err);
+	});
+	fetch(baseUrl).then(() => {
+		if (done) return;
+		clearTimeout(timer);
+	}).catch((err) => {
+		if (done) return;
+		done = true;
+		clearTimeout(timer);
+		rej(err);
+	});
+	var timer = setTimeout(() => {
+		if (done) return;
+		done = true;
+		rej(new Error('Check Connection Timeout: ' + baseUrl));
+	}, timeout);
+});
+const getPageNeedAIInfo = async data => {
+	if (!DBs.pageInfo) await initDB();
+	var info = await Promise.all([
+		DBs.pageInfo.get('notifyChecker', data.page),
+		DBs.pageInfo.get('notifyChecker', data.path),
+		DBs.pageInfo.get('notifyChecker', data.host),
+	]);
+	info = {
+		page: info[0],
+		path: info[1],
+		host: info[2],
+	};
+	if (!info.page) info.page = {need: 0, visited: 0};
+	if (!info.path) info.path = {need: 0, visited: 0};
+	if (!info.host) info.host = {need: 0, visited: 0};
+	return info;
+};
+const updatePageNeedAIInfo = async (data, info) => {
+	if (!DBs.pageInfo) await initDB();
+	await Promise.all([
+		DBs.pageInfo.set('notifyChecker', data.page, info.page),
+		DBs.pageInfo.set('notifyChecker', data.path, info.path),
+		DBs.pageInfo.set('notifyChecker', data.host, info.host),
+	]);
+};
+const manhattanOfVectors = (v1, v2) => {
+	var len = Math.min(v1.length, v2.length);
+	var total = 0;
+	for (let i = 0; i < len; i ++) {
+		total = Math.max(total, Math.abs(v1[i] - v2[i]));
+	}
+	return total;
+};
+const innerProductOfVectors = (v1, v2) => {
+	var len = Math.min(v1.length, v2.length);
+	var total = 0;
+	for (let i = 0; i < len; i ++) {
+		total += v1[i] * v2[i];
+	}
+	return total;
+};
+const calculateSimilarityRate = (g1, g2) => {
+	if (!g1 || !g2) return 0;
+
+	var max1 = 0, max2 = 0, totalW2 = 0;
+	g1.forEach(v => {
+		if (v.weight > max1) max1 = v.weight;
+	});
+	g2.forEach(v => {
+		if (v.weight > max2) max2 = v.weight;
+		totalW2 += v.weight ** 2;
+	});
+	totalW2 /= max2;
+
+	var similarity = 0;
+	var nearest = [];
+	// Find the vector in G1 that is closest to each vector in G2
+	g2.forEach(v2 => {
+		var w2 = v2.weight;
+		v2 = v2.vector;
+
+		var most = 0, target = -1;
+		g1.forEach((v1, idx) => {
+			v1 = v1.vector;
+
+			var prod = innerProductOfVectors(v1, v2);
+			if (prod > most) {
+				target = idx;
+				most = prod;
+			}
+		});
+		if (target < 0) return;
+		var list = nearest[target];
+		if (!list) {
+			list = [];
+			nearest[target] = list;
+		}
+		list.push([w2, most]);
+	});
+	max1 = 0;
+	nearest.forEach((list, idx) => {
+		if (!list) return;
+		var w1 = g1[idx].weight;
+		if (w1 > max1) max1 = w1;
+		var simi = 0;
+		list.forEach(value => {
+			simi += w1 * value[0] * value[1];
+		});
+		similarity += (simi / max1 / totalW2);
+	});
+
+	return similarity;
+};
+const initInjectScript = async () => {
+	const USID = "CypriteInjection";
+
+	var scripts = await chrome.userScripts.getScripts({ids: [USID]});
+	if (scripts.length > 0) return;
+
+	chrome.userScripts.configureWorld({ messaging: true });
+
+	await chrome.userScripts.register([{
+		id: USID,
+		matches: ['*://*/*'],
+		js: [{file: 'inject.js'}],
+		world: "MAIN",
+	}]);
+};
+const decomposePackage = (pack, size=20) => {
+	pack = [...pack]; // Duplicate
+	var count = Math.floor(pack.length / size);
+	if (count === 0) return [pack];
+	var result = [];
+	for (let i = 0; i < count; i ++) {
+		let s = Math.round(pack.length / (count - i));
+		let p = pack.splice(0, s);
+		result.push(p);
+	}
+	return result;
+};
+const getIrrelevants = async (modelList, pack, request, isWebPage, summary) => {
+	var irrelevantList = [], relevantList = [], prompt = isWebPage ? PromptLib.excludeIrrelevantsOnTopic : PromptLib.excludeIrrelevantsOnArticle, config = {content: request};
+	if (!isWebPage) config.summary = summary;
+
+	await Promise.all(pack.map(async articles => {
+		config.list = articles.map(item => {
+			return '- [' + item.title + '](' + item.url + ')';
+		}).join('\n');
+		let conversation = [['human', PromptLib.assemble(prompt, config)]], irrelevants;
+		irrelevants = await callLLMOneByOne(modelList, conversation, true, 'ExcludeIrrelevants');
+		if (!irrelevants) irrelevants = {};
+		['unrelated', 'related'].forEach(key => {
+			var ctx = irrelevants[key] || '';
+			if (!ctx.replace) ctx = '';
+			var list = [];
+			ctx.replace(/[\r\n]+/g, '\n').split(/\n+/).forEach(line => {
+				line = line.replace(/^\s*\-\s+/i, '').trim();
+				var match = line.match(/\(\s*(https?:[^\[\] ]+[^\\\[\] ])(\\\\)*\)/);
+				if (!!match) {
+					line = match[1];
+				}
+				else {
+					match = line.match(/https?:[^\[\] ]+/);
+					if (!!match) {
+						line = match[0];
+					}
+					else {
+						return;
+					}
+				}
+				list.push(line);
+			});
+			irrelevants[key] = list;
+		});
+		irrelevants.unrelated.forEach(url => {
+			irrelevantList.push(url);
+		});
+		irrelevants.related.forEach(url => {
+			relevantList.push(url);
+		});
+	}));
+	return [irrelevantList, relevantList];
+};
+const getRelevants = async (model, pack, request, isWebPage, summary) => {
+	var relevantList = [], prompt = isWebPage ? PromptLib.filterRelevantsOnTopic : PromptLib.filterRelevantsOnArticle, config = {content: request};
+	if (!isWebPage) config.summary = summary;
+
+	await Promise.all(pack.map(async articles => {
+		config.list = articles.map(item => {
+			var ctx = '<webpage>\n<title>' + item.title + '</title>\n<url>' + item.url + '</url>';
+			if (!!item.description || !!item.summary) {
+				ctx = ctx + '\n<summary>\n' + (item.description || item.summary) + '\n</summary>';
+			}
+			ctx = ctx + '\n</webpage>'
+			return ctx;
+		}).join('\n');
+		let conversation = [['human', PromptLib.assemble(prompt, config)]], relevants;
+		relevants = await callAIandWait('directAskAI', {
+			conversation,
+			model,
+		});
+		let urls = ('\n' + relevants + '\n').match(/[\-\+]\s+[^\n\r]+?[\n\r]/ig);
+		if (!!urls) urls.forEach(url => {
+			url = url.replace(/[\-\+]\s+/i, '').trim();
+			if (url.match(/^\[[^\n\r]+?\]\(/)) url = url.replace(/^\[[^\n\r]+?\]\(/, '').replace(/\)$/, '').trim();
+			if (relevantList.includes(url)) return;
+			relevantList.push(url);
+		});
+	}));
+	return relevantList;
+};
+const findRelativeArticles = async (data, source, sid) => {
+	if (!myInfo.inited) {
+		await getWSConfig();
+	}
+	var available = await checkAvailability();
+	if (!available) {
+		return;
+	}
+
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	const isWebPage = isBoolean(data.isWebPage) ? data.isWebPage : true;
+	const request = (data.requests || []).join('\n\n') || '(NONE)';
+	const currentSummary = (data.content || []).map(ctx => '<summary>\n' + ctx.trim() + '\n</summary>').join('\n\n') || '(NONE)';
+
+	logger.log('SW', data.articles.length + ' Similar Articles for ' + (data.url || '(NONE)'));
+
+	// Exclude Irrelevants
+	dispatchEvent({
+		event: "updateCurrentStatus",
+		data: messages.crossPageConv.hintExcludeIrrelevants,
+		target: source,
+		tid: sid,
+	});
+	var modelList = getFunctionalModelList('excludeIrrelevants');
+	var articles = [...data.articles], loop = 0, irrelevantList = [];
+	var time = Date.now();
+	while (true) {
+		loop ++;
+		let pack = decomposePackage(articles, 70), irrelevants, relevants;
+		// Attempt the models in the modelList one by one, and try the next model if an error occurs, until all models have been tried
+		try {
+			[irrelevants, relevants] = await getIrrelevants(modelList, pack, request, isWebPage, currentSummary);
+		}
+		catch (err) {
+			irrelevants = [];
+			relevants = [];
+			console.error(err);
+		}
+		logger.info('Filter Irrelevants', 'Excludes(' + loop + '): ' + irrelevants.length + ' / ' + relevants.length);
+		irrelevants.forEach(i => {
+			if (!irrelevantList.includes(i)) irrelevantList.push(i);
+		});
+		articles = articles.filter(item => !irrelevants.includes(item.url));
+		articles = articles.filter(item => !relevants.includes(item.url));
+		// Termination conditions
+		if (loop >= 3 || articles.length <= 20 || irrelevants.length + relevants.length <= 7) break;
+	}
+	time = Date.now() - time;
+	logger.info('Exclude Irrelevants', time + 'ms, ' + irrelevantList.length);
+	articles = data.articles.filter(item => !irrelevantList.includes(item.url));
+
+	var limit = data.limit || RelativeArticleRange;
+	if (articles.length > limit) articles.splice(limit);
+	data.articles= [...articles];
+	console.log(articles.map(i => '-\t' + i.title + ' : ' + i.url).join('\n'));
+
+	// AI find the relative articles
+	dispatchEvent({
+		event: "updateCurrentStatus",
+		data: messages.crossPageConv.statusFindingRelatedFiles,
+		target: source,
+		tid: sid,
+	});
+	modelList = getFunctionalModelList('identityRelevants');
+	var model = modelList[0];
+	var idx = 0;
+	loop = 0;
+	var relevants = [], error;
+	time = Date.now();
+	while (true) {
+		loop ++;
+		let packages = decomposePackage(articles, 5), list;
+		while (true) {
+			logger.log('Identify Relevants', 'Curent Model: ' + model);
+			try {
+				list = await getRelevants(model, packages, request, isWebPage, currentSummary);
+				break;
+			}
+			catch (err) {
+				logger.error('Identify Relevants', err);
+				list = [];
+				idx ++;
+				if (idx >= modelList.length) {
+					error = err;
+					break;
+				}
+				model = modelList[idx];
+			}
+		}
+		logger.info('Identify Relevants', 'Filter(' + loop + '): ' + list.length);
+		if (!!error) {
+			showSystemNotification(error);
+			break;
+		}
+		list.forEach(url => {
+			relevants.push(parseURL(url));
+		});
+		articles = articles.filter(item => !list.includes(item.url));
+
+		if (loop >= 2 || list.length <= 2 || articles.length <= 3) {
+			break;
+		}
+	}
+	time = Date.now() - time;
+	logger.info('Identify Relevants', model + ' : ' + time + 'ms, ' + relevants.length);
+
+	if (isWebPage) {
+		let list = [];
+		relevants.forEach(url => {
+			data.articles.some(item => {
+				if (item.url !== url) return;
+				list.push(item);
+				return true;
+			});
+		});
+		relevants = list;
+	}
+	else {
+		// Get Info
+		relevants = await Promise.all(relevants.map(async (url) => {
+			var item = await getPageInfo(url);
+			if (!item || !item.hash || item.hash === data.hash) return null;
+
+			var info = {};
+			for (let key in item) {
+				info[key] = item[key];
+			}
+			info.similar = 100;
+
+			return info;
+		}));
+		relevants = relevants.filter(item => !!item);
+	}
+	console.log(relevants.map(item => '-\t' + item.title + ' : ' + item.url).join('\n'));
+	dispatchEvent({
+		event: "updateCurrentStatus",
+		target: source,
+		tid: sid,
+	});
+
+	return relevants;
+};
+const parseParams = param => {
+	var json = {};
+	param = (param || '').split('?');
+	param.shift();
+	param = (param || '').join('?').split('&');
+	param.forEach(item => {
+		item = item.split('=');
+		var key = item.shift();
+		if (!key) return;
+		item = item.join('=');
+		json[key] = item;
+	});
+	return json;
+};
+
+/* Init */
+
+initDB();
+// initInjectScript();
+
+/* ------------ */
+
+EventHandler.notify = (data, source, sid) => {
+	var sourceName = 'Server';
+	if (source === "BackEnd") sourceName = 'Background';
+	else if (source === "FrontEnd") sourceName = 'Content';
+	else if (source === "PageEnd") sourceName = 'Injection';
+	if (!isString(data) && !isNumber(data) && !isBoolean(data)) data = JSON.stringify(data);
+	logger.log(`Notify | ${sourceName}`, data);
+};

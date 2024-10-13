@@ -24,7 +24,6 @@
 		<li titlePath="configPage.groupPersonel" showGroup="groupPersonel"></li>
 		<li titlePath="configPage.groupAPIKey" showGroup="groupAPIKey" caseGroup="forceServer"></li>
 		<li titlePath="configPage.groupExtension" showGroup="groupExtension" caseGroup="forceServer"></li>
-		<!-- @!Branch: forceExtension  @#Branch -->
 		<li titlePath="configPage.aboutUs" showGroup="groupAboutUs"></li>
 	</nav>
 
@@ -43,19 +42,12 @@
 		<div><textarea class="myInfo scrollable" dataGroup="configuration" dataItem="info" placeholderName="configPage.hintIntroducePlaceholder"></textarea></div>
 	</section>
 
-	<!-- @!Branch: forceExtension  @#Branch -->
 
 	<section group="groupAPIKey" caseGroup="forceServer">
 		<div titlePath="configPage.hintAPIKey"></div>
 		<div><span titlePath="configPage.hintGeminiAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.gemini" placeholder="APIKey"></div>
 		<div><span titlePath="configPage.hintClaudeAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.claude" placeholder="APIKey"></div>
 		<div><span titlePath="configPage.hintOpenAIAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.openai" placeholder="APIKey"></div>
-		<div><span titlePath="configPage.hintMoonShotAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.moonshot" placeholder="APIKey"></div>
-		<div><span titlePath="configPage.hintDeepSeekAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.deepseek" placeholder="APIKey"></div>
-		<div><span titlePath="configPage.hintMiniMaxAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.minimax" placeholder="APIKey"></div>
-		<div><span titlePath="configPage.hintGLMAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.glm" placeholder="APIKey"></div>
-		<div><span titlePath="configPage.hintErnieAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.ernie.api" placeholder="APIKey"></div>
-		<div><span titlePath="configPage.hintErnieSecretKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.ernie.secret" placeholder="SecretKey"></div>
 		<div><span titlePath="configPage.hintMixtralAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.mixtral" placeholder="APIKey"></div>
 		<div><span titlePath="configPage.hintGroqAPIKey"></span><input class="myKey" type="text" dataGroup="configuration" dataItem="apiKey.groq" placeholder="APIKey"></div>
 	</section>
@@ -68,6 +60,11 @@
 
 	<section group="groupAboutUs">
 		<div htmlPath="configPage.hintAboutMe" class="center"></div>
+		<hr>
+		<div class="center">
+			<button titlePath="configPage.btnSaveConfiguration" action="saveConfigToFile"></button>
+			<button titlePath="configPage.btnLoadConfiguration" action="loadConfigFromFile"></button>
+		</div>
 		<hr>
 		<div class="tableName">Platform Usage</div>
 		<div class="tableList" name="LLMList"></div>

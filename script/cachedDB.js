@@ -1,1 +1,167 @@
-globalThis.CachedDB=class{constructor(e,r){this._name=e,this._version=r,this.conn=null,this.db=null,this.cbUpdates=[],this.cbConnects=[],this.ready=!1,this.available=!1}connect(){return new Promise((r,t)=>{this.conn=indexedDB.open(this.name,this.version),this.conn.onupgradeneeded=e=>{this.db=this.conn.result,this.cbUpdates.forEach(e=>e(this))},this.conn.onsuccess=e=>{this.ready=!0,this.available=!0,this.db=this.conn.result,this.cbConnects.forEach(e=>e(this)),r(this)},this.conn.onerror=e=>{this.ready=!0,this.available=!1,t(e)}})}onConnect(e){this.cbConnects.push(e)}onUpdate(e){this.cbUpdates.push(e)}open(e,t="id",n){if(!this.db.objectStoreNames.contains(e)){let r=this.db.createObjectStore(e,{keyPath:t});r.createIndex(t,t,{unique:!0}),n&&0<n.length&&n.forEach(e=>{r.createIndex(e,e,{unique:!1})})}}set(s,a,o){return new Promise((r,t)=>{var e=this.db.transaction([s],"readwrite"),e=(e||t(new Error("Open IndexedDB Transaction Failed: "+s)),e.objectStore(s)),n=(s||t(new Error("Open IndexedDB ObjectStore Failed: "+s)),{}),e=([...e.indexNames].forEach(e=>{n[e]=o[e]}),n[e.keyPath]=a,n.data=o,e.put(n));e.onsuccess=e=>{r(e.result)},e.onerror=e=>{t(e)}})}get(n,s){return new Promise((r,t)=>{var e=this.db.transaction([n],"readonly"),e=(e||t(new Error("Open IndexedDB Transaction Failed: "+n)),e.objectStore(n));n||t(new Error("Open IndexedDB ObjectStore Failed: "+n));e=e.index(e.keyPath).get(s);e.onsuccess=e=>{e.target.result?r(e.target.result.data):r(void 0)},e.onerror=e=>{t(e)}})}all(a,o){return new Promise((n,r)=>{var e,t=this.db.transaction([a],"readonly"),s=(t||r(new Error("Open IndexedDB Transaction Failed: "+a)),t.objectStore(a));a||r(new Error("Open IndexedDB ObjectStore Failed: "+a));try{e=s.index(o||s.keyPath)}catch(e){return void r(e)}t=e.getAll();t.onsuccess=e=>{e=e.target.result;if(!e)return n(e);var r=!o||o===s.keyPath,t=r?{}:[];e.forEach(e=>{r?t[e[s.keyPath]]=e.data:t.push(e.data)}),n(t)},t.onerror=e=>{r(e)}})}del(n,s){return new Promise((r,t)=>{var e=this.db.transaction([n],"readwrite"),e=(e||t(new Error("Open IndexedDB Transaction Failed: "+n)),e.objectStore(n)),e=(n||t(new Error("Open IndexedDB ObjectStore Failed: "+n)),e.delete(s));e.onsuccess=e=>{r(e.result)},e.onerror=e=>{t(e)}})}clear(n){return new Promise((r,t)=>{var e=this.db.transaction([n],"readwrite"),e=(e||t(new Error("Open IndexedDB Transaction Failed: "+n)),e.objectStore(n)),e=(n||t(new Error("Open IndexedDB ObjectStore Failed: "+n)),e.clear());e.onsuccess=e=>{r(e.result)},e.onerror=e=>{t(e)}})}get name(){return this._name}get version(){return this._version}};
+(() => {
+	class CachedDB {
+		constructor (name, version) {
+			this._name = name;
+			this._version = version;
+			this.conn = null;
+			this.db = null;
+			this.cbUpdates = [];
+			this.cbConnects = [];
+			this.ready = false;
+			this.available = false;
+		}
+		connect () {
+			return new Promise((res, rej) => {
+				this.conn = indexedDB.open(this.name, this.version);
+				this.conn.onupgradeneeded = evt => {
+					this.db = this.conn.result;
+					this.cbUpdates.forEach(cb => cb(this));
+				};
+				this.conn.onsuccess = evt => {
+					this.ready = true;
+					this.available = true;
+					this.db = this.conn.result;
+					this.cbConnects.forEach(cb => cb(this));
+					res(this);
+				};
+				this.conn.onerror = err => {
+					this.ready = true;
+					this.available = false;
+					rej(err);
+				};
+			});
+		}
+		onConnect (cb) {
+			this.cbConnects.push(cb);
+		}
+		onUpdate (cb) {
+			this.cbUpdates.push(cb);
+		}
+		open (name, keyPath='id', indexes) {
+			if (!this.db.objectStoreNames.contains(name)) {
+				let store = this.db.createObjectStore(name, { keyPath });
+				store.createIndex(keyPath, keyPath, { unique: true });
+				if (!!indexes && indexes.length > 0) {
+					indexes.forEach(idx => {
+						store.createIndex(idx, idx, { unique: false });
+					});
+				}
+			}
+		}
+		set (store, key, value) {
+			return new Promise((res, rej) => {
+				var tx = this.db.transaction([store], "readwrite");
+				if (!tx) rej(new Error('Open IndexedDB Transaction Failed: ' + store));
+				var cache = tx.objectStore(store);
+				if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: ' + store));
+
+				var item = {};
+				[...cache.indexNames].forEach(id => {
+					item[id] = value[id];
+				});
+				item[cache.keyPath] = key;
+				item.data = value;
+				var result = cache.put(item);
+				result.onsuccess = evt => {
+					res(evt.result);
+				};
+				result.onerror = err => {
+					rej(err);
+				};
+			});
+		}
+		get (store, key) {
+			return new Promise((res, rej) => {
+				var tx = this.db.transaction([store], "readonly");
+				// var tx = this.db.transaction([store], "readwrite");
+				if (!tx) rej(new Error('Open IndexedDB Transaction Failed: ' + store));
+				var cache = tx.objectStore(store);
+				if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: ' + store));
+				var index = cache.index(cache.keyPath);
+
+				var result = index.get(key);
+				result.onsuccess = evt => {
+					if (!evt.target.result) res(undefined);
+					else res(evt.target.result.data);
+				};
+				result.onerror = err => {
+					rej(err);
+				};
+			});
+		}
+		all (store, idx) {
+			return new Promise((res, rej) => {
+				var tx = this.db.transaction([store], "readonly");
+				// var tx = this.db.transaction([store], "readwrite");
+				if (!tx) rej(new Error('Open IndexedDB Transaction Failed: ' + store));
+				var cache = tx.objectStore(store);
+				if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: ' + store));
+				var index;
+				try {
+					index = cache.index(idx || cache.keyPath);
+				}
+				catch (err) {
+					rej(err);
+					return;
+				}
+
+				var result = index.getAll();
+				result.onsuccess = evt => {
+					var list = evt.target.result;
+					if (!list) return res(list);
+					var isPrime = !idx || (idx === cache.keyPath);
+					var result = isPrime ? {} : [];
+					list.forEach(item => {
+						if (isPrime) result[item[cache.keyPath]] = item.data;
+						else result.push(item.data);
+					});
+					res(result);
+				};
+				result.onerror = err => {
+					rej(err);
+				};
+			});
+		}
+		del (store, key) {
+			return new Promise((res, rej) => {
+				var tx = this.db.transaction([store], "readwrite");
+				if (!tx) rej(new Error('Open IndexedDB Transaction Failed: ' + store));
+				var cache = tx.objectStore(store);
+				if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: ' + store));
+
+				var result = cache.delete(key);
+				result.onsuccess = evt => {
+					res(evt.result);
+				};
+				result.onerror = err => {
+					rej(err);
+				};
+			});
+		}
+		clear (store) {
+			return new Promise((res, rej) => {
+				var tx = this.db.transaction([store], "readwrite");
+				if (!tx) rej(new Error('Open IndexedDB Transaction Failed: ' + store));
+				var cache = tx.objectStore(store);
+				if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: ' + store));
+
+				var result = cache.clear();
+				result.onsuccess = evt => {
+					res(evt.result);
+				};
+				result.onerror = err => {
+					rej(err);
+				};
+			});
+		}
+
+		get name () {
+			return this._name;
+		}
+		get version () {
+			return this._version;
+		}
+	}
+
+	globalThis.CachedDB = CachedDB;
+}) ();

@@ -1,1 +1,391 @@
-import"./ai/prompts.js";import"./ai/gemini.js";import"./ai/claude.js";import"./ai/gpt.js";import"./ai/ernie.js";import"./ai/groq.js";let ResMap=new Map,EmbeddingLimit=2024;var synchronousCount=0,embedAIModel=AI.Gemini.embed;const LLMUsage={},ModelUsage={};globalThis.recordAIUsage=(e,t,a)=>{var r=LLMUsage[t],t=(r||(r={count:0,input:0,output:0},LLMUsage[t]=r),r.count+=a.count,r.input+=a.input,r.output+=a.output,(r=ModelUsage[e])||(r={count:0,input:0,output:0},ModelUsage[e]=r),r.count+=a.count,r.input+=a.input,r.output+=a.output,{llm_usage_record:LLMUsage,model_usage_record:ModelUsage});chrome.storage.local.set(t)},globalThis.showAIUsage=async()=>{await loadAIUsage(),logger.em("AI USAGE","LLM Usage:");var e,t,a=[];for(e in LLMUsage){var r=LLMUsage[e];a.push({LLM:e,count:r.count,input:r.input,output:r.output})}for(t in console.table(a,["LLM","count","input","output"]),logger.em("AI USAGE","Model Usage:"),a=[],ModelUsage){var s=ModelUsage[t];a.push({model:t,count:s.count,input:s.input,output:s.output})}console.table(a,["model","count","input","output"])},globalThis.resetAIUsage=()=>{LLMUsage={},ModelUsage={},chrome.storage.local.remove(["llm_usage_record","model_usage_record"])},globalThis.loadAIUsage=async()=>{var e=await chrome.storage.local.get(["llm_usage_record","model_usage_record"]),t=e.llm_usage_record,a=e.model_usage_record;if(t)for(var r in t)LLMUsage[r]=t[r];if(a)for(var s in a)ModelUsage[s]=a[s]},showAIUsage(),globalThis.callAIandWait=(n,o)=>new Promise(async(t,a)=>{myInfo.inited||await getWSConfig();var r,s=newID();if(ForceBackend)if(sendMessage===DefaultSendMessage)a("No AI Server Available");else try{t(await callServer(n,o))}catch(e){a(e)}else{let e=!0;if(!myInfo.useLocalKV&&sendMessage!==DefaultSendMessage){e=!1;try{t(await callServer(n,o))}catch{e=!0}}e&&(myInfo.edgeAvailable?(r=EdgedAI[n])?(ResMap.set(s,[t,a]),r(s,o)):(t="NO such action: "+n,logger.error("AI",t),a(t)):(r=I18NMessages[myInfo.lang]||I18NMessages[DefaultLang],console.error(r.noAPIKey,JSON.parse(JSON.stringify(myInfo))),chrome.notifications.create({title:r.cypriteName,message:r.noAPIKey,type:"basic",iconUrl:"/images/icon1024.png"}),a(r.noAPIKey)))}});let replyRequest=(e,t,a)=>{var r=ResMap.get(e);r&&(ResMap.delete(e),a?r[1](a):r[0](t))},splitParagraph=(r,e)=>{var s=[],n=0;return(r="\n"+r).replace(new RegExp("\\n"+e+"\\s+","gi"),(e,t)=>{var a=r.substring(n,t);n=t,a=a.trim(),s.push(a)}),s.push(r.substring(n).trim()),s=(s=s.filter(e=>!!e)).map(e=>e.length>EmbeddingLimit?[!1,e]:[!0,e])},splitSentence=(r,e,a=!1)=>{var s=[],n=0,o=(r.replace(e,(e,...t)=>{t.some(e=>{if(isNumber(e))return a=e,!0}),a+=e.length;var a,t=r.substring(n,a);n=a,s.push(t)}),s.push(r.substring(n)),s=s.filter(e=>!!e.trim()),[]),i=0,l="",g=a?1:0;return s.forEach(e=>{var t=e.length;t>EmbeddingLimit?(o.push([!0,l.trim()]),l="",i=0,o.push([!1,e.trim()])):i=i+t+g>EmbeddingLimit?(o.push([!0,l.trim()]),l=e,t):(a?l=l+"\n"+e:l+=e,l.length)}),l.trim()&&o.push([!0,l.trim()]),o},batchize=e=>e=(e=(e=(e=splitParagraph(e,"#")).map(e=>e[0]?e[1]:e=(e=splitParagraph(e[1],"##")).map(e=>e[0]?e[1]:e=(e=splitParagraph(e[1],"###")).map(e=>e[0]?e[1]:e=(e=splitParagraph(e[1],"####")).map(e=>e[0]?e[1]:e=(e=splitSentence(e[1],/(\r*\n\r*)+/g,!0)).map(e=>e[0]?e[1]:e=(e=splitSentence(e[1],/[\.\?\!。？！…]['"’”]?/gi)).map(e=>e[0]?e[1]:e=(e=splitSentence(e[1],/[,;，；]['"’”]?\s*/gi)).map(e=>e[0]?e[1]:e=(e=splitSentence(e[1],/\s+/gi)).map(t=>{if(t[0])return t[1];t=t[1];var a=[],r=Math.ceil(t.length/EmbeddingLimit),s=Math.ceil(t.length/r);for(let e=0;e<r;e++){var n=e*s,n=t.substring(n,n+s);a.push(n)}return a}))))))))).flat(1/0)).filter(e=>!!e),callEdgeAI=async(e,t,a)=>{if(t=t.map(e=>[...e]),a=a||myInfo.model){var r,s,n=Model2AI[a],n=AI[n];if(n=n&&n.chat){synchronousCount++,logger.strong("AI-Start","Synchronous: "+synchronousCount);try{r=await n(t,a)}catch(e){s=isString(e)?new Error(e):e,r=null}synchronousCount--,logger.strong("AI-Finish","Synchronous: "+synchronousCount),replyRequest(e,r,s)}else replyRequest(e,null,new Error("No AI for Model "+a))}else replyRequest(e,null,new Error("AI Model not set."))},EdgedAI={sayHello:async e=>{return;var t=PromptLib.assemble(PromptLib.sayHello,{lang:LangName[myInfo.lang],name:myInfo.name,info:myInfo.info,time:timestmp2str(Date.now(),"YY年MM月DD日 :WDE: hh:mm")});callEdgeAI(e,[["human",t]])},summarizeArticle:async(e,t)=>{t=PromptLib.assemble(PromptLib.summarizeArticle,{article:t,lang:LangName[myInfo.lang]});callEdgeAI(e,[["human",t]])},embeddingArticle:async(e,a)=>{var t,r,s=[],n=a.article||a.summary;n.length>EmbeddingLimit?(n=batchize(n)).forEach((e,t)=>{s.push({title:a.title+"-"+(t+1),content:e})}):s.push({title:a.title,content:n});try{t=await embedAIModel(s)}catch(e){logger.error("Embedding",e),r=isString(e)?new Error(e):e}replyRequest(e,t,r)},directAskAI:async(e,t)=>{var a=myInfo.model;isObject(t)&&(a=t.model||a,t=t.conversation),callEdgeAI(e,t,a)},translateSentence:async(e,t)=>{var a=[];a.push(["human",PromptLib.assemble(PromptLib.instantTranslation,t)]),callEdgeAI(e,a)}};
+import "./ai/prompts.js";
+import "./ai/gpt.js";
+import "./ai/gemini.js";
+import "./ai/claude.js";
+import "./ai/groq.js";
+
+const ResMap = new Map();
+const EmbeddingLimit = 2024;
+const embedAIModel = ForceServer ? () => {} : AI.Gemini.embed;
+
+var synchronousCount = 0;
+
+const LLMUsage = {};
+const ModelUsage = {};
+globalThis.recordAIUsage = (model, ai, usage) => {
+	var record = LLMUsage[ai];
+	if (!record) {
+		record = {
+			count: 0,
+			input: 0,
+			output: 0,
+		};
+		LLMUsage[ai] = record;
+	}
+	record.count += usage.count;
+	record.input += usage.input;
+	record.output += usage.output;
+
+	record = ModelUsage[model];
+	if (!record) {
+		record = {
+			count: 0,
+			input: 0,
+			output: 0,
+		};
+		ModelUsage[model] = record;
+	}
+	record.count += usage.count;
+	record.input += usage.input;
+	record.output += usage.output;
+
+	var data = {
+		'llm_usage_record': LLMUsage,
+		'model_usage_record': ModelUsage,
+	};
+	chrome.storage.local.set(data);
+};
+globalThis.showAIUsage = async () => {
+	await loadAIUsage();
+	logger.em('AI USAGE', "LLM Usage:");
+	var table = [];
+	for (let ai in LLMUsage) {
+		let usage = LLMUsage[ai];
+		table.push({
+			LLM: ai,
+			count: usage.count,
+			input: usage.input,
+			output: usage.output,
+		});
+	}
+	console.table(table, ['LLM', 'count', 'input', 'output']);
+
+	logger.em('AI USAGE', "Model Usage:");
+	table = [];
+	for (let ai in ModelUsage) {
+		let usage = ModelUsage[ai];
+		table.push({
+			model: ai,
+			count: usage.count,
+			input: usage.input,
+			output: usage.output,
+		});
+	}
+	console.table(table, ['model', 'count', 'input', 'output']);
+};
+globalThis.resetAIUsage = () => {
+	LLMUsage = {};
+	ModelUsage = {};
+	chrome.storage.local.remove(['llm_usage_record', 'model_usage_record']);
+};
+globalThis.loadAIUsage = async () => {
+	var info = await chrome.storage.local.get(['llm_usage_record', 'model_usage_record']);
+	var llm = info['llm_usage_record'], model = info['model_usage_record'];
+	if (!!llm) {
+		for (let ai in llm) {
+			LLMUsage[ai] = llm[ai];
+		}
+	}
+	if (!!model) {
+		for (let ai in model) {
+			ModelUsage[ai] = model[ai];
+		}
+	}
+};
+showAIUsage();
+
+globalThis.callAIandWait = (action, data) => new Promise(async (res, rej) => {
+	if (!myInfo.inited) {
+		await getWSConfig();
+	}
+
+	var taskId = newID();
+
+	// If forcely call AI from server
+	if (ForceServer) {
+		if (sendMessage === DefaultSendMessage) {
+			rej('No AI Server Available');
+		}
+		else {
+			try {
+				let reply = await callServer(action, data);
+				res(reply);
+			}
+			catch (err) {
+				rej(err);
+			}
+		}
+	}
+	else {
+		let useEdgeAI = true;
+		// Call AI from Server
+		if (!myInfo.useLocalKV) {
+			if (sendMessage !== DefaultSendMessage) {
+				useEdgeAI = false;
+				try {
+					let reply = await callServer(action, data);
+					res(reply);
+				}
+				catch {
+					useEdgeAI = true;
+				}
+			}
+		}
+		// Call AI from Extension
+		if (useEdgeAI) {
+			if (!myInfo.edgeAvailable) {
+				const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+				console.error(messages.noAPIKey, JSON.parse(JSON.stringify(myInfo)));
+				chrome.notifications.create({
+					title: messages.cypriteName,
+					message: messages.noAPIKey,
+					type: "basic",
+					iconUrl: "/images/icon1024.png",
+				});
+				rej(messages.noAPIKey);
+			}
+			else {
+				let handler = EdgedAI[action];
+				if (!handler) {
+					let errMsg = 'NO such action: ' + action;
+					logger.error('AI', errMsg);
+					rej(errMsg);
+				}
+				else {
+					ResMap.set(taskId, [res, rej]);
+					handler(taskId, data);
+				}
+			}
+		}
+	}
+});
+const replyRequest = (tid, reply, error) => {
+	var res = ResMap.get(tid);
+	if (!res) return;
+	ResMap.delete(tid);
+	if (!!error) res[1](error);
+	else res[0](reply);
+};
+const splitParagraph = (content, mark) => {
+	content = '\n' + content;
+
+	var blocks = [], lastPos = 0;
+	content.replace(new RegExp('\\n' + mark + '\\s+', 'gi'), (m, pos) => {
+		var block = content.substring(lastPos, pos);
+		lastPos = pos;
+		block = block.trim();
+		blocks.push(block);
+	});
+	blocks.push(content.substring(lastPos).trim());
+	blocks = blocks.filter(block => !!block);
+	blocks = blocks.map(block => {
+		if (block.length > EmbeddingLimit) {
+			return [false, block];
+		}
+		else {
+			return [true, block];
+		}
+	});
+	return blocks;
+};
+const splitSentence = (content, reg, nextLine=false) => {
+	var sentences = [], lastPos = 0;
+	content.replace(reg, (m, ...args) => {
+		var pos;
+		args.some(arg => {
+			if (isNumber(arg)) {
+				pos = arg;
+				return true;
+			}
+		});
+		pos += m.length;
+		var sub = content.substring(lastPos, pos);
+		lastPos = pos;
+		sentences.push(sub);
+	});
+	sentences.push(content.substring(lastPos));
+	sentences = sentences.filter(line => !!line.trim());
+
+	var parts = [], size = 0, temp = '', delta = nextLine ? 1 : 0;
+	sentences.forEach(line => {
+		var len = line.length;
+		if (len > EmbeddingLimit) {
+			parts.push([true, temp.trim()]);
+			temp = '';
+			size = 0;
+			parts.push([false, line.trim()]);
+		}
+		else if (size + len + delta > EmbeddingLimit) {
+			parts.push([true, temp.trim()]);
+			temp = line;
+			size = len;
+		}
+		else {
+			if (nextLine) temp = temp + '\n' + line;
+			else temp = temp + line;
+			size = temp.length;
+		}
+	});
+	if (!!temp.trim()) parts.push([true, temp.trim()]);
+	return parts;
+};
+const batchize = content => {
+	content = splitParagraph(content, '#');
+	content = content.map(content => {
+		if (content[0]) return content[1];
+		content = splitParagraph(content[1], '##');
+		content = content.map(content => {
+			if (content[0]) return content[1];
+			content = splitParagraph(content[1], '###');
+			content = content.map(content => {
+				if (content[0]) return content[1];
+				content = splitParagraph(content[1], '####');
+				content = content.map(content => {
+					if (content[0]) return content[1];
+					content = splitSentence(content[1], /(\r*\n\r*)+/g, true);
+					content = content.map(content => {
+						if (content[0]) return content[1];
+						content = splitSentence(content[1], /[\.\?\!。？！…]['"’”]?/gi);
+						content = content.map(content => {
+							if (content[0]) return content[1];
+							content = splitSentence(content[1], /[,;，；]['"’”]?\s*/gi);
+							content = content.map(content => {
+								if (content[0]) return content[1];
+								content = splitSentence(content[1], /\s+/gi);
+								content = content.map(content => {
+									if (content[0]) return content[1];
+									content = content[1];
+									var block = [];
+									var count = Math.ceil(content.length / EmbeddingLimit);
+									var size = Math.ceil(content.length / count);
+									for (let i = 0; i < count; i ++) {
+										let j = i * size;
+										let line = content.substring(j, j + size);
+										block.push(line);
+									}
+									return block;
+								});
+								return content;
+							});
+							return content;
+						});
+						return content;
+					});
+					return content;
+				});
+				return content;
+			});
+			return content;
+		});
+		return content;
+	});
+
+	content = content.flat(Infinity);
+	content = content.filter(block => !!block);
+	return content;
+};
+const callEdgeAI = async (tid, conversation, model) => {
+	conversation = conversation.map(item => [...item]); // Duplicate Conversation
+
+	model = model || myInfo.model;
+	if (!model) {
+		replyRequest(tid, null, new Error('AI Model not set.'));
+		return;
+	}
+
+	var aiName = Model2AI[model];
+	var chatToAI = AI[aiName];
+	if (!!chatToAI) chatToAI = chatToAI.chat;
+	if (!chatToAI) {
+		replyRequest(tid, null, new Error('No AI for Model ' + model));
+		return;
+	}
+	synchronousCount ++;
+	logger.strong('AI-Start', "Synchronous: " + synchronousCount);
+
+	var reply, errMsg;
+	try {
+		reply = await chatToAI(conversation, model);
+	}
+	catch (err) {
+		if (isString(err)) {
+			errMsg = new Error(err);
+		}
+		else {
+			errMsg = err;
+		}
+		reply = null;
+	}
+
+	synchronousCount --;
+	logger.strong('AI-Finish', "Synchronous: " + synchronousCount);
+	replyRequest(tid, reply, errMsg);
+};
+
+const EdgedAI = {};
+EdgedAI.summarizeArticle = async (tid, article) => {
+	var prompt = PromptLib.assemble(PromptLib.summarizeArticle, { article, lang: LangName[myInfo.lang] });
+
+	callEdgeAI(tid, [['human', prompt]]);
+};
+EdgedAI.embeddingArticle = async (tid, data) => {
+	var batch = [];
+	var content = data.article || data.summary;
+	if (content.length > EmbeddingLimit) {
+		content = batchize(content);
+		content.forEach((ctx, i) => {
+			batch.push({
+				title: data.title + '-' + (i + 1),
+				content: ctx
+			});
+		});
+	}
+	else {
+		batch.push({
+			title: data.title,
+			content
+		});
+	}
+
+	var reply, errMsg;
+	try {
+		reply = await embedAIModel(batch);
+	}
+	catch (err) {
+		logger.error('Embedding', err);
+		if (isString(err)) {
+			errMsg = new Error(err);
+		}
+		else {
+			errMsg = err;
+		}
+	}
+
+	replyRequest(tid, reply, errMsg);
+};
+EdgedAI.directAskAI = async (tid, conversation) => {
+	var model = myInfo.model;
+	if (isObject(conversation)) {
+		model = conversation.model || model;
+		conversation = conversation.conversation;
+	}
+	callEdgeAI(tid, conversation, model);
+};
+EdgedAI.translateSentence = async (tid, data) => {
+	var prompt = [];
+	prompt.push(['human', PromptLib.assemble(PromptLib.instantTranslation, data)]);
+
+	callEdgeAI(tid, prompt);
+};
+
+EdgedAI.sayHello = async (tid) => {
+	return;
+	var prompt = PromptLib.assemble(PromptLib.sayHello, {
+		lang: LangName[myInfo.lang],
+		name: myInfo.name,
+		info: myInfo.info,
+		time: timestmp2str(Date.now(), "YY年MM月DD日 :WDE: hh:mm"),
+	});
+
+	callEdgeAI(tid, [['human', prompt]]);
+};

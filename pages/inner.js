@@ -1,4 +1,6 @@
-globalThis.PageContents=globalThis.PageContents||{},globalThis.PageContents.mainPage=`
+globalThis.PageContents = globalThis.PageContents || {};
+
+globalThis.PageContents.mainPage = `
 <div id="Container" class="cyprite_extension panel_mask" @click="onCloseMeByMask">
 	<div class="panel_frame">
 		<div id="Panel" class="panel_container" chat="false" name="summary">
