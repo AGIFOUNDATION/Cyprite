@@ -224,7 +224,7 @@ globalThis.ModelDefaultConfig = {
 };
 globalThis.SearchAIModel = ['GLM', 'MoonShot'];
 
-/* Long COntext Control */
+/* Long Context Control */
 
 globalThis.AILongContextLimit = 200000;
 const LongContextModel = [
@@ -233,43 +233,7 @@ const LongContextModel = [
 ];
 LongContextModel.idx = -1;
 globalThis.PickLongContextModel = () => {
-	var count = 0, model = null;
-	while (true) {
-		count ++;
-		LongContextModel.idx ++;
-		if (LongContextModel.idx >= LongContextModel.length) {
-			LongContextModel.idx = 0;
-		}
-		let mdl = LongContextModel[LongContextModel.idx];
-		let ai = Model2AI[mdl];
-		if (!ai) {
-			if (count >= LongContextModel.length) break;
-			else continue;
-		}
-		ai = ai.toLowerCase();
-		if (ai === 'ernie') {
-			let key = myInfo.apiKey[ai];
-			if (!key || !key.api || !key.secret) {
-				if (count >= LongContextModel.length) break;
-				else continue;
-			}
-		}
-		else {
-			if (!myInfo.apiKey[ai]) {
-				if (count >= LongContextModel.length) break;
-				else continue;
-			}
-		}
-		model = mdl;
-		break;
-	}
-	if (!model) {
-		model = myInfo.model;
-	}
-	else {
-		logger.blank('LongContextModel', 'Switch AI model to ' + model);
-	}
-	return model;
+	return myInfo.model;
 };
 
 /* Functional Model Allocation */
@@ -298,25 +262,8 @@ const FunctionalModel = {
 		'glm-4-long',
 	],
 };
-globalThis.getFunctionalModelList = fun => {
-	var modelList = [];
-	var models = FunctionalModel[fun];
-	if (!models) models = [];
-	models.forEach(m => {
-		var ai = Model2AI[m];
-		if (!ai) return;
-		ai = ai.toLowerCase();
-		if (ai === 'ernie') {
-			let key = myInfo.apiKey[ai];
-			if (!key || !key.api || !key.secret) return;
-		}
-		else {
-			if (!myInfo.apiKey[ai]) return;
-		}
-		modelList.push(m);
-	});
-	if (!modelList.includes(myInfo.model)) modelList.push(myInfo.model);
-	return modelList;
+globalThis.getFunctionalModelList = () => {
+	return [myInfo.model];
 };
 
 /* Rate Limit Controller */

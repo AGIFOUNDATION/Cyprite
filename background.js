@@ -978,7 +978,7 @@ AIHandler.getSearchKeyWord = async (request) => {
 	conversation.push(['human', PromptLib.assemble(PromptLib.analyzeSearchKeyWords, {tasks: request, time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")})]);
 
 	var modelList = getFunctionalModelList('analyzeSearchKeywords');
-	var keywords = await callLLMOneByOne(modelList, conversation, true, 'SearchKeywords');
+	var keywords = (await callLLMOneByOne(modelList, conversation, true, 'SearchKeywords')) || {};
 	['search', 'arxiv', 'wikipedia'].forEach(tag => {
 		var list = keywords[tag] || '';
 		list = list

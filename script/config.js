@@ -110,10 +110,12 @@ ActionCenter.loadConfigFromFile = () => {
 					if (!value) continue;
 					let obj = myInfo[key];
 					if (isObject(obj)) {
-						for (let key in obj) {
-							let v = value[key];
-							if (!v) continue;
-							obj[key] = v;
+						if (isObject(value)) {
+							for (let key in value) {
+								let v = value[key];
+								if (!v) continue;
+								obj[key] = v;
+							}
 						}
 					}
 					else {

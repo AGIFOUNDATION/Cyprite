@@ -129,5 +129,3 @@ See [ChangeLog](./CHANGELOG.md)
 ##	Contact Us
 
 - **Email**: [LostAbaddon](mailto:lostabaddon@gmail.com)
-- **HomePage**: [Cyprite](https://agifoundation.github.io/Cyprite/)
-- **GitHub Repo**: [Cyprite](https://github.com/AGIFOUNDATION/Cyprite)
