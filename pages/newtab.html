@@ -1,0 +1,143 @@
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,viewport-fit=cover,minimum-scale=1,maximum-scale=1,user-scalable=no">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<title>Cyprite the Cyber Sprite</title>
+<link rel="stylesheet" href="../style/main.css">
+<link rel="stylesheet" href="../components/panel.css">
+<link rel="stylesheet" href="../components/notification.css">
+<link rel="stylesheet" href="../style/newtab.css">
+<script src="../components/marked.min.js"></script>
+<script src="../script/i18n.js"></script>
+<script src="../script/ai/config.js"></script>
+<script src="../script/common.js"></script>
+<script src="../script/utils.js"></script>
+<script src="../script/pageUtils.js"></script>
+<script src="../script/ai/prompts.js"></script>
+<script src="../components/notification.js"></script>
+<script src="../script/newtab.js"></script>
+</head>
+<body page="newtab" class="scrollable">
+<div class="panel_frame">
+	<div class="panel_container">
+		<div class="panel_logo">
+			<img src="/images/cyprite.png">
+			<div class="panel_model_chooser"></div>
+			<div class="thinking_hint" titlePath="thinkingHeartBeating"></div>
+		</div>
+		<nav class="panel_tabs_area">
+			<div class="panel_tab" action="gotoConfig"><img src="../images/gears.svg"></div>
+			<div class="panel_tab" titlePath="newTab.articleManager" showGroup="articleManager"></div>
+			<div class="panel_tab" titlePath="newTab.intelligentSearch" showGroup="intelligentSearch"></div>
+			<div class="panel_tab" titlePath="newTab.crossPageConversation" showGroup="crossPageConversation"></div>
+			<div class="panel_tab invalid" titlePath="newTab.freelyConversation" showGroup="freelyConversation"></div>
+			<div class="panel_tab" titlePath="newTab.instantTranslation" showGroup="instantTranslation"></div>
+
+			<div class="panel_button" titlePath="buttons.btnClearHistory" group="crossPageConversation|freelyConversation|instantTranslation" action="clearConversation"></div>
+			<div class="panel_button" group="instantTranslation">
+				<span titlePath="buttons.hintTranslateInto"></span>
+				<input name="translation_language" type="text" class="panel_input">
+			</div>
+			<div class="panel_button" titlePath="newTab.chooseArticles" group="crossPageConversation" action="showArticleChooser"></div>
+			<div class="panel_button" titlePath="newTab.downloadConversation" group="crossPageConversation" action="downloadConversation"></div>
+		</nav>
+		<section class="panel_operation_area scrollable" group="articleManager">
+			<div class="caption">
+				<span titlePath="fileManager.caption"></span>
+				<span class="count"></span>
+				<span class="small" titlePath="fileManager.hintOrderType"></span>
+				<span class="small order" orderType="totalDuration" titlePath="fileManager.hintOrderByMost" action="changeOrderType"></span>
+				<span class="small order" orderType="lastVisit" titlePath="fileManager.hintOrderByLatest" action="changeOrderType"></span>
+			</div>
+			<div class="manager_panel">
+				<img src="../images/filter-circle-xmark.svg" action="removeUnsummarized" titlePath="fileManager.btnRemoveUnsummarized">
+				<img src="../images/eraser.svg" action="removeUncached" titlePath="fileManager.btnRemoveUncached">
+				<img src="../images/rotate.svg" action="refreshFileList" titlePath="fileManager.btnRefresh">
+			</div>
+			<ul class="articleManagerFileList"></ul>
+		</section>
+		<section class="panel_operation_area" group="intelligentSearch" type="conversationArea">
+			<div class="content_container scrollable">
+				<div class="search_inputter">
+					<div class="inner scrollable" contenteditable="true" placeholdername="aiSearch.hintSearch"></div>
+					<div class="submitter">
+						<div class="mode_chooser">
+							<li mode="keywordOnly" action="changeMode">
+								<img class="notcheck" src="../images/circle-xmark.svg">
+								<img class="checked" src="../images/circle-checked.svg">
+								<span titlePath="aiSearch.btnModeOnlyKeywords"></span>
+							</li>
+							<li mode="searchOnly" action="changeMode">
+								<img class="notcheck" src="../images/circle-xmark.svg">
+								<img class="checked" src="../images/circle-checked.svg">
+								<span titlePath="aiSearch.btnModeOnlySearch"></span>
+							</li>
+							<li mode="fullAnswer" action="changeMode">
+								<img class="notcheck" src="../images/circle-xmark.svg">
+								<img class="checked" src="../images/circle-checked.svg">
+								<span titlePath="aiSearch.btnModeFullSearch"></span>
+							</li>
+							<li mode="fullAnalyze" action="changeMode" needFullVersion="true" versionAction="disable">
+								<img class="notcheck" src="../images/circle-xmark.svg">
+								<img class="checked" src="../images/circle-checked.svg">
+								<span titlePath="aiSearch.btnModeFullAnalyze"></span>
+							</li>
+						</div>
+						<div class="sender" action="startAISearch">
+							<span titlePath="aiSearch.hintSend"></span>
+							<img src="../images/send.svg">
+						</div>
+					</div>
+				</div>
+				<div class="result_panel">
+					<ul class="search_history" action="chooseQuestion"></ul>
+					<div class="local_result_panel" action="switchFold"></div>
+					<div class="wikipedia_result_panel" action="switchFold"></div>
+					<div class="arxiv_result_panel" action="switchFold"></div>
+					<div class="search_result_panel" action="switchFold"></div>
+					<div class="answer_panel_hint search_result_title" action="onMayCopySearchResult"></div>
+					<div class="answer_panel"></div>
+					<div class="reference_panel"></div>
+					<div class="morequestion_panel" action="chooseQuestion"></div>
+				</div>
+			</div>
+			<div class="furthure_dialog">
+				<div class="input_container scrollable" contenteditable="true"></div>
+				<div class="input_sender" action="sendMessage" target="intelligentSearch">
+					<span titlePath="buttons.sendMessageToCyprite"></span>
+				</div>
+			</div>
+			<div class="reference_page">
+				<div class="title">Testing...</div>
+				<div class="closer" action="closeReference"><img src="../images/circle-xmark.svg"></div>
+				<div class="content scrollable"></div>
+			</div>
+		</section>
+		<section class="panel_operation_area" group="crossPageConversation" type="conversationArea">
+			<div class="content_container scrollable"></div>
+			<div class="input_container scrollable" contenteditable="true"></div>
+			<div class="input_sender" action="sendMessage" target="crossPageConversation">
+				<span titlePath="buttons.sendMessageToCyprite"></span>
+			</div>
+		</section>
+		<section class="panel_operation_area" group="freelyConversation" type="conversationArea">
+			<div class="content_container scrollable"></div>
+			<div class="input_container scrollable" contenteditable="true"></div>
+			<div class="input_sender" action="sendMessage" target="freelyConversation">
+				<span titlePath="buttons.talkToCyprite"></span>
+			</div>
+		</section>
+		<section class="panel_operation_area" group="instantTranslation" type="conversationArea">
+			<div class="content_container scrollable"></div>
+			<div class="input_container scrollable" contenteditable="true"></div>
+			<div class="input_sender" action="sendMessage" target="instantTranslation">
+				<span titlePath="buttons.startInstantTranslation"></span>
+			</div>
+		</section>
+		<div class="panel_inner_mask" action="hideFloatWindow"></div>
+		<div class="panel_article_list scrollable"></div>
+	</div>
+</div>
+</body>
+</html>

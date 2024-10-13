@@ -1,0 +1,32 @@
+.article_operation_title {
+	margin-top: 10px;
+	margin-bottom: 10px;
+	text-align: center;
+}
+.article_operations {
+	margin-top: 20px;
+	margin-bottom: 15px;
+	text-align: center;
+}
+.article_operations button {
+	margin-left: 10px;
+	margin-right: 10px;
+	padding: 5px 10px;
+	border: 1px solid black;
+	border-radius: 5px;
+	outline: none;
+	resize: none;
+	background-color: transparent;
+	text-align: center;
+	cursor: pointer;
+}
+.article_operations button:hover {
+	background-color: rgba(36, 36, 36, 0.2);
+}
+
+.notification .notification_inner button {
+	color: rgba(28, 28, 28, 1.0);
+}
+.notification.fetal .notification_inner button {
+	color: rgba(252, 250, 242, 1.0);
+}
