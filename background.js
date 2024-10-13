@@ -1512,7 +1512,7 @@ AIHandler.translateContent = async (data, source, sid) => {
 		logger.log('Translate[Deep]', translation);
 		dispatchEvent({
 			event: "updateCurrentStatus",
-			data: messages.translate.hintRetranslate,
+			data: messages.translation.hintRetranslate,
 			target: source,
 			tid: sid,
 		});

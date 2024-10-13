@@ -23,6 +23,17 @@ After installing this plugin, please first enter your personal information and A
 
 After entering the APIKey for each AI platform, you can switch AI models by hovering the mouse over the Logo icon.
 
+### The Difference Between the Restricted Version and the Full Version
+
+Currently, the version available on the plugin store is the restricted version, not the full version. The differences between the two are as follows:
+
+1. The full version includes an AI assistant built using the CoT (Chain of Thought) and PaC (Prompt as Coding) approach, which has deep thinking, reflective capabilities, and the ability to learn and rewrite its own prompts;
+2. The "intelligent search" feature in the full version allows the use of the "intelligent analysis" function. This analysis employs the CoT approach in both prompt design and program flow to provide more detailed, comprehensive, and in-depth reasoning;
+3. All prompts in the full version are more efficient and detailed, significantly maximizing the AI's capabilities and providing more valuable feedback;
+4. It can connect to more AI platforms and assign different AIs to different tasks based on various functions to complete tasks in the most efficient manner.
+
+If you want to use the full version, you can contact us. Please refer to the "Contact Us" section at the bottom of this document for contact information.
+
 ###	Configuration Settings
 
 When you use this plugin for the first time, a basic information settings page will pop up. You can also choose to click the plugin's Action button to bring up the settings page.
@@ -36,9 +47,12 @@ Currently, the front end can connect to the following AI platforms:
 -	Gemini (1.5 flash, 1.5 pro)
 -	OpenAI (GPT-4o, GPT-4o-mini, o1-preview, o1-mini)
 -	Anthropic (Claude 3 Opus, 3.5 Sonnet)
--	MoonShot (MoonShot-v1-128k)
--	DeepSeek (DeepSeek Chat, DeepSeek Coder)
--	GLM (GLM-4-plus, GLM-4-long, GLM-4-flash)
+-	MoonShot
+-	DeepSeek
+-	GLM
+-	MiniMax
+-	Ernie
+-	Mistral
 
 ###	Feature Introduction
 
@@ -97,7 +111,7 @@ The plugin will remember all the web pages you have interacted with and load the
 
 When using the local knowledge vault, the plugin will load local information through the server and use the local files and the web pages you have browsed as the current knowledge vault for question and answer interaction during the interaction process.
 
-## Privacy Policy
+##	Privacy Policy
 
 See [Privacy Policy](./PRIVACY.md)
 
@@ -108,6 +122,12 @@ See [Privacy Policy](./PRIVACY.md)
 	2. Server version: more comprehensive and complete features;
 	3. A truly useful, pluggable AI partner marketplace.
 
-## ChangeLog
+##	ChangeLog
 
 See [ChangeLog](./CHANGELOG.md)
+
+##	Contact Us
+
+- **Email**: [LostAbaddon](mailto:lostabaddon@gmail.com)
+- **HomePage**: [Cyprite](https://agifoundation.github.io/Cyprite/)
+- **GitHub Repo**: [Cyprite](https://github.com/AGIFOUNDATION/Cyprite)
