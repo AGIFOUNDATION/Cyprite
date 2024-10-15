@@ -1,7 +1,7 @@
 #	Cyprite
 
 > -	Author: LostAbaddon
-> -	Version: 0.5.8
+> -	Version: 0.5.8.1
 
 Your best and smartest AI partner.
 
