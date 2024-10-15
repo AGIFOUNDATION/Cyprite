@@ -20,6 +20,8 @@ const saveConfig = async () => {
 	Notification.show(messages.cypriteName, messages.configPage.configurationSaved, 'rightBottom', 'success', 3000);
 };
 ActionCenter.saveConfig = async (ele, config) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
 	myInfo.name = config.name || myInfo.name;
 	myInfo.info = config.info || '';
 	myInfo.lang = config.lang;
@@ -54,7 +56,7 @@ ActionCenter.resetUsage = async () => {
 };
 EventHandler.getWebSiteURLFailed = (msg) => {
 	if (!!msg.ok) return;
-	let messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	Notification.show(messages.cypriteName, messages.configPage.connectFailed, 'rightBottom', 'fail', 3000);
 };
 EventHandler.connectWSHost = async (data) => {

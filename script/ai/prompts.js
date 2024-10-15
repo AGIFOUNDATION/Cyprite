@@ -313,6 +313,24 @@ PromptLib.preliminaryThinkingContinueSystem = `You must remember the content in 
 
 {{webpages}}`;
 
+/* Search Conversation */
+
+PromptLib.deepThinkingContinueConversationTemplate = `#	Input
+
+{{request}}
+
+#	Reply Requirements
+
+-	You must reply using the same language as the content in "Input" (not the content in "Reply Requirements").
+-	Use the content in "Reference Materials" as an accurate and valid source of information. When citing viewpoints or content from it, remember to provide the complete sentence of the original text you are quoting, as well as the title and URL of the webpage where the cited content is from in the form of a Markdown hyperlink.
+-	You must ensure that the webpage URL you provide is accurate and error-free, especially the webpage URLs mentioned in citations.
+-	Your thinking must be precise and careful, without any errors or omissions.
+-	MUST NOT fabricate knowledge or information that you do not know.
+-	Workflow: firstly, carefully consider the strategy and steps for responding, then think step by step and answer step by step according to the strategy and steps you have devised, and finally summarize based on all your previous thoughts and answers.`;
+PromptLib.deepThinkingContinueConversationFrame = `{{request}}`;
+
+/* Page Conversation */
+
 PromptLib.summarizeArticle = `The following content is the textual content on the webpage in Markdown format; please summarize the content of this article for me.
 
 #	Requirements

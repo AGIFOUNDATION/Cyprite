@@ -1511,7 +1511,7 @@ AIHandler.translateContent = async (data, source, sid) => {
 		translation = await callAIandWait('directAskAI', conversation);
 		logger.log('Translate[Deep]', translation);
 		dispatchEvent({
-			event: "updateCurrentStatus",
+			event: "finishFirstTranslation",
 			data: messages.translation.hintRetranslate,
 			target: source,
 			tid: sid,
