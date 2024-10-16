@@ -22,12 +22,10 @@ defaults:
       path: ""
     values:
       layout: "default"
-      permalink: /:title/
   - scope:
       path: "_posts"
     values:
       layout: "default"
-      permalink: /:year/:month/:day/:title/
 
 liquid:
   error_mode: strict
