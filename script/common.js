@@ -1,3 +1,5 @@
+const HTMLTags = ('a|b|i|strong|em|u|del|img|div|span|p|input|textarea|button|br|hr|h1|h2|h3|h4|h5|h6|ul|ol|li|blockquote').split('|').map(tag => tag.toLowerCase());
+
 globalThis.ForceServer = false;
 globalThis.TrialVersion = true;
 
@@ -107,6 +109,107 @@ globalThis.parseURL = url => {
 		url = url.replace(/[#\?][\w\W]*$/, '');
 	}
 	return url;
+};
+globalThis.parseReplyAsXMLToJSON = (xml, init=true) => {
+	var json = { _origin: xml.trim() };
+	var loc = -1;
+	var lev = 0;
+	const reg = /<(\/?)([^>\n\r\t ]+?[^>\n\r ]*?)>/gi;
+
+	if (init) {
+		let tags = [], lev = 0;
+		xml.replace(reg, (_, end, tag) => {
+			end = !!end;
+			if (end) lev --;
+			else lev ++;
+			tags.push([tag, end, lev]);
+		});
+		let hasChanged = true;
+		while (hasChanged) {
+			let last = [];
+			let removes = [];
+			tags.forEach((tag, i) => {
+				if (tag[0] === last[0] && !last[1] && !!tag[1]) {
+					removes.push(i - 1);
+					removes.push(i);
+				}
+				last = tag;
+			});
+			if (removes.length === 0 || tags.length === 0) {
+				hasChanged = false;
+			}
+			else {
+				hasChanged = true;
+				removes.reverse();
+				removes.forEach(idx => tags.splice(idx, 1));
+			}
+		}
+		let pres = [], posts = [];
+		tags.some(tag => {
+			if (tag[1]) {
+				pres.push(tag[0]);
+			}
+			else {
+				return true;
+			}
+		});
+		tags.reverse().some(tag => {
+			if (tag[1]) {
+				return true;
+			}
+			else {
+				posts.push(tag[0]);
+			}
+		});
+		pres.forEach(tag => {
+			xml = '<' + tag + '>' + xml;
+		});
+		posts.forEach(tag => {
+			xml = xml + '</' + tag + '>';
+		});
+	}
+
+	xml.replace(reg, (m, end, tag, pos) => {
+		tag = tag.toLowerCase();
+		if (HTMLTags.includes(tag)) return;
+		end = !!end;
+		if (end) {
+			lev --;
+			if (lev === 0 && loc >= 0) {
+				let sub = xml.substring(loc, pos).trim();
+				loc = -1;
+				if (!!sub.match(reg)) {
+					json[tag] = parseReplyAsXMLToJSON(sub, false);
+				}
+				else {
+					let low = sub.toLowerCase();
+					if (low === 'true') {
+						json[tag] = true;
+					}
+					else if (low === 'false') {
+						json[tag] = false;
+					}
+					else if (!!sub.match(/^(\d+|\d+\.|\.\d+|\d+\.\d+)$/)) {
+						json[tag] = sub * 1;
+					}
+					else {
+						json[tag] = sub;
+					}
+				}
+			}
+			else if (lev < 0) {
+				lev = 0;
+			}
+		}
+		else {
+			lev ++;
+			if (lev === 1) {
+				loc = pos + m.length;
+			}
+		}
+	});
+
+	return json;
 };
 
 globalThis.newEle = (tag, ...classList) => {

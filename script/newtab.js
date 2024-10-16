@@ -1,13 +1,12 @@
 const PageName = 'HomeScreen';
-const WikiPediaLimit = 5;
 const WikiPediaMaxForDeepThinking = 5;
-const ArxivLimit = 10;
-const ArxivMax = 5;
+const ArxivMaxForDeepThinking = 5;
 const SearchDefaultCount = 20;
 const SearchMaxCount = 10;
 const SearchLocalLimit = 10;
 const MaximumConcurrentWebpageReading = 3;
 const MaximumWebpageRead = 15;
+const SearchHistoryCount = 20;
 const DefaultPanel = 'intelligentSearch';
 const OrderTypes = {
 	totalDuration: 'TotalDuration',
@@ -907,7 +906,7 @@ const listAndReadArxivResult = async (frame, arxivResults, keywords, request, sh
 
 	// Reading Articles
 	if (isFullAnalyze) {
-		if (webPages.length > ArxivMax) webPages.splice(ArxivMax);
+		if (webPages.length > ArxivMaxForDeepThinking) webPages.splice(ArxivMaxForDeepThinking);
 		webPages = await readAndReplyWebpages(webPages, request, messages);
 	}
 
@@ -1581,7 +1580,7 @@ ActionCenter.startAISearch = async () => {
 			list.splice(idx, 1);
 		}
 		list.unshift(content);
-		if (list.length > 10) {
+		if (list.length > SearchHistoryCount) {
 			list.splice(10);
 		}
 		chrome.storage.local.set({searchHistory: list});
@@ -1983,6 +1982,8 @@ ActionCenter.sendMessage = async (button) => {
 			let prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
 			conversation.push(['human', prompt]);
 			conversation.push(['ai', result]);
+			result = parseReplyAsXMLToJSON(result);
+			result = result.reply?._origin || result.reply || result._origin;
 		}
 	}
 	else {

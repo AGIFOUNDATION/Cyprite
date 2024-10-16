@@ -337,21 +337,22 @@ PromptLib.summarizeArticle = `The following content is the textual content on th
 
 -	**All answers must be based on the content of this article and should not speculate beyond the content provided;**
 -	All responses must be in the language "{{lang}}";
--	Reply in Markdown format;
+-	Strictly reply according to the format specified in the "Output Format".
 -	REMEMBER: **Output the result directly, do not enclose it in a code block.**
 
-#	Workflow
+#	Output Format
 
-1.	Analyze the article's classification, including primary, secondary, and tertiary categories;
-2.	List the keywords of this article in list form;
-3.	Summarize the outline of this article, for each item in the outline, provide the line numbers of the original text that it includes, and then provide the overall logical context;
-4.	Based on the outline, analyze which parts this article can be divided into? For each part, answer the following questions in turn:
-	+	What is the core viewpoint of this part?
-	+	What is the relationship between this part and the context?
-	+	Extract the bullet points of this part, summarize the main issues it covers, and provide relevant arguments and logical context;
-5.	Extract the main conclusions of this article, and list the corresponding arguments in the form of a secondary list, and give the original text citation according to the relevant requirements in the "Rules";
+<category>
+{The primary, secondary, and tertiary categories of the "Article Content", in Markdown foramt.}
+</category>
+<keywords>
+{The keywords of the "Article Content", in Markdown foramt.}
+</keywords>
+<summary>
+{Summary and main conclusions of the "Article Content", in Markdown foramt.}
+</summary>
 
-# Article content to be summarized
+#	Article content to be summarized
 
 {{article}}`;
 PromptLib.askPageSystem = `#	Requirements

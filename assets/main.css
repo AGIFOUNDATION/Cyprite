@@ -1,0 +1,170 @@
+html, body {
+	margin: 0px;
+	padding: 0px;
+}
+
+body {
+	background-color: rgba(29, 30, 27, 1.0);
+	color: rgba(234, 238, 219, 1.0);
+	font-family: Monaco, "Bitstream Vera Sans Mono", "Lucida Console", Terminal, monospace;
+	font-size: 16px;
+	line-height: 1.5;
+}
+
+a, a:visited, a:active {
+	color: rgba(17, 119, 176, 1.0);
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+	text-underline-position: from-font;
+	text-underline-offset: 1px;
+}
+
+body > article, body > footer {
+	display: block;
+	width: 100%;
+	max-width: 1012px;
+	margin-left: auto;
+	margin-right: auto;
+	box-sizing: border-box;
+}
+body > article {
+	position: relative;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+body > article div, body > article p {
+	margin-top: 16px;
+	margin-bottom: 16px;
+}
+body > article h1 {
+	margin-top: 80px;
+	margin-bottom: 50px;
+	font-size: 2.5rem;
+}
+body > article h2 {
+	margin-top: 50px;
+	margin-bottom: 30px;
+	font-size: 2.0rem;
+}
+body > article h3 {
+	margin-top: 30px;
+	margin-bottom: 25px;
+	font-size: 1.8rem;
+}
+body > article h4 {
+	margin-top: 25px;
+	margin-bottom: 20px;
+	font-size: 1.5rem;
+}
+body > article h5 {
+	margin-top: 20px;
+	margin-bottom: 16px;
+	font-size: 1.2rem;
+}
+body > article h1, body > article h2, body > article h3, body > article h4, body > article h5 {
+	font-weight: bold;
+	color: rgba(65, 174, 60, 1.0);
+}
+body > article h1, body > article h2 {
+	padding: 5px;
+	border-bottom: 1px solid rgba(65, 174, 60, 1.0);
+}
+body > article table {
+	display: table;
+	margin-left: auto;
+	margin-right: auto;
+}
+body > article img {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+body > article blockquote {
+	margin-left: 5px;
+	margin-right: 5px;
+	padding: 5px 10px;
+	border-left: 0.25em solid rgba(65, 174, 60, 1.0);
+	box-shadow: 1px 1px 5px rgba(65, 174, 60, 1.0);
+	color: rgba(208, 222, 170, 1.0);
+}
+body > article ul, body > article ol {
+	padding-left: 32px;
+}
+body > article ul li::marker {
+	content: "> ";
+	color: rgba(65, 174, 60, 1.0);
+}
+body > article ol li::marker {
+	color: rgba(65, 174, 60, 1.0);
+	font-size: 12px;
+}
+body > article table {
+	box-shadow: 2px 2px 5px rgba(97, 113, 114, 0.5);
+}
+body > article hr {
+	margin-top: 30px;
+	margin-bottom: 30px;
+	border-color: rgba(65, 174, 60, 1.0);
+}
+
+body > article .headerInfo {
+	padding-top: 50px;
+	text-align: center;
+}
+body > article .backlink {
+	margin-top: 30px;
+	margin-bottom: 30px;
+	border-top: none;
+	text-align: center;
+	font-size: 1.2em;
+	font-weight: bolder;
+}
+
+body > footer {
+	border-top: 1px solid rgba(65, 174, 60, 1.0);
+	font-size: 12px;
+	font-weight: lighter;
+	text-align: center;
+}
+
+.navHeader {
+	font-weight: bolder;
+}
+.bottomButton {
+	position: fixed;
+	left: calc(50% + 516px);
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: rgba(238, 247, 242, 1.0);
+	box-shadow: 2px 2px 5px rgba(97, 113, 114, 0.5);
+	font-size: 16px;
+	font-weight: bolder;
+	text-align: center;
+	line-height: 37px;
+	cursor: pointer;
+	user-select: none;
+}
+.bottomButton.upper {
+	bottom: 60px;
+}
+.bottomButton.themer {
+	bottom: 10px;
+}
+.footnote {
+	margin-top: 30px;
+	border-top: 1px solid rgba(19, 17, 36, 1.0);
+	font-size: 12px;
+	font-weight: lighter;
+	text-align: center;
+}
+@media (max-width: 1152px) {
+	.bottomButton {
+		left: auto;
+		right: 10px;
+	}
+}

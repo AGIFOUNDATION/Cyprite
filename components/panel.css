@@ -577,7 +577,7 @@ body.showCypriteAccess .cyprite_access {
 	border-radius: 4px;
 	border: none !important;
 	background-color: rgb(from var(--front-color) r g b / 20%);
-	color: rgba(203, 27, 69, 1.0) !important;
+	color: azure !important;
 }
 .panel_container pre code {
 	padding: 0px;

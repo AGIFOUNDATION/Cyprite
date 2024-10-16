@@ -412,11 +412,18 @@ const summarizePage = async (isRefresh=false) => {
 	notify._hide();
 
 	if (!!summary) {
-		pageSummary = summary;
+		pageSummary = summary.summary;
 		pageHash = hash;
 		pageVector = embedding;
-		sendMessage("SavePageSummary", {title: pageInfo.title, summary, hash, embedding, content: pageInfo.content}, 'BackEnd');
-		showPageSummary(summary);
+		sendMessage("SavePageSummary", {
+			title: pageInfo.title,
+			summary: pageSummary,
+			hash, embedding,
+			content: pageInfo.content,
+			category: summary.category,
+			keywords: summary.keywords
+		}, 'BackEnd');
+		showPageSummary(pageSummary);
 	}
 	else {
 		Notification.show(messages.cypriteName, messages.summarizeArticle.failed, 'rightTop', 'fail', 5 * 1000);

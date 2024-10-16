@@ -15,7 +15,6 @@ const UtilList = {
 		css: ["/components/panel.css"],
 	},
 };
-const HTMLTags = ('a|b|i|strong|em|u|del|img|div|span|p|input|textarea|button|br|hr|h1|h2|h3|h4|h5|h6|ul|ol|li|blockquote').split('|').map(tag => tag.toLowerCase());
 const SimilarLimit = 20;
 
 globalThis.myInfo = {
@@ -771,6 +770,8 @@ EventHandler.SavePageSummary = async (data, source, sid) => {
 	pageInfo.description = data.summary || pageInfo.description;
 	pageInfo.hash = data.hash || pageInfo.hash;
 	pageInfo.embedding = data.embedding || pageInfo.embedding;
+	pageInfo.category = data.category || [];
+	pageInfo.keywords = data.keywords || [];
 
 	await Promise.all([
 		setTabInfo(sid, tabInfo),
@@ -1249,107 +1250,6 @@ const removeAIChatHistory = async (tid) => {
 		logger.log('Chat', 'Remove Expired History:', removes);
 	}
 };
-const parseReplyAsXMLToJSON = (xml, init=true) => {
-	var json = { _origin: xml.trim() };
-	var loc = -1;
-	var lev = 0;
-	const reg = /<(\/?)([^>\n\r\t ]+?[^>\n\r ]*?)>/gi;
-
-	if (init) {
-		let tags = [], lev = 0;
-		xml.replace(reg, (_, end, tag) => {
-			end = !!end;
-			if (end) lev --;
-			else lev ++;
-			tags.push([tag, end, lev]);
-		});
-		let hasChanged = true;
-		while (hasChanged) {
-			let last = [];
-			let removes = [];
-			tags.forEach((tag, i) => {
-				if (tag[0] === last[0] && !last[1] && !!tag[1]) {
-					removes.push(i - 1);
-					removes.push(i);
-				}
-				last = tag;
-			});
-			if (removes.length === 0 || tags.length === 0) {
-				hasChanged = false;
-			}
-			else {
-				hasChanged = true;
-				removes.reverse();
-				removes.forEach(idx => tags.splice(idx, 1));
-			}
-		}
-		let pres = [], posts = [];
-		tags.some(tag => {
-			if (tag[1]) {
-				pres.push(tag[0]);
-			}
-			else {
-				return true;
-			}
-		});
-		tags.reverse().some(tag => {
-			if (tag[1]) {
-				return true;
-			}
-			else {
-				posts.push(tag[0]);
-			}
-		});
-		pres.forEach(tag => {
-			xml = '<' + tag + '>' + xml;
-		});
-		posts.forEach(tag => {
-			xml = xml + '</' + tag + '>';
-		});
-	}
-
-	xml.replace(reg, (m, end, tag, pos) => {
-		tag = tag.toLowerCase();
-		if (HTMLTags.includes(tag)) return;
-		end = !!end;
-		if (end) {
-			lev --;
-			if (lev === 0 && loc >= 0) {
-				let sub = xml.substring(loc, pos).trim();
-				loc = -1;
-				if (!!sub.match(reg)) {
-					json[tag] = parseReplyAsXMLToJSON(sub, false);
-				}
-				else {
-					let low = sub.toLowerCase();
-					if (low === 'true') {
-						json[tag] = true;
-					}
-					else if (low === 'false') {
-						json[tag] = false;
-					}
-					else if (!!sub.match(/^(\d+|\d+\.|\.\d+|\d+\.\d+)$/)) {
-						json[tag] = sub * 1;
-					}
-					else {
-						json[tag] = sub;
-					}
-				}
-			}
-			else if (lev < 0) {
-				lev = 0;
-			}
-		}
-		else {
-			lev ++;
-			if (lev === 1) {
-				loc = pos + m.length;
-			}
-		}
-	});
-
-	return json;
-};
 
 AIHandler.sayHello = async () => {
 	var currentDate = timestmp2str('YYYY/MM/DD');
@@ -1367,13 +1267,41 @@ AIHandler.summarizeArticle = async (data) => {
 
 	var summary, embedding;
 	[summary, embedding] = await Promise.all([
-		callAIandWait('summarizeArticle', data.article),
+		(async () => {
+			var summary;
+			try {
+				summary = (await callAIandWait('summarizeArticle', data.article)) || '';
+				summary = parseReplyAsXMLToJSON(summary);
+				summary.summary = summary.summary?._origin || summary.summary || summary._origin;
+				summary.category = (summary.category || '')
+					.replace(/\r/g, '').split('\n')
+					.filter(line => !!line)
+					.map(line => line.replace(/^\s*\-\s*/, ''))
+					.join(',').split(/\s*[,;，；]\s*/)
+				;
+				summary.keywords = (summary.keywords || '')
+					.replace(/\r/g, '').split('\n')
+					.filter(line => !!line)
+					.map(line => line.replace(/^\s*\-\s*/, ''))
+					.join(',').split(/\s*[,;，；]\s*/)
+				;
+				return summary;
+			}
+			catch (err) {
+				logger.error('SummarizeArticle', err);
+				return {
+					category: '',
+					keywords: '',
+					summary: '',
+				};
+			}
+		}) (),
 		(async () => {
 			try {
 				return await callAIandWait('embeddingArticle', data);
 			}
 			catch (err) {
-				logger.error('SummarizeArticle', err);
+				logger.error('EmbeddingArticle', err);
 				return;
 			}
 		}) (),
@@ -1422,7 +1350,16 @@ AIHandler.askArticle = async (data, source, sid) => {
 	var systemPrompt = PromptLib.assemble(PromptLib.askPageSystem, config);
 	list = list.filter(item => item[0] !== 'system');
 	list.unshift(['system', systemPrompt]);
-	list.push(['human', data.question]);
+	if (TrialVersion) {
+		list.push(['human', data.question]);
+	}
+	else {
+		let prompt = PromptLib.assemble(PromptLib.askPageTemplate, {
+			question: data.question,
+			time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")
+		});
+		list.push(['human', prompt]);
+	}
 	console.log(list);
 
 	var request = {
@@ -1434,12 +1371,18 @@ AIHandler.askArticle = async (data, source, sid) => {
 		request.model = PickLongContextModel();
 	}
 	var result = await callAIandWait('directAskAI', request);
+	if (!TrialVersion) {
+		list.pop();
+		list.push(['human', data.question]);
+	}
 	list.push(['ai', result]);
 	if (!DBs.pageInfo) await initDB();
 	await DBs.pageInfo.set("pageConversation", url, {
 		conversation: list,
 		timestamp: Date.now()
 	});
+	result = parseReplyAsXMLToJSON(result);
+	result = result.reply._origin || result.reply || result._origin;
 
 	removeAIChatHistory();
 	return result;

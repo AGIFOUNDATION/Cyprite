@@ -1,0 +1,41 @@
+title: Cyber Butler
+description: HomePage for CyberButler, the butler of your own personal knowledge vault.
+
+theme: jekyll-theme-minimal
+
+plugins:
+  - jekyll-sitemap
+  - jekyll-seo-tag
+  - jekyll-feed
+  - jekyll-include-cache
+
+exclude:
+  - extension/
+  - backend/
+
+assets:
+  features:
+    liquid: true
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+      permalink: /:title/
+  - scope:
+      path: "_posts"
+    values:
+      layout: "default"
+      permalink: /:year/:month/:day/:title/
+
+liquid:
+  error_mode: strict
+  strict_filters: true
+
+kramdown:
+  math_engine: mathjax
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
