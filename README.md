@@ -189,5 +189,5 @@ Click [here](./CHANGELOG.md) to view.
 ## Contact Information
 
 - **Email**: [LostAbaddon](mailto:lostabaddon@gmail.com)
-- **Plugin Website**: [Cyprite](https://agifoundation.github.io/Cyprite/)
-- **REPO**: [Github](https://github.com/AGIFOUNDATION/Cyprite)
+- **Extension Website**: [Cyprite](https://agifoundation.github.io/Cyprite/)
+- **Git Repo**: [Github](https://github.com/AGIFOUNDATION/Cyprite)
