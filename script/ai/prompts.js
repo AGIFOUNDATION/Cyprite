@@ -26,6 +26,11 @@ PromptLib.assemble = (prompt, ...infos) => {
 
 PromptLib.continueOutput = `Your previous reply was too lengthy, resulting in incomplete output. Please continue from where you left off in the last response. Note: Do not reply with any additional content, just continue the unfinished portion of your previous output.`;
 
+
+/**
+ * RestrictedVersion Prompts
+ */
+
 /* Translation */
 
 PromptLib.instantTranslation = `#	Requirements
@@ -372,22 +377,6 @@ PromptLib.askPageSystem = `#	Requirements
 #	Reference Materials
 
 {{related}}`;
-PromptLib.replySearchRequest = `Following the specific regulations in the "Requirements", provide a detailed response to the "Current Task/Problem" based on the information in the "Reference Materials" (the authenticity of these materials is assured), combined with your own insights.
-
-#	Requirements
-
--	The reply must be in "{{lang}}", and should be in Markdown format.
--	Use the content in "Reference Materials" as an accurate and reliable source of information. Do not speculate or create information without a definite source, and **never fabricate information**.
--	Each point in your response must provide a citation from the "Reference Materials," including the article title and URL (in Markdown link form), the paragraph index number where the cited content can be found in the article, and the original text of the cited content (in full sentences). There can be more than one citation.
--	Think through and respond step by step.
-
-#	Reference Materials
-
-{{webpages}}
-
-#	Current Task/Problem
-
-{{request}}`;
 
 PromptLib.sayHello = `You are the user's personal assistant, your name is "Cyprite". Please greet the user.
 

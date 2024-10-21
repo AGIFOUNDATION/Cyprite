@@ -1607,36 +1607,6 @@ AIHandler.replyBasedOnSearch = async (data) => {
 
 	return result;
 };
-AIHandler.replyAISearch = async (data) => {
-	logger.info('AdvAISearch', 'Start');
-	data.webpages = data.webpages.map(item => {
-		var article = ['<article>'];
-		article.push('<title>' + item.title + '</title>');
-		article.push('<url>' + item.url + '</title>');
-		article.push('<content>');
-		article.push(item.content);
-		article.push('</content>');
-		article.push('</article>');
-		return article.join('\n');
-	}).join('\n\n');
-
-	var prompt = PromptLib.assemble(PromptLib.replySearchRequest, {
-		lang: LangName[myInfo.lang] || myInfo.lang,
-		request: data.request,
-	});
-	// For hyper-long string
-	var start = prompt.indexOf('{{webpages}}'), end = start + ('{{webpages}}').length;
-	var bra = prompt.substring(0, start), ket = prompt.substring(end);
-	prompt = bra + data.webpages + ket;
-
-	var conversation = [['human', prompt]];
-	logger.info('AdvAISearch', 'Prompt Assembled', conversation);
-
-	var result = await callAIandWait('directAskAI', conversation);
-	logger.info('AdvAISearch', 'Got Reply');
-
-	return result;
-};
 AIHandler.raedAndReply = async (data) => {
 	logger.info('SummaryAndReply', 'Start');
 

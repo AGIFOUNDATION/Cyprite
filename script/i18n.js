@@ -1,6 +1,7 @@
 globalThis.I18NMessages = {
 	zh: {
 		cypriteName: "机灵",
+		trialVersion: "受限版",
 		noAPIKey: "抱歉，您还没有设置 APIKey 哦！",
 		refreshHint: "Cyprite 似乎开小差了，你可以刷新页面重连。",
 		thinkingHeartBeating: "思考中……",
@@ -189,6 +190,7 @@ globalThis.I18NMessages = {
 	},
 	en: {
 		cypriteName: "Cyprite",
+		trialVersion: "Restricted",
 		noAPIKey: "Sorry, you haven't set the API key yet!",
 		refreshHint: "Cyprite seems to have wandered off; you may refresh the page to reconnect.",
 		thinkingHeartBeating: "Thinking...",
@@ -376,6 +378,7 @@ globalThis.I18NMessages = {
 	},
 	jp: {
 		cypriteName: "機霊",
+		trialVersion: "制限版",
 		noAPIKey: "申し訳ありません、まだAPIKeyを設定していません！",
 		refreshHint: "Cypriteが少し混乱しているようです。ページを更新して再接続してください。",
 		thinkingHeartBeating: "考え中……",
@@ -563,6 +566,7 @@ globalThis.I18NMessages = {
 	},
 	fr: {
 		cypriteName: "Cyprite",
+		trialVersion: "Limitée",
 		noAPIKey: "Désolé, vous n'avez pas encore défini la clé API !",
 		refreshHint: "Cyprite semble s'être égaré ; vous pouvez rafraîchir la page pour vous reconnecter.",
 		thinkingHeartBeating: "En train de réfléchir...",
@@ -750,6 +754,7 @@ globalThis.I18NMessages = {
 	},
 	de: {
 		cypriteName: "Cyprite",
+		trialVersion: "Eingeschränkte",
 		noAPIKey: "Entschuldigung, Sie haben den API-Schlüssel noch nicht eingestellt!",
 		refreshHint: "Cyprite scheint abgewandert zu sein; Sie können die Seite aktualisieren, um die Verbindung wiederherzustellen.",
 		thinkingHeartBeating: "Denke nach...",
@@ -937,6 +942,7 @@ globalThis.I18NMessages = {
 	},
 	it: {
 		cypriteName: "Cyprite",
+		trialVersion: "Limitata",
 		noAPIKey: "Spiacente, non hai ancora impostato la chiave API!",
 		refreshHint: "Sembra che Cyprite si sia allontanato; puoi aggiornare la pagina per riconnetterti.",
 		thinkingHeartBeating: "Pensando...",

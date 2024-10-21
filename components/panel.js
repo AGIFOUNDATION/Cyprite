@@ -137,7 +137,13 @@ const addChatItem = (content, type) => {
 
 	var titleBar = newEle('div', 'cyprite', "chat_title");
 	if (type === 'human') {
-		titleBar.innerText = messages.conversation.yourTalkPrompt;
+		if (!!myInfo.name) {
+			let comma = messages.conversation.yourTalkPrompt.substr(messages.conversation.yourTalkPrompt.length - 1, 1);
+			titleBar.innerText = myInfo.name + comma;
+		}
+		else {
+			titleBar.innerText = messages.conversation.yourTalkPrompt;
+		}
 		item.classList.add('human');
 	}
 	else if (type === 'cyprite') {

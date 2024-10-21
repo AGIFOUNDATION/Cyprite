@@ -282,7 +282,13 @@ const addChatItem = (target, content, type, cid, need=false) => {
 	var titleBar = newEle('div', "chat_title");
 	var buttons = [];
 	if (type === 'human') {
-		titleBar.innerText = messages.conversation.yourTalkPrompt;
+		if (!!myInfo.name) {
+			let comma = messages.conversation.yourTalkPrompt.substr(messages.conversation.yourTalkPrompt.length - 1, 1);
+			titleBar.innerText = myInfo.name + comma;
+		}
+		else {
+			titleBar.innerText = messages.conversation.yourTalkPrompt;
+		}
 		item.classList.add('human');
 		if (needOperator) buttons.push('<img button="true" action="changeRequest" src="../images/feather.svg">');
 		buttons.push('<img button="true" action="copyContent" src="../images/copy.svg">');
@@ -1147,7 +1153,7 @@ const readAndReplyWebpages = async (webPages, request, messages) => {
 						let url = item.url.replace(/arxiv\.org\/[^\/]+\//i, 'arxiv.org/html/');
 						try {
 							data = await askSWandWait('ReadWebPage', url);
-							let parsed = parseArxivAbstract(data, url).content;
+							let parsed = parseArxivAbstract(data, url).content || 'no html for';
 							if (!!parsed.match(/no html for/i) && !!parsed.match(/^skip to main/i)) {
 								data = null;
 							}
@@ -1485,7 +1491,10 @@ const replyQuestBySearchResult = async (messages, quest) => {
 	showMoreQuestions(moreList);
 
 	// Further Conversation
-	var conversationOption = {};
+	var conversationOption = {
+		name: myInfo.name,
+		aboutMe: myInfo.info,
+	};
 	conversationOption.webpages = readList.map(item => {
 		var article = ['<webpage>'];
 		article.push('<title>' + item.title.replace(/\s+/g, ' ') + '</title>');

@@ -127,6 +127,10 @@ globalThis.ModelDefaultConfig = {
 				{
 					"category": "HARM_CATEGORY_DANGEROUS_CONTENT",
 					"threshold": "BLOCK_NONE"
+				},
+				{
+					"category": "HARM_CATEGORY_CIVIC_INTEGRITY",
+					"threshold": "BLOCK_NONE"
 				}
 			]
 		}

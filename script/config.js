@@ -243,6 +243,10 @@ const init = async () => {
 		data.apiKey.gemini = localInfo.apiKey;
 	}
 	setDataGroup('configuration', data);
+	if (!!globalThis.TrialVersion) {
+		let title = document.querySelector('h1');
+		title.innerText = title.innerText + ' (' + messages.trialVersion + ')';
+	}
 
 	showUsage('LLMList', usage.llm);
 	showUsage('ModelList', usage.model);
