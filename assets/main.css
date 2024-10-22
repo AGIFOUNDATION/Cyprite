@@ -132,6 +132,12 @@ body > footer {
 	text-align: center;
 }
 
+body > article div.badges img {
+	display: inline-block;
+	margin-left: 0px;
+	margin-right: 0px;
+}
+
 .navHeader {
 	font-weight: bolder;
 }
