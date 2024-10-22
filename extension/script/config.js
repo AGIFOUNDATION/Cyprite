@@ -17,7 +17,7 @@ const saveConfig = async () => {
 	
 	// Notify
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	Notification.show(messages.cypriteName, messages.configPage.configurationSaved, 'rightBottom', 'success', 3000);
+	Notification.show('', messages.configPage.configurationSaved, 'rightBottom', 'success', 3000);
 };
 ActionCenter.saveConfig = async (ele, config) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
@@ -57,22 +57,22 @@ ActionCenter.resetUsage = async () => {
 EventHandler.getWebSiteURLFailed = (msg) => {
 	if (!!msg.ok) return;
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	Notification.show(messages.cypriteName, messages.configPage.connectFailed, 'rightBottom', 'fail', 3000);
+	Notification.show('', messages.configPage.connectFailed, 'rightBottom', 'fail', 3000);
 };
 EventHandler.connectWSHost = async (data) => {
 	var messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	if (!data || !data.ok) {
-		Notification.show(messages.cypriteName, messages.configPage.wsConnectFailed, 'rightBottom', 'fail', 5000);
+		Notification.show('', messages.configPage.wsConnectFailed, 'rightBottom', 'fail', 5000);
 	}
 	else {
 		await chrome.storage.local.set({ wsHost: data.wsHost });
 		if (!data.wsHost) {
 			console.log('[WS] Use Edged Knowledge Vault.');
-			Notification.show(messages.cypriteName, messages.configPage.useEdgedVault, 'rightBottom', 'warn', 5000);
+			Notification.show('', messages.configPage.useEdgedVault, 'rightBottom', 'warn', 5000);
 		}
 		else {
 			console.log('[WS] Connect Knowledge Vault: ' + data.wsHost);
-			Notification.show(messages.cypriteName, messages.configPage.wsConnected, 'rightBottom', 'success', 3000);
+			Notification.show('', messages.configPage.wsConnected, 'rightBottom', 'success', 3000);
 		}
 	}
 };
@@ -92,7 +92,7 @@ ActionCenter.saveConfigToFile = async () => {
 	downloader.setAttribute('download', 'cyprite.config.json');
 	downloader.click();
 
-	Notification.show(messages.cypriteName, messages.configPage.hintConfigurationSaved, 'middleTop', 'success', 2 * 1000);
+	Notification.show('', messages.configPage.hintConfigurationSaved, 'middleTop', 'success', 2 * 1000);
 };
 ActionCenter.loadConfigFromFile = () => {
 	const fileSelector = newEle('input');
@@ -128,7 +128,7 @@ ActionCenter.loadConfigFromFile = () => {
 			}
 			catch (err) {
 				logger.error('FileReader', err);
-				Notification.show(messages.cypriteName, messages.configPage.hintReadConfigurationFailed, 'middleTop', 'error', 5 * 1000);
+				Notification.show('', messages.configPage.hintReadConfigurationFailed, 'middleTop', 'error', 5 * 1000);
 			}
 		};
 		reader.readAsText(file);

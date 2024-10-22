@@ -258,6 +258,18 @@ globalThis.estimateTokenCount = (obj) => {
 	return Math.min(wc.unlatin + wc.latin * 3, Math.ceil(bytes / 3));
 };
 
+globalThis.updateUsage = (totalUsage, newUsage) => {
+	if (!isObject(newUsage)) return;
+	for (let key in newUsage) {
+		let usg = newUsage[key];
+		let item = totalUsage[key] || {count: 0, input: 0, output: 0};
+		item.count += usg.count || 0;
+		item.input += usg.input || 0;
+		item.output += usg.output || 0;
+		totalUsage[key] = item;
+	}
+};
+
 /* Log Utils */
 
 globalThis.logger = {};

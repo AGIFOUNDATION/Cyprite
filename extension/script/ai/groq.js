@@ -94,7 +94,9 @@ AI.Groq.chat = async (conversation, model, options={}) => {
 	}
 	time = Date.now() - time;
 	logger.info('Groq', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
-	recordAIUsage(model, 'Groq', usage);
 
-	return replies.join(' ');
+	return {
+		reply: replies.join(' '),
+		usage,
+	};
 };

@@ -306,6 +306,14 @@ const callEdgeAI = async (tid, conversation, model) => {
 	var reply, errMsg;
 	try {
 		reply = await chatToAI(conversation, model);
+		recordAIUsage(model, aiName, reply.usage);
+		let usage = {};
+		usage[model] = reply.usage;
+		usage[aiName] = reply.usage;
+		reply = {
+			reply: reply.reply,
+			usage,
+		};
 	}
 	catch (err) {
 		if (isString(err)) {
@@ -369,6 +377,7 @@ EdgedAI.directAskAI = async (tid, conversation) => {
 		model = conversation.model || model;
 		conversation = conversation.conversation;
 	}
+
 	callEdgeAI(tid, conversation, model);
 };
 EdgedAI.translateSentence = async (tid, data) => {

@@ -215,9 +215,11 @@ AI.Gemini.chat = async (conversation, model=DefaultChatModel, options={}) => {
 	}
 	time = Date.now() - time;
 	logger.info('Gemini', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
-	recordAIUsage(model, 'Gemini', usage);
 
-	return replies.join(' ');
+	return {
+		reply: replies.join(' '),
+		usage,
+	};
 };
 AI.Gemini.embed = async (contents, model=DefaultEmbeddingModel, options={}) => {
 	var header = getRequestHeader(model);

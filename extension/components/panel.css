@@ -752,3 +752,21 @@ body.showCypriteAccess .cyprite_access {
 	filter: invert(0.6) sepia(1.0) hue-rotate(160deg) brightness(1.9);
 	pointer-events: none;
 }
+
+.cyprite_extension.usage_item {
+	margin: 5px;
+	font-size: 12px;
+}
+.cyprite_extension.usage_item .cyprite_extension.item_name {
+	display: inline-block;
+	min-width: 135px;
+	color: var(--back-color) !important;
+	font-weight: bolder;
+}
+.cyprite_extension.usage_item .cyprite_extension.item_value {
+	display: inline-block;
+	min-width: 60px;
+	margin-left: 5px;
+	color: var(--back-color) !important;
+	font-weight: bolder;
+}

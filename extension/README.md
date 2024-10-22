@@ -1,19 +1,25 @@
 <div align="center">
 
-![](./assets/background.png)
+<img src="./assets/background.png">
 
-[![Follow on X](https://img.shields.io/twitter/follow/LostAbaddon?logo=X&color=%20%23f5f5f5)](https://twitter.com/intent/follow?screen_name=LostAbaddon)
-[![Discussion posts](https://img.shields.io/github/discussions/AGIFOUNDATION/Cyprite?labelColor=%20%23FDB062&color=%20%23f79009)](https://github.com/AGIFOUNDATION/Cyprite/discussions/)
-[![Commits](https://img.shields.io/github/commit-activity/m/AGIFOUNDATION/Cyprite?labelColor=%20%237d89b0&color=%20%235d6b98)](https://github.com/AGIFOUNDATION/Cyprite/graphs/commit-activity)
-[![Issues closed](https://img.shields.io/github/issues-search?query=repo%3AAGIFOUNDATION%2FCyprite%20is%3Aclosed&label=issues%20closed&labelColor=green&color=green)](https://github.com/AGIFOUNDATION/Cyprite/issues)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/AGIFOUNDATION/Cyprite/pulls)
-[![GitHub license](https://img.shields.io/badge/License-GPL_3.0-blue.svg?labelColor=%20%23155EEF&color=%20%23528bff)](https://github.com/AGIFOUNDATION/Cyprite/blob/main/LICENSE)
+<div align="center">
+<a href="https://twitter.com/intent/follow?screen_name=LostAbaddon" target="_blank"><img src="https://img.shields.io/twitter/follow/LostAbaddon?logo=X&color=%20%23f5f5f5"></a>
+<a href="https://github.com/AGIFOUNDATION/Cyprite/discussions/" target="_blank"><img src="https://img.shields.io/github/discussions/AGIFOUNDATION/Cyprite?labelColor=%20%23FDB062&color=%20%23f79009"></a>
+<a href="https://github.com/AGIFOUNDATION/Cyprite/graphs/commit-activity" target="_blank"><img src="https://img.shields.io/github/commit-activity/m/AGIFOUNDATION/Cyprite?labelColor=%20%237d89b0&color=%20%235d6b98"></a>
+<a href="https://github.com/AGIFOUNDATION/Cyprite/issues" target="_blank"><img src="https://img.shields.io/github/issues-search?query=repo%3AAGIFOUNDATION%2FCyprite%20is%3Aclosed&label=issues%20closed&labelColor=green&color=green"></a>
+<a href="https://github.com/AGIFOUNDATION/Cyprite/pulls" target="_blank"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square"></a>
+<a href="https://github.com/AGIFOUNDATION/Cyprite/blob/main/LICENSE" target="_blank"><img src="https://img.shields.io/badge/License-GPL_3.0-blue.svg?labelColor=%20%23155EEF&color=%20%23528bff"></a>
+</div>
 
-[![GitHub watchers](https://img.shields.io/github/watchers/AGIFOUNDATION/Cyprite?style=social&label=Watch)](https://GitHub.com/AGIFOUNDATION/Cyprite/watchers/?WT.mc_id=academic-105485-koreyst)
-[![GitHub forks](https://img.shields.io/github/forks/AGIFOUNDATION/Cyprite?style=social&label=Fork)](https://GitHub.com/AGIFOUNDATION/Cyprite/network/?WT.mc_id=academic-105485-koreyst)
-[![GitHub stars](https://img.shields.io/github/stars/AGIFOUNDATION/Cyprite?style=social&label=Star)](https://GitHub.com/AGIFOUNDATION/Cyprite/stargazers/?WT.mc_id=academic-105485-koreyst)
+<div align="center">
+<a href="https://GitHub.com/AGIFOUNDATION/Cyprite/watchers/?WT.mc_id=academic-105485-koreyst" target="_blank"><img src="https://img.shields.io/github/watchers/AGIFOUNDATION/Cyprite?style=social&label=Watch"></a>
+<a href="https://GitHub.com/AGIFOUNDATION/Cyprite/network/?WT.mc_id=academic-105485-koreyst" target="_blank"><img src="https://img.shields.io/github/forks/AGIFOUNDATION/Cyprite?style=social&label=Fork"></a>
+<a href="https://GitHub.com/AGIFOUNDATION/Cyprite/stargazers/?WT.mc_id=academic-105485-koreyst" target="_blank"><img src="https://img.shields.io/github/stars/AGIFOUNDATION/Cyprite?style=social&label=Star"></a>
+</div>
 
-[<button>中文版</button>](./README_ZH.md)
+<div align="center">
+<a href="./README_ZH.md"><button>中文版</button></a>
+</div>
 
 </div>
 
@@ -207,3 +213,4 @@ Click [here](./CHANGELOG.md) to view.
 - **Email**: [LostAbaddon](mailto:lostabaddon@gmail.com)
 - **Extension Website**: [Cyprite](https://agifoundation.github.io/Cyprite/)
 - **Git Repo**: [Github](https://github.com/AGIFOUNDATION/Cyprite)
+- **Extension Store**: [](https://chromewebstore.google.com/detail/cyprite-restricted/mkelalclfpkmmfedmfjhdbanjlhfoamg)

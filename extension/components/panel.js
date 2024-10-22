@@ -320,6 +320,10 @@ UIAction.onQuickSend = async (evt) => {
 	var result;
 	try {
 		result = await askAIandWait('askArticle', { url: location.href, title, content, question, related });
+		if (!!result) {
+			if (!!result.usage) showTokenUsage(result.usage, true);
+			result = result.reply || '';
+		}
 	}
 	catch (err) {
 		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
@@ -405,7 +409,7 @@ UIAction.onSendToCyprite = async () => {
 	UIList.Asker.setAttribute('contentEditable', 'false');
 	resizeHistoryArea(60);
 
-	var result;
+	var result, usage;
 
 	if (currentMode === 'summary') {
 		// Get Embedding Vector for Request
@@ -480,6 +484,10 @@ UIAction.onSendToCyprite = async () => {
 		if (!content) content = getPageContent(document.body, true);
 		try {
 			result = await askAIandWait('askArticle', { url: location.href, title, content, question, related });
+			if (!!result) {
+				usage = result.usage;
+				result = result.reply || '';
+			}
 		}
 		catch (err) {
 			Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
@@ -490,6 +498,10 @@ UIAction.onSendToCyprite = async () => {
 		lang = chooseTargetLanguage(lang);
 		try {
 			result = await askAIandWait('translateSentence', { lang, content: question });
+			if (!!result && !!result.usage) {
+				usage = result.usage;
+			}
+			result = result.translation || '';
 		}
 		catch (err) {
 			Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
@@ -502,6 +514,7 @@ UIAction.onSendToCyprite = async () => {
 	UIList.Asker.innerText = '';
 	UIList.Asker.setAttribute('contentEditable', 'true');
 	resizeHistoryArea(60);
+	if (!!usage) showTokenUsage(usage);
 
 	await wait();
 	UIList.Asker.focus();

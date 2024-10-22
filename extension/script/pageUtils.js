@@ -132,3 +132,16 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 
 	return parsed;
 };
+const showTokenUsage = (usage, isLeft=false) => {
+	var html = '', count = 0;
+	for (let key in usage) {
+		count ++;
+		if (!globalThis.Model2AI[key]) continue;
+		let value = usage[key];
+		let line = `<div class="cyprite_extension usage_item"><span class="cyprite_extension item_name">${key}</span><span class="cyprite_extension item_value">Input: ${value.input}</span><span class="cyprite_extension item_value">Output: ${value.output}</span></div>`;
+		html += line;
+	}
+	if (count === 0) return;
+	var position = isLeft ? 'leftBottom' : 'rightBottom';
+	Notification.show('Token Usage', html, position, 'message', 5000);
+};

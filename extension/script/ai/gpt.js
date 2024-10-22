@@ -173,9 +173,11 @@ AI.OpenAI.chat = async (conversation, model=DefaultOpenAIChatModel, options={}) 
 	}
 	time = Date.now() - time;
 	logger.info('OpenAI', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
-	recordAIUsage(model, 'OpenAI', usage);
 
-	return replies.join(' ');
+	return {
+		reply: replies.join(' '),
+		usage,
+	};
 };
 AI.OpenAI.draw = async (prompt, model=DefaultOpenAIDrawModel, options={}) => {
 	var data = {
@@ -294,7 +296,9 @@ AI.Mixtral.chat = async (conversation, model=DefaultMixtralChatModel, options={}
 	}
 	time = Date.now() - time;
 	logger.info('Mixtral', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
-	recordAIUsage(model, 'Mixtral', usage);
 
-	return replies.join(' ');
+	return {
+		reply: replies.join(' '),
+		usage,
+	};
 };

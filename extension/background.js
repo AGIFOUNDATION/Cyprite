@@ -81,30 +81,37 @@ globalThis.getWSConfig = async () => {
 	return localInfo.wsHost;
 };
 const callLLMOneByOne = async (modelList, conversation, needParse=true, tag="CallAI") => {
-	var result;
+	var reply, usage = {};
 
 	for (let model of modelList) {
 		let time = Date.now();
 		try {
-			result = await callAIandWait('directAskAI', {
+			reply = await callAIandWait('directAskAI', {
 				conversation,
 				model,
 			});
+			if (!!reply) {
+				usage = reply.usage || {};
+				reply = reply.reply || '';
+			}
+			else {
+				reply = '';
+			}
 		}
 		catch (err) {
-			result = null;
+			reply = null;
 			logger.error(tag + ': ' + model, err);
 			continue;
 		}
 		time = Date.now() - time;
 		logger.info(tag, model + ' : ' + time + 'ms');
 		if (needParse) {
-			result = parseReplyAsXMLToJSON(result);
+			reply = parseReplyAsXMLToJSON(reply);
 		}
 		break;
 	}
 
-	return result;
+	return {reply, usage};
 };
 
 /* DB */
@@ -867,7 +874,7 @@ EventHandler.FindRelativeArticles = async (data, source, sid) => {
 	RelativeHandler[sid] = data.url;
 
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	var relatives;
+	var relatives, usage = {};
 
 	data.isWebPage = false;
 	dispatchEvent({
@@ -879,9 +886,11 @@ EventHandler.FindRelativeArticles = async (data, source, sid) => {
 	try {
 		data.articles = await EventHandler.FindSimilarArticle(data);
 		relatives = await findRelativeArticles(data, source, sid);
+		updateUsage(usage, relatives.usage);
+		relatives = relatives.relevants || [];
 	}
 	catch {
-		relatives = null;
+		relatives = [];
 	}
 	dispatchEvent({
 		event: "updateCurrentStatus",
@@ -890,18 +899,16 @@ EventHandler.FindRelativeArticles = async (data, source, sid) => {
 	});
 
 	// Send to page
-	if (!!relatives) {
-		dispatchEvent({
-			event: "foundRelativeArticles",
-			data: relatives,
-			target: "FrontEnd",
-			tid: sid,
-		});
+	dispatchEvent({
+		event: "foundRelativeArticles",
+		data: {relatives, usage},
+		target: "FrontEnd",
+		tid: sid,
+	});
 
-		// Cold Down
-		await wait(ColdDownDuration);
-		logger.log('SW', 'Cold Down finished for ' + data.url);
-	}
+	// Cold Down
+	await wait(ColdDownDuration);
+	logger.log('SW', 'Cold Down finished for ' + data.url);
 
 	delete RelativeHandler[sid];
 };
@@ -975,11 +982,13 @@ EventHandler.GetArticleInfo = async (options) => {
 	return list;
 };
 AIHandler.getSearchKeyWord = async (request) => {
-	var conversation = [];
+	var conversation = [], usage = {};
 	conversation.push(['human', PromptLib.assemble(PromptLib.analyzeSearchKeyWords, {tasks: request, time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")})]);
 
 	var modelList = getFunctionalModelList('analyzeSearchKeywords');
-	var keywords = (await callLLMOneByOne(modelList, conversation, true, 'SearchKeywords')) || {};
+	var keywords = (await callLLMOneByOne(modelList, conversation, true, 'SearchKeywords'));
+	updateUsage(usage, keywords.usage);
+	keywords = keywords.reply || {};
 	['search', 'arxiv', 'wikipedia'].forEach(tag => {
 		var list = keywords[tag] || '';
 		list = list
@@ -991,7 +1000,7 @@ AIHandler.getSearchKeyWord = async (request) => {
 	});
 	logger.info('SearchKeywords', (keywords.search.length + keywords.arxiv.length + keywords.wikipedia.length) + ' / ' + keywords.search.length + ' / ' + keywords.arxiv.length + ' / ' + keywords.wikipedia.length);
 
-	return keywords;
+	return {keywords, usage};
 };
 EventHandler.SearchGoogle = async (keywords) => {
 	keywords = encodeURIComponent(keywords);
@@ -1146,7 +1155,7 @@ EventHandler.SearchGoogle = async (keywords) => {
 	return list;
 };
 AIHandler.callLLMForSearch = async (quest) => {
-	var result;
+	var result, usage = {};
 	for (let model of SearchAIModel) {
 		if (!AI[model] || !AI[model].search) continue;
 
@@ -1159,19 +1168,32 @@ AIHandler.callLLMForSearch = async (quest) => {
 			if (!myInfo.apiKey[ai]) continue;
 		}
 
-		let list;
+		let searchResult;
 		try {
-			list = await AI[model].search(quest);
-			if (!!list && !!list.length) {
-				result = list;
-				break;
+			searchResult = await AI[model].search(quest);
+			if (!!searchResult) {
+				if (!!searchResult.usage) {
+					let usg = {};
+					usg[searchResult.model] = searchResult.usage;
+					usg[searchResult.ai] = searchResult.usage;
+					updateUsage(usage, usg);
+				}
+				if (!!searchResult.reply && !!searchResult.reply.length) {
+					result = searchResult.reply;
+					break;
+				}
 			}
 		}
 		catch (err) {
 			logger.error('LLMSearch[' + model + ']', err);
 		}
 	}
-	return result || [];
+	result = result || [];
+
+	return {
+		result,
+		usage
+	};
 };
 EventHandler.ReadWebPage = async (url) => {
 	var html;
@@ -1259,6 +1281,7 @@ AIHandler.sayHello = async () => {
 	chrome.storage.session.set({lastHello: currentDate});
 
 	var reply = await callAIandWait('sayHello');
+	reply = reply.reply; // test
 	showSystemNotification(reply);
 };
 AIHandler.summarizeArticle = async (data) => {
@@ -1268,10 +1291,21 @@ AIHandler.summarizeArticle = async (data) => {
 	var summary, embedding;
 	[summary, embedding] = await Promise.all([
 		(async () => {
-			var summary;
+			var summary, usage;
 			try {
 				summary = (await callAIandWait('summarizeArticle', data.article)) || '';
-				summary = parseReplyAsXMLToJSON(summary);
+				if (!summary) {
+					return {
+						summary: {
+							summary: '',
+							category: [],
+							keywords: [],
+						},
+						usage: {}
+					}
+				}
+				usage = summary.usage;
+				summary = parseReplyAsXMLToJSON(summary.reply);
 				summary.summary = summary.summary?._origin || summary.summary || summary._origin;
 				summary.category = (summary.category || '')
 					.replace(/\r/g, '').split('\n')
@@ -1285,14 +1319,17 @@ AIHandler.summarizeArticle = async (data) => {
 					.map(line => line.replace(/^\s*\-\s*/, ''))
 					.join(',').split(/\s*[,;，；]\s*/)
 				;
-				return summary;
+				return {summary, usage};
 			}
 			catch (err) {
 				logger.error('SummarizeArticle', err);
 				return {
-					category: '',
-					keywords: '',
-					summary: '',
+					summary: {
+						category: '',
+						keywords: '',
+						summary: '',
+					},
+					usage: {}
 				};
 			}
 		}) (),
@@ -1370,7 +1407,11 @@ AIHandler.askArticle = async (data, source, sid) => {
 	if (tokens > AILongContextLimit) {
 		request.model = PickLongContextModel();
 	}
-	var result = await callAIandWait('directAskAI', request);
+	var result = await callAIandWait('directAskAI', request), usage = {};
+	if (!!result) {
+		updateUsage(usage, result.usage);
+		result = result.reply || result;
+	}
 	if (!TrialVersion) {
 		list.pop();
 		list.push(['human', data.question]);
@@ -1382,10 +1423,10 @@ AIHandler.askArticle = async (data, source, sid) => {
 		timestamp: Date.now()
 	});
 	result = parseReplyAsXMLToJSON(result);
-	result = result.reply._origin || result.reply || result._origin;
+	result = result.reply?._origin || result.reply || result._origin;
 
 	removeAIChatHistory();
-	return result;
+	return {reply: result, usage};
 };
 AIHandler.translateContent = async (data, source, sid) => {
 	var available = await checkAvailability();
@@ -1397,12 +1438,14 @@ AIHandler.translateContent = async (data, source, sid) => {
 	data.myLang = LangName[myInfo.lang] || myInfo.lang;
 	var prompt = PromptLib.assemble(PromptLib.firstTranslation, data);
 	var conversation = [['human', prompt]];
-	var translation = await callAIandWait('directAskAI', conversation);
+	var translation = await callAIandWait('directAskAI', conversation), usage = {};
+	if (!!translation) {
+		updateUsage(usage, translation.usage);
+		translation = translation.reply || translation;
+	}
 	var json = parseReplyAsXMLToJSON(translation);
 	logger.log('Translate[First]', json);
-	if (json.translation) {
-		translation = json.translation._origin || json.translation;
-	}
+	translation = json.translation?._origin || json.translation || translation;
 	dispatchEvent({
 		event: "updateCurrentStatus",
 		data: messages.translation.afterFirstTranslate,
@@ -1420,6 +1463,12 @@ AIHandler.translateContent = async (data, source, sid) => {
 	prompt = PromptLib.assemble(PromptLib.reflectTranslation, data);
 	conversation = [['human', prompt]];
 	var suggestion = await callAIandWait('directAskAI', conversation);
+	if (!!suggestion) {
+		if (!!suggestion.usage) {
+			updateUsage(usage, suggestion.usage);
+		}
+		suggestion = suggestion.reply || suggestion;
+	}
 	suggestion = parseReplyAsXMLToJSON(suggestion);
 	logger.log('Translate[Suggestion]', suggestion);
 	if ((suggestion.needOptimize || suggestion.needoptimize) && (!!suggestion.deficiencies || !!suggestion.suggestions)) {
@@ -1433,7 +1482,7 @@ AIHandler.translateContent = async (data, source, sid) => {
 		let sug = [];
 		sug.push('#	Deficiencies');
 		if (!!suggestion.deficiencies) {
-			suggestion.deficiencies = suggestion.deficiencies._origin || suggestion.deficiencies;
+			suggestion.deficiencies = suggestion.deficiencies?._origin || suggestion.deficiencies;
 			sug.push(suggestion.deficiencies);
 		}
 		else {
@@ -1441,7 +1490,7 @@ AIHandler.translateContent = async (data, source, sid) => {
 		}
 		sug.push('#	Suggestions');
 		if (!!suggestion.suggestions) {
-			suggestion.suggestions = suggestion.suggestions._origin || suggestion.suggestions;
+			suggestion.suggestions = suggestion.suggestions?._origin || suggestion.suggestions;
 			sug.push(suggestion.suggestions);
 		}
 		else {
@@ -1452,6 +1501,12 @@ AIHandler.translateContent = async (data, source, sid) => {
 		prompt = PromptLib.assemble(PromptLib.deepTranslation, data);
 		conversation = [['human', prompt]];
 		translation = await callAIandWait('directAskAI', conversation);
+		if (!!translation) {
+			if (!!translation.usage) {
+				updateUsage(usage, translation.usage);
+			}
+			translation = translation.reply || translation;
+		}
 		logger.log('Translate[Deep]', translation);
 		dispatchEvent({
 			event: "finishFirstTranslation",
@@ -1471,7 +1526,7 @@ AIHandler.translateContent = async (data, source, sid) => {
 		tid: sid,
 	});
 
-	return translation;
+	return {translation, usage};
 };
 AIHandler.translateSentence = async (data, source, sid) => {
 	var available = await checkAvailability();
@@ -1479,18 +1534,20 @@ AIHandler.translateSentence = async (data, source, sid) => {
 
 	data.myLang = LangName[myInfo.lang] || myInfo.lang;
 
-	var translation = await callAIandWait('translateSentence', data);
-	var json = parseReplyAsXMLToJSON(translation);
+	var translation = await callAIandWait('translateSentence', data), usage = {};
+	if (!!translation) {
+		updateUsage(usage, translation.usage);
+	}
+	var json = parseReplyAsXMLToJSON(translation.reply);
 	logger.log('Translate', json);
-	translation = (json || {}).translation || translation;
-	if (!!translation._origin) translation = translation._origin;
+	translation = json.translation?._origin || json.translation || translation.reply || '';
 
-	return translation;
+	return {translation, usage};
 };
 AIHandler.selectArticlesAboutConversation = async (data, source, sid) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 
-	var limit = SimilarLimit;
+	var limit = SimilarLimit, usage = {};
 	if (isObject(data)) {
 		limit = data.limit || limit;
 		data = data.request;
@@ -1535,6 +1592,8 @@ AIHandler.selectArticlesAboutConversation = async (data, source, sid) => {
 			isWebPage: true,
 			limit,
 		}, source, sid);
+		updateUsage(usage, relatedArticles.usage);
+		relatedArticles = relatedArticles.relevants || [];
 	}
 	catch {
 		relatedArticles = [];
@@ -1546,12 +1605,10 @@ AIHandler.selectArticlesAboutConversation = async (data, source, sid) => {
 		tid: sid,
 	});
 
-	return relatedArticles;
+	return {articles: relatedArticles, usage};
 };
 AIHandler.directSendToAI = async (conversation) => {
-	var result = await callAIandWait('directAskAI', conversation);
-
-	return result;
+	return await callAIandWait('directAskAI', conversation);
 };
 AIHandler.findRelativeWebPages = async (data, source, sid) => {
 	data.isWebPage = true;
@@ -1592,20 +1649,21 @@ AIHandler.replyBasedOnSearch = async (data) => {
 	if (tokens > AILongContextLimit) {
 		request.model = PickLongContextModel();
 	}
-	var result = await callAIandWait('directAskAI', request);
+	var result = await callAIandWait('directAskAI', request), usage = {};
+	if (!!result) {
+		updateUsage(usage, result.usage);
+		result = result.reply || result;
+	}
 	result = parseReplyAsXMLToJSON(result);
-	if (!result.reply) {
-		result = {
-			reply: result._origin,
-		};
-	}
-	else {
-		result.reply = result.reply._origin || result.reply;
-	}
-	result.more = (result.more || '').replace(/[\n\r]+/g, '\n').split('\n').map(line => line.replace(/(^\s*([\-\+\*]\s+)*|\s*$)/g, '')).filter(line => !!line);
+	result.reply = result.reply?._origin || result.reply || result._origin;
+	result.more = (result.more?._origin || result.more || '').replace(/[\n\r]+/g, '\n')
+		.split('\n')
+		.map(line => line.replace(/(^\s*([\-\+\*]\s+)*|\s*$)/g, ''))
+		.filter(line => !!line)
+	;
 	logger.info('ReplyBasedOnSearch', 'Got Reply:', result);
 
-	return result;
+	return {reply: result, usage};
 };
 AIHandler.raedAndReply = async (data) => {
 	logger.info('SummaryAndReply', 'Start');
@@ -1631,21 +1689,14 @@ AIHandler.raedAndReply = async (data) => {
 	if (tokens > AILongContextLimit) {
 		request.model = PickLongContextModel();
 	}
-	var result = await callAIandWait('directAskAI', request);
-	result = result.trim();
+	var result = await callAIandWait('directAskAI', request), usage = {};
+	if (!!result) {
+		updateUsage(usage, result.usage);
+		result = result.reply || result;
+	}
 	let parsed = parseReplyAsXMLToJSON(result);
-	if (!!parsed.summary) {
-		parsed.summary = parsed.summary._origin || parsed.summary;
-	}
-	else {
-		parsed.summary = '';
-	}
-	if (!!parsed.reply) {
-		parsed.reply = parsed.reply._origin || parsed.reply;
-	}
-	else {
-		parsed.reply = result;
-	}
+	parsed.summary = parsed.summary?._origin || parsed.summary || '';
+	parsed.reply = parsed.reply?._origin || parsed.reply || result;
 	logger.info('SummaryAndReply', 'Got Reply');
 	console.log(parsed);
 	if (!parsed.relevant) {
@@ -1662,7 +1713,7 @@ AIHandler.raedAndReply = async (data) => {
 		}
 	}
 
-	return result;
+	return {reply: result, usage};
 };
 AIHandler.preliminaryThinking = async (data, source, sid) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
@@ -1675,10 +1726,13 @@ AIHandler.preliminaryThinking = async (data, source, sid) => {
 	var prompt = PromptLib.assemble(PromptLib.preliminaryThinking, options);
 	var conversation = [['human', prompt]];
 	logger.info('PreliminaryThinking', 'Prompt Assembled', [...conversation]);
-	var result;
+	var result, usage = {};
 	try {
 		result = await callAIandWait('directAskAI', conversation);
-		result = result.trim();
+		if (!!result) {
+			updateUsage(usage, result.usage);
+			result = result.reply || result;
+		}
 		logger.info('PreliminaryThinking', 'Got Reply:\n', result);
 	}
 	catch (err) {
@@ -1686,7 +1740,7 @@ AIHandler.preliminaryThinking = async (data, source, sid) => {
 		result = messages.aiSearch.msgPreliminaryThinkingFailed;
 	}
 
-	return result;
+	return {reply: result, usage};
 };
 
 /* Utils */
@@ -1911,7 +1965,7 @@ const decomposePackage = (pack, size=20) => {
 	return result;
 };
 const getIrrelevants = async (modelList, pack, request, isWebPage, summary) => {
-	var irrelevantList = [], relevantList = [], prompt = isWebPage ? PromptLib.excludeIrrelevantsOnTopic : PromptLib.excludeIrrelevantsOnArticle, config = {content: request};
+	var irrelevantList = [], relevantList = [], prompt = isWebPage ? PromptLib.excludeIrrelevantsOnTopic : PromptLib.excludeIrrelevantsOnArticle, config = {content: request}, usage = {};
 	if (!isWebPage) config.summary = summary;
 
 	await Promise.all(pack.map(async articles => {
@@ -1920,7 +1974,8 @@ const getIrrelevants = async (modelList, pack, request, isWebPage, summary) => {
 		}).join('\n');
 		let conversation = [['human', PromptLib.assemble(prompt, config)]], irrelevants;
 		irrelevants = await callLLMOneByOne(modelList, conversation, true, 'ExcludeIrrelevants');
-		if (!irrelevants) irrelevants = {};
+		updateUsage(usage, irrelevants.usage);
+		irrelevants = irrelevants.reply || {};
 		['unrelated', 'related'].forEach(key => {
 			var ctx = irrelevants[key] || '';
 			if (!ctx.replace) ctx = '';
@@ -1951,10 +2006,11 @@ const getIrrelevants = async (modelList, pack, request, isWebPage, summary) => {
 			relevantList.push(url);
 		});
 	}));
-	return [irrelevantList, relevantList];
+	return [irrelevantList, relevantList, usage];
 };
 const getRelevants = async (model, pack, request, isWebPage, summary) => {
 	var relevantList = [], prompt = isWebPage ? PromptLib.filterRelevantsOnTopic : PromptLib.filterRelevantsOnArticle, config = {content: request};
+	var usage = {};
 	if (!isWebPage) config.summary = summary;
 
 	await Promise.all(pack.map(async articles => {
@@ -1971,6 +2027,13 @@ const getRelevants = async (model, pack, request, isWebPage, summary) => {
 			conversation,
 			model,
 		});
+		if (!!relevants) {
+			if (!!relevants.usage) {
+				updateUsage(usage, relevants.usage);
+			}
+			relevants = relevants.reply || relevants;
+		}
+
 		let urls = ('\n' + relevants + '\n').match(/[\-\+]\s+[^\n\r]+?[\n\r]/ig);
 		if (!!urls) urls.forEach(url => {
 			url = url.replace(/[\-\+]\s+/i, '').trim();
@@ -1979,7 +2042,7 @@ const getRelevants = async (model, pack, request, isWebPage, summary) => {
 			relevantList.push(url);
 		});
 	}));
-	return relevantList;
+	return {list: relevantList, usage};
 };
 const findRelativeArticles = async (data, source, sid) => {
 	if (!myInfo.inited) {
@@ -1987,7 +2050,7 @@ const findRelativeArticles = async (data, source, sid) => {
 	}
 	var available = await checkAvailability();
 	if (!available) {
-		return;
+		return {relevants: [], usage: {}};
 	}
 
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
@@ -2006,13 +2069,17 @@ const findRelativeArticles = async (data, source, sid) => {
 	});
 	var modelList = getFunctionalModelList('excludeIrrelevants');
 	var articles = [...data.articles], loop = 0, irrelevantList = [];
+	var usage = {};
 	var time = Date.now();
 	while (true) {
 		loop ++;
 		let pack = decomposePackage(articles, 70), irrelevants, relevants;
 		// Attempt the models in the modelList one by one, and try the next model if an error occurs, until all models have been tried
 		try {
-			[irrelevants, relevants] = await getIrrelevants(modelList, pack, request, isWebPage, currentSummary);
+			let result = await getIrrelevants(modelList, pack, request, isWebPage, currentSummary);
+			irrelevants = result[0];
+			relevants = result[1];
+			updateUsage(usage, result[2]);
 		}
 		catch (err) {
 			irrelevants = [];
@@ -2057,7 +2124,13 @@ const findRelativeArticles = async (data, source, sid) => {
 			logger.log('Identify Relevants', 'Curent Model: ' + model);
 			try {
 				list = await getRelevants(model, packages, request, isWebPage, currentSummary);
-				break;
+				if (!!list) {
+					if (!!list.usage) {
+						updateUsage(usage, list.usage);
+					}
+					list = list.list;
+					if (!!list) break;
+				}
 			}
 			catch (err) {
 				logger.error('Identify Relevants', err);
@@ -2121,7 +2194,7 @@ const findRelativeArticles = async (data, source, sid) => {
 		tid: sid,
 	});
 
-	return relevants;
+	return {relevants, usage};
 };
 const parseParams = param => {
 	var json = {};

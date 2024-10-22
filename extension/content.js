@@ -398,12 +398,13 @@ const summarizePage = async (isRefresh=false) => {
 	var messages = I18NMessages[myLang] || I18NMessages[DefaultLang];
 	var notify = Notification.show(messages.cypriteName, messages.summarizeArticle.running, isRefresh ? "middleTop" : 'rightTop', 'message', 24 * 3600 * 1000);
 
-	var embedding, summary;
+	var embedding, summary, usage;
 	try {
 		summary = await askAIandWait('summarizeArticle', {title: pageInfo.title, article});
 		if (!!summary) {
 			embedding = summary.embedding;
-			summary = summary.summary;
+			usage = summary.summary.usage;
+			summary = summary.summary.summary;
 		}
 	}
 	catch (err) {
@@ -430,6 +431,7 @@ const summarizePage = async (isRefresh=false) => {
 		showPageSummary('');
 	}
 
+	showTokenUsage(usage);
 	runningAI = false;
 };
 
@@ -460,6 +462,8 @@ const translatePage = async (isRefresh=false, lang, content, requirement) => {
 	var translation;
 	try {
 		translation = await askAIandWait('translateContent', {lang, content, requirement});
+		if (!!translation) showTokenUsage(translation);
+		translation = translation.translation;
 		translationInfo.translation = translation;
 	}
 	catch (err) {
@@ -498,9 +502,13 @@ const translateSelection = async (selection) => {
 		content = getPageContent(container, false);
 	}
 
-	var translation;
+	var translation, usage;
 	try {
 		translation = await askAIandWait('translateSentence', { lang, content });
+		if (!!translation && !!translation.usage) {
+			usage = translation.usage;
+		}
+		translation = translation.translation || '';
 	}
 	catch (err) {
 		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
@@ -510,6 +518,7 @@ const translateSelection = async (selection) => {
 	if (translation) await showTranslationResult('', [['human', content], ['ai', translation]]);
 	if (!showChatter) await UIAction.onChatTrigger();
 	notify._hide();
+	showTokenUsage(usage);
 
 	runningAI = false;
 };
@@ -693,8 +702,8 @@ EventHandler.onContextMenuAction = async (data) => {
 EventHandler.foundRelativeArticles = (data) => {
 	if (!data || !data.length) return;
 
-	var hashes = [];
-	relativeArticles = [...data].filter(item => {
+	var hashes = [], usage = data.usage;
+	relativeArticles = [...data.relatives].filter(item => {
 		if (hashes.includes(item.hash)) return false;
 		hashes.push(item.hash);
 		return true;
@@ -712,6 +721,8 @@ EventHandler.foundRelativeArticles = (data) => {
 		frame.appendChild(link);
 		list.appendChild(frame);
 	});
+
+	showTokenUsage(usage);
 };
 EventHandler.requestHeartBeating = () => {
 	logger.log('AI', 'HeartBeating...');

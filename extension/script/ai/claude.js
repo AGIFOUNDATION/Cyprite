@@ -154,7 +154,9 @@ AI.Claude.chat = async (conversation, model=DefaultChatModel, options={}) => {
 	}
 	time = Date.now() - time;
 	logger.info('Claude', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
-	recordAIUsage(model, 'Claude', usage);
 
-	return replies.join(' ');
+	return {
+		reply: replies.join(' '),
+		usage,
+	};
 };

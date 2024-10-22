@@ -31,7 +31,7 @@ const newNotification = (title, message, duration=3000, type, position) => {
 
 	var notify = newEle('div', 'extension_component', 'notification', type, position);
 	notify._type = type;
-	notify._positon = position;
+	notify._position = position;
 	notify._closed = false;
 	notify.onready = null;
 	notify.onshow = null;
@@ -90,6 +90,9 @@ const newNotification = (title, message, duration=3000, type, position) => {
 		let titleBar = newEle('div', 'notification_title');
 		titleBar.innerText = title;
 		inner.appendChild(titleBar);
+	}
+	else {
+		inner.classList.add('no_title');
 	}
 	if (!!message) {
 		let messageBar = newEle('div', 'notification_message');
@@ -168,24 +171,24 @@ Notification.show = (title, message, position, type, duration) => {
 	var notify = newNotification(title, message, duration, type, position);
 	notify._onready = () => {
 		var box = notify.getBoundingClientRect();
-		var list = MessageList[notify._positon];
+		var list = MessageList[notify._position];
 		list.push({
 			ele: notify,
 			width: box.width,
 			height: box.height,
 		});
-		if (notify._positon.indexOf('Top') > 0) {
+		if (notify._position.indexOf('Top') > 0) {
 			topPositionUpdater(list);
 		}
-		else if (notify._positon.indexOf('Bottom') > 0) {
+		else if (notify._position.indexOf('Bottom') > 0) {
 			bottomPositionUpdater(list);
 		}
-		else if (notify._positon.indexOf('Center') > 0) {
+		else if (notify._position.indexOf('Center') > 0) {
 			centerPositionUpdater(list);
 		}
 	};
 	notify._onhide = () => {
-		var list = MessageList[notify._positon];
+		var list = MessageList[notify._position];
 		var idx = -1;
 		list.some((item, i) => {
 			if (item.ele === notify) {
@@ -195,13 +198,13 @@ Notification.show = (title, message, position, type, duration) => {
 		});
 		if (idx < 0) return;
 		list.splice(idx, 1);
-		if (notify._positon.indexOf('Top') > 0) {
+		if (notify._position.indexOf('Top') > 0) {
 			topPositionUpdater(list);
 		}
-		else if (notify._positon.indexOf('Bottom') > 0) {
+		else if (notify._position.indexOf('Bottom') > 0) {
 			bottomPositionUpdater(list);
 		}
-		else if (notify._positon.indexOf('Center') > 0) {
+		else if (notify._position.indexOf('Center') > 0) {
 			centerPositionUpdater(list);
 		}
 	};
