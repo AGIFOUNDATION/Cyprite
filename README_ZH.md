@@ -18,7 +18,7 @@
 </div>
 
 <div align="center">
-<a href="./README.html"><button>English</button></a>
+<a href="./"><button>English</button></a>
 </div>
 
 </div>
