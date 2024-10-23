@@ -128,6 +128,8 @@ globalThis.I18NMessages = {
 			btnLoadConfiguration: "载入配置",
 			hintConfigurationSaved: "配置已保存到本地",
 			hintReadConfigurationFailed: '读取配置文件失败',
+			hintModelUsageTitle: "各平台与模型Token使用量",
+			hintShowModelUsageSwitch: "是否每次都显示Token使用量：",
 		},
 		aiSearch: {
 			hintSearch: "你可以向我问任何问题哦！",
@@ -317,6 +319,9 @@ globalThis.I18NMessages = {
 			btnSaveConfiguration: "Save Config",
 			btnLoadConfiguration: "Load Config",
 			hintConfigurationSaved: "Configuration has been saved locally",
+			hintReadConfigurationFailed: 'Failed to read configuration file',
+			hintModelUsageTitle: "Token Usage of Platforms and Models",
+			hintShowModelUsageSwitch: "Whether to display Token usage every time: ",
 		},
 		aiSearch: {
 			hintSearch: "You can ask me any questions!",
@@ -506,6 +511,9 @@ globalThis.I18NMessages = {
 			btnSaveConfiguration: "設定のエクスポート",
 			btnLoadConfiguration: "設定のロード",
 			hintConfigurationSaved: "設定がローカルに保存されました",
+			hintReadConfigurationFailed: '設定ファイルの読み込みに失敗しました',
+			hintModelUsageTitle: "各プラットフォームとモデルのトークン使用量",
+			hintShowModelUsageSwitch: "トークン使用量を毎回表示するかどうか：",
 		},
 		aiSearch: {
 			hintSearch: "どんな質問でも私に聞いてください！",
@@ -695,6 +703,9 @@ globalThis.I18NMessages = {
 			btnSaveConfiguration: "Exporter la config",
 			btnLoadConfiguration: "Charger la config",
 			hintConfigurationSaved: "La configuration a été enregistrée localement.",
+			hintReadConfigurationFailed: 'Échec de la lecture du fichier de configuration',
+			hintModelUsageTitle: "Utilisation des jetons par plateformes et modèles",
+			hintShowModelUsageSwitch: "Afficher ou non l'utilisation des Tokens à chaque fois: ",
 		},
 		aiSearch: {
 			hintSearch: "Vous pouvez me poser n'importe quelle question !",
@@ -884,6 +895,9 @@ globalThis.I18NMessages = {
 			btnSaveConfiguration: "Konfiguration exportieren",
 			btnLoadConfiguration: "Konfiguration laden",
 			hintConfigurationSaved: "Die Konfiguration wurde lokal gespeichert.",
+			hintReadConfigurationFailed: 'Fehler beim Lesen der Konfigurationsdatei',
+			hintModelUsageTitle: "Token-Nutzung verschiedener Plattformen und Modelle",
+			hintShowModelUsageSwitch: "Ob die Token-Nutzung jedes Mal angezeigt werden soll: ",
 		},
 		aiSearch: {
 			hintSearch: "Sie können mir jede Frage stellen!",
@@ -1073,6 +1087,9 @@ globalThis.I18NMessages = {
 			btnSaveConfiguration: "Esporta configurazione",
 			btnLoadConfiguration: "Carica configurazione",
 			hintConfigurationSaved: "La configurazione è stata salvata localmente",
+			hintReadConfigurationFailed: 'Impossibile leggere il file di configurazione',
+			hintModelUsageTitle: "Utilizzo dei token su diverse piattaforme e modelli",
+			hintShowModelUsageSwitch: "Se mostrare l'utilizzo dei Token ogni volta: ",
 		},
 		aiSearch: {
 			hintSearch: "Puoi chiedermi qualsiasi cosa!",

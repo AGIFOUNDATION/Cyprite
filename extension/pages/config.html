@@ -78,7 +78,12 @@
 			<button titlePath="configPage.btnLoadConfiguration" action="loadConfigFromFile"></button>
 		</div>
 		<hr>
-		<div class="tableName">Platform Usage</div>
+		<div>
+			<span htmlPath="configPage.hintShowModelUsageSwitch"></span>
+			<span showIf="showTokenUsage" class="switch" action="turnShowTokenUsageOff"><img src="../images/toggle-on.svg"> On</span>
+			<span showIfNot="showTokenUsage" class="switch" action="turnShowTokenUsageOn"><img src="../images/toggle-off.svg"> Off</span>
+		</div>
+		<div htmlPath="configPage.hintModelUsageTitle" class="tableName"></div>
 		<div class="tableList" name="LLMList"></div>
 		<div class="tableName">Model Usage</div>
 		<div class="tableList" name="ModelList"></div>

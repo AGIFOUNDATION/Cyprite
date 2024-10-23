@@ -128,3 +128,11 @@ div.tableList > div.tableLine span {
 div.tableList > div.tableLine span:nth-child(1) {
 	width: 200px;
 }
+
+.switch, button {
+	cursor: pointer;
+}
+.switch img {
+	height: 20px;
+	vertical-align: text-bottom;
+}

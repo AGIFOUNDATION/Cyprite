@@ -4,6 +4,7 @@ var currentTabId = 0;
 const saveConfig = async () => {
 	var localInfo = {
 		apiKey: myInfo.apiKey,
+		showTokenUsage: !!myInfo.showTokenUsage,
 	};
 	var remoteInfo = {
 		name: myInfo.name,
@@ -60,7 +61,7 @@ EventHandler.getWebSiteURLFailed = (msg) => {
 	Notification.show('', messages.configPage.connectFailed, 'rightBottom', 'fail', 3000);
 };
 EventHandler.connectWSHost = async (data) => {
-	var messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	if (!data || !data.ok) {
 		Notification.show('', messages.configPage.wsConnectFailed, 'rightBottom', 'fail', 5000);
 	}
@@ -136,6 +137,20 @@ ActionCenter.loadConfigFromFile = () => {
 
 	fileSelector.click();
 };
+ActionCenter.turnShowTokenUsageOff = async () => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	myInfo.showTokenUsage = false;
+	await chrome.storage.local.set({showTokenUsage: myInfo.showTokenUsage});
+	Notification.show('', messages.configPage.configurationSaved, 'rightBottom', 'success', 3000);
+	renderI18N('configPage');
+};
+ActionCenter.turnShowTokenUsageOn = async () => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	myInfo.showTokenUsage = true;
+	await chrome.storage.local.set({showTokenUsage: myInfo.showTokenUsage});
+	Notification.show('', messages.configPage.configurationSaved, 'rightBottom', 'success', 3000);
+	renderI18N('configPage');
+};
 
 const loadAIUsage = async () => {
 	var info = await chrome.storage.local.get(['llm_usage_record', 'model_usage_record']);
@@ -204,7 +219,7 @@ const init = async () => {
 		loadAIUsage(),
 		getConfig(),
 	]);
-	var messages = I18NMessages[myInfo.lang] || I18NMessages.en;
+	const messages = I18NMessages[myInfo.lang] || I18NMessages.en;
 	currentTabId = tab.id;
 
 	// Force Server

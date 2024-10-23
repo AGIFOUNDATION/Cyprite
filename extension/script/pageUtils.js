@@ -133,6 +133,7 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 	return parsed;
 };
 const showTokenUsage = (usage, isLeft=false) => {
+	if (!myInfo.showTokenUsage) return;
 	var html = '', count = 0;
 	for (let key in usage) {
 		count ++;

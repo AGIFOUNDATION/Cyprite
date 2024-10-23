@@ -24,7 +24,8 @@ globalThis.myInfo = {
 	lang: DefaultLang,
 	name: '主人',
 	info: '(Not set yet)',
-	model: ModelList[0]
+	model: ModelList[0],
+	showTokenUsage: true,
 };
 
 /* Basic */

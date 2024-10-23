@@ -11,7 +11,7 @@ var currentMode = '';
 
 const getConfig = async () => {
 	var [localInfo, remoteInfo] = await Promise.all([
-		chrome.storage.local.get(['wsHost', 'apiKey', 'AImodel', 'searchMode']),
+		chrome.storage.local.get(['wsHost', 'apiKey', 'AImodel', 'searchMode', 'showTokenUsage']),
 		chrome.storage.sync.get(['name', 'info', 'lang']),
 	]);
 
@@ -29,6 +29,8 @@ const getConfig = async () => {
 	myInfo.useLocalKV = ForceServer ? false : !localInfo.wsHost;
 	myInfo.model = localInfo.AImodel || myInfo.model || ModelList[0];
 	myInfo.searchMode = localInfo.searchMode || 'fullAnswer';
+	myInfo.showTokenUsage = localInfo.showTokenUsage;
+	if (!isBoolean(myInfo.showTokenUsage)) myInfo.showTokenUsage = true;
 };
 const getDataGroup = group => {
 	var data = {};
@@ -97,6 +99,24 @@ const renderI18N = () => {
 	[...document.body.querySelectorAll('[placeholderName]')].forEach(item => {
 		var path = item.getAttribute('placeholderName');
 		item.placeholder = readData(messages, path) || path;
+	});
+	[...document.body.querySelectorAll('[showIf]')].forEach(item => {
+		var condition = item.getAttribute('showIf');
+		if (!!readData(myInfo, condition)) {
+			item.style.display = '';
+		}
+		else {
+			item.style.display = 'none';
+		}
+	});
+	[...document.body.querySelectorAll('[showIfNot]')].forEach(item => {
+		var condition = item.getAttribute('showIfNot');
+		if (!readData(myInfo, condition)) {
+			item.style.display = '';
+		}
+		else {
+			item.style.display = 'none';
+		}
 	});
 };
 const registerAction = () => {
