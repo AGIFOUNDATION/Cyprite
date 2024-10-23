@@ -1,10 +1,12 @@
 globalThis.AI = globalThis.AI || {};
 globalThis.AI.OpenAI = {};
 globalThis.AI.Mixtral = {};
+globalThis.AI.Grok = {};
 
 const DefaultOpenAIChatModel = AI2Model.openai[0];
 const DefaultOpenAIDrawModel = 'dall-e-3';
 const DefaultMixtralChatModel = AI2Model.mixtral[0];
+const DefaultGrokChatModel = AI2Model.grok[0];
 
 const assembleMessages = (conversation, full=true, useSP=true) => {
 	var messages = [];
@@ -296,6 +298,110 @@ AI.Mixtral.chat = async (conversation, model=DefaultMixtralChatModel, options={}
 	}
 	time = Date.now() - time;
 	logger.info('Mixtral', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
+
+	return {
+		reply: replies.join(' '),
+		usage,
+	};
+};
+
+AI.Grok.list = async () => {
+	var request = {
+		method: "GET",
+		headers: {
+			"Content-Type": "application/json",
+			"Authorization": 'Bearer ' + myInfo.apiKey.grok
+		},
+	};
+	var url = 'https://api.x.ai/v1/models';
+
+	var response, time = Date.now();
+	try {
+		response = await waitUntil(fetchWithCheck(url, request));
+	}
+	catch (err) {
+		throw err;
+	}
+	time = Date.now() - time;
+	logger.info('Grok', 'List: ' + (time / 1000) + 's');
+
+	response = await response.json();
+	response = response.data || response;
+	return response;
+};
+AI.Grok.chat = async (conversation, model=DefaultGrokChatModel, options={}) => {
+	var messages = assembleMessages(conversation, false);
+	var [header, data] = assembleDataPack(model, options, myInfo.apiKey.grok);
+	data.messages = messages;
+
+	var request = {
+		method: "POST",
+		headers: header,
+		body: JSON.stringify(data),
+	};
+	var url = "https://api.x.ai/v1/chat/completions";
+
+	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
+	while (true) {
+		let response;
+		try {
+			await requestRateLimitLock(model);
+			updateRateLimitLock(model, true);
+			response = await waitUntil(fetchWithCheck(url, request));
+			updateRateLimitLock(model, false);
+		}
+		catch (err) {
+			updateRateLimitLock(model, false);
+			throw err;
+		}
+		response = await response.json();
+		logger.info('Grok', response);
+
+		let error = response.error;
+		if (!!error && !!error.message) throw new Error(error.message);
+
+		let usg = response.usage, reply = response.choices;
+		usage.count ++;
+		if (!!usg) {
+			usage.input += usg.prompt_tokens;
+			usage.output += usg.completion_tokens
+		}
+		if (!!reply) reply = reply[0];
+		let reason = reply.finish_reason || '';
+		if (!!reply) reply = reply.message?.content;
+		if (!reply) {
+			reply = "";
+			let errMsg = response.error?.message || 'Error Occur!';
+			logger.error('Grok', errMsg);
+			throw new Error(errMsg);
+		}
+		else {
+			reply = reply.trim();
+			replies.push(reply);
+		}
+
+		if (reason.toLowerCase() !== 'length') {
+			break;
+		}
+		else {
+			if (isFirst) {
+				conversation.push(['ai', reply]);
+				conversation.push(['human', PromptLib.continueOutput]);
+				isFirst = false;
+			}
+			else {
+				conversation[conversation.length - 2][1] = replies.join(' ');
+			}
+			messages = assembleMessages(conversation, false);
+			data.messages = messages;
+			request.body = JSON.stringify(data);
+		}
+
+		loop ++;
+		if (loop >= ModelContinueRequestLoopLimit) break;
+	}
+	time = Date.now() - time;
+	logger.info('Grok', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
 
 	return {
 		reply: replies.join(' '),

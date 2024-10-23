@@ -775,9 +775,9 @@ EventHandler.finishFirstTranslation = (content) => {
 
 var isAISearching = false;
 const WebpageReadLock = new PoolWaitLock(MaximumConcurrentWebpageReading);
-const searchWebPage = async (keywords, title, mention, logName, messages) => {
+const searchWebPage = async (keywords, mention, logName) => {
 	logger.info('Search: ' + logName, keywords.join('; '));
-	var notify = Notification.show(title, mention, 'middleTop', 'mention', 24 * 3600 * 1000);
+	var notify = Notification.show('', mention, 'middleTop', 'mention', 24 * 3600 * 1000);
 
 	var results = {};
 	await Promise.all(keywords.map(async keyword => {
@@ -1343,7 +1343,7 @@ const searchWebpageFromInternet = async (messages, quest) => {
 	var tasks = [];
 	// Search Google
 	if (UseSearch && !!searchInfo.search && !!searchInfo.search.length) {
-		tasks.push(searchWebPage(searchInfo.search, messages.cypriteName, messages.aiSearch.msgSearchingWebPagesTask, 'Google', messages));
+		tasks.push(searchWebPage(searchInfo.search, messages.aiSearch.msgSearchingWebPagesTask, 'Google'));
 	}
 	else {
 		searchInfo.search = [];
@@ -1351,7 +1351,7 @@ const searchWebpageFromInternet = async (messages, quest) => {
 	}
 	if (UseSearch && !!searchInfo.arxiv && !!searchInfo.arxiv.length) {
 		searchInfo.arxiv = searchInfo.arxiv.map(kw => kw + ' site:arxiv.org');
-		tasks.push(searchWebPage(searchInfo.arxiv, messages.cypriteName, messages.aiSearch.msgSearchingArxivTask, 'ARXIV', messages));
+		tasks.push(searchWebPage(searchInfo.arxiv, messages.aiSearch.msgSearchingArxivTask, 'ARXIV'));
 	}
 	else {
 		searchInfo.arxiv = []
@@ -1359,7 +1359,7 @@ const searchWebpageFromInternet = async (messages, quest) => {
 	}
 	if (UseSearch && !!searchInfo.wikipedia && !!searchInfo.wikipedia.length) {
 		searchInfo.wikipedia = searchInfo.wikipedia.map(kw => kw + ' site:wikipedia.org');
-		tasks.push(searchWebPage(searchInfo.wikipedia, messages.cypriteName, messages.aiSearch.msgSearchingWikipediaTask, "WIKI", messages));
+		tasks.push(searchWebPage(searchInfo.wikipedia, messages.aiSearch.msgSearchingWikipediaTask, "WIKI"));
 	}
 	else {
 		searchInfo.wikipedia = [];

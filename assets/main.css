@@ -137,6 +137,9 @@ body > article div.badges img {
 	margin-left: 0px;
 	margin-right: 0px;
 }
+body > article div.badges button {
+	cursor: pointer;
+}
 
 .navHeader {
 	font-weight: bolder;

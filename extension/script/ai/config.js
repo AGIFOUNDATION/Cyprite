@@ -5,13 +5,14 @@ globalThis.Model2AI = {
 	"gemini-1.5-pro-exp-0827": "Gemini",
 	"gemini-1.5-flash-002": "Gemini",
 	"gemini-1.5-pro-002": "Gemini",
-	"claude-3-5-sonnet-20240620": "Claude",
+	"claude-3-5-sonnet-latest": "Claude",
 	"claude-3-opus-20240229": "Claude",
 	"claude-3-haiku-20240307": "Claude",
 	"chatgpt-4o-latest": "OpenAI",
 	"gpt-4o-mini": "OpenAI",
 	"o1-preview": "OpenAI",
 	"o1-mini": "OpenAI",
+	"grok-beta": "Grok",
 	"open-mixtral-8x22b": "Mixtral",
 	"open-mistral-7b": "Mixtral",
 	"open-mistral-nemo": "Mixtral",
@@ -30,7 +31,7 @@ globalThis.AI2Model = {
 		"gemini-1.5-pro-002",
 	],
 	"claude": [
-		"claude-3-5-sonnet-20240620",
+		"claude-3-5-sonnet-latest",
 		"claude-3-opus-20240229",
 		"claude-3-haiku-20240307",
 	],
@@ -39,6 +40,9 @@ globalThis.AI2Model = {
 		"gpt-4o-mini",
 		"o1-preview",
 		"o1-mini",
+	],
+	"grok": [
+		"grok-beta",
 	],
 	"mixtral": [
 		"open-mixtral-8x22b",
@@ -54,24 +58,11 @@ globalThis.AI2Model = {
 		"llama-3.2-90b-text-preview",
 	],
 };
-globalThis.FastAI = {
-	"Gemini": "gemini-1.5-flash-002",
-	"Claude": "claude-3-5-sonnet-20240620",
-	"OpenAI": "gpt-4o-mini",
-	"GLM": "glm-4-flash",
-	"Ernie": "ernie-4.0-8k",
-};
-globalThis.DeepAI = {
-	"Gemini": "gemini-1.5-pro-002",
-	"Claude": "claude-3-opus-20240229",
-	"Openai": "o1-preview",
-	"GLM": "glm-4-plus",
-	"Ernie": "ernie-4.0-8k",
-};
 globalThis.ModelOrder = [
 	"gemini",
 	"claude",
 	"openai",
+	"grok",
 	"groq",
 	"mixtral",
 ];
@@ -80,13 +71,14 @@ globalThis.ModelNameList = {
 	"gemini-1.5-pro-exp-0827": "GeminiPro",
 	// "gemini-1.5-flash-002": "GeminiFlash2",
 	// "gemini-1.5-pro-002": "GeminiPro2",
-	"claude-3-5-sonnet-20240620": "Sonnet3.5",
+	"claude-3-5-sonnet-latest": "Sonnet3.5",
 	"claude-3-opus-20240229": "Opus3",
 	// "claude-3-haiku-20240307": "Haiku",
 	"chatgpt-4o-latest": "GPT",
 	"gpt-4o-mini": "GPTMini",
 	"o1-preview": "O1",
 	"o1-mini": "O1-Mini",
+	"grok-beta": "GrokBeta",
 	"open-mixtral-8x22b": "OpenMixtral",
 	// "open-mistral-7b": "OpenMistral",
 	"open-mistral-nemo": "MistralNemo",
@@ -158,6 +150,15 @@ globalThis.ModelDefaultConfig = {
 			max_tokens: 4096,
 		},
 	},
+	Grok: {
+		header: {
+			"Content-Type": "application/json",
+		},
+		chat: {
+			temperature: 1.0,
+			max_tokens: 409600,
+		},
+	},
 	Mixtral: {
 		header: {
 			"Content-Type": "application/json",
@@ -177,7 +178,7 @@ globalThis.ModelDefaultConfig = {
 			max_tokens: 8192,
 		},
 	},
-	"claude-3-5-sonnet-20240620": {
+	"claude-3-5-sonnet-latest": {
 		header: {
 			"anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
 		},
@@ -256,7 +257,7 @@ const FunctionalModel = {
 		"chatgpt-4o-latest",
 		"deepseek-chat",
 		"glm-4-plus",
-		"claude-3-5-sonnet-20240620",
+		"claude-3-5-sonnet-latest",
 	],
 	analyzeSearchKeywords: [
 		'gemini-1.5-flash-exp-0827',
