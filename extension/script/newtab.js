@@ -1494,7 +1494,7 @@ const searchInformationByKeywrods = async (messages, quest, shouldFold=false, is
 	if (Object.keys(searchResult.search).length + llmResults.length > 0) tasks.push(filterAndShowSearchRsult(aiSearchInputter.resultSearch, searchResult.search, llmResults, searchInfo.search, quest, shouldFold, isFull, messages));
 	else tasks.push({webPages: [], usage: {}});
 	var [arxivResults, wikipediaResults, searchResults] = await Promise.all(tasks);
-	
+
 	if (!!arxivResults) {
 		updateUsage(usage, arxivResults.usage);
 		arxivResults = arxivResults.webPages;

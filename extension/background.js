@@ -1435,18 +1435,19 @@ AIHandler.translateContent = async (data, source, sid) => {
 
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 
+	// First Translation
 	data.requirement = data.requirement || '(No Extra Requirement)';
 	data.myLang = LangName[myInfo.lang] || myInfo.lang;
 	var prompt = PromptLib.assemble(PromptLib.firstTranslation, data);
 	var conversation = [['human', prompt]];
-	var translation = await callAIandWait('directAskAI', conversation), usage = {};
+	var modelList = getFunctionalModelList('firstTranslation'), usage = {};
+	var translation = await callLLMOneByOne(modelList, conversation, true, 'Translate[First]');
 	if (!!translation) {
 		updateUsage(usage, translation.usage);
 		translation = translation.reply || translation;
+		translation = translation.translation?._origin || translation.translation || translation._origin || translation;
 	}
-	var json = parseReplyAsXMLToJSON(translation);
-	logger.log('Translate[First]', json);
-	translation = json.translation?._origin || json.translation || translation;
+	logger.log('Translate[First]', translation);
 	dispatchEvent({
 		event: "updateCurrentStatus",
 		data: messages.translation.afterFirstTranslate,
@@ -1460,17 +1461,19 @@ AIHandler.translateContent = async (data, source, sid) => {
 		tid: sid,
 	});
 
+	// Analyze Inadequacies
+	modelList = getFunctionalModelList('analysisTranslationInadequacies');
 	data.translation = translation;
 	prompt = PromptLib.assemble(PromptLib.reflectTranslation, data);
 	conversation = [['human', prompt]];
-	var suggestion = await callAIandWait('directAskAI', conversation);
+	var suggestion = await callLLMOneByOne(modelList, conversation, true, 'Translate[Suggestion]');
+	updateUsage(usage, suggestion.usage);
 	if (!!suggestion) {
 		if (!!suggestion.usage) {
 			updateUsage(usage, suggestion.usage);
 		}
 		suggestion = suggestion.reply || suggestion;
 	}
-	suggestion = parseReplyAsXMLToJSON(suggestion);
 	logger.log('Translate[Suggestion]', suggestion);
 	if ((suggestion.needOptimize || suggestion.needoptimize) && (!!suggestion.deficiencies || !!suggestion.suggestions)) {
 		dispatchEvent({
@@ -1499,6 +1502,7 @@ AIHandler.translateContent = async (data, source, sid) => {
 		}
 		data.suggestions = sug.join('\n\n');
 
+		// Final Translation
 		prompt = PromptLib.assemble(PromptLib.deepTranslation, data);
 		conversation = [['human', prompt]];
 		translation = await callAIandWait('directAskAI', conversation);

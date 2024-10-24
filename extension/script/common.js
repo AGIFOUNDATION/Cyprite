@@ -111,6 +111,12 @@ globalThis.parseURL = url => {
 	return url;
 };
 globalThis.parseReplyAsXMLToJSON = (xml, init=true) => {
+	if (!xml) {
+		if (xml === 0) return 0;
+		if (xml === false) return false;
+		return '';
+	}
+
 	var json = { _origin: xml.trim() };
 	var loc = -1;
 	var lev = 0;

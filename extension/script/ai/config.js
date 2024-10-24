@@ -262,9 +262,26 @@ const FunctionalModel = {
 	analyzeSearchKeywords: [
 		'gemini-1.5-flash-exp-0827',
 		"gemini-1.5-flash-002",
-		'llama-3.2-90b-text-preview',
 		'claude-3-haiku-20240307',
 		'glm-4-long',
+	],
+	firstTranslation: [
+		'claude-3-5-sonnet-latest',
+		'chatgpt-4o-latest',
+		'o1-preview',
+		'grok-beta',
+		'moonshot-v1-auto',
+		'deepseek-chat',
+	],
+	analysisTranslationInadequacies: [
+		'o1-mini',
+		"gpt-4o-mini",
+		'claude-3-5-sonnet-latest',
+		'grok-beta',
+		'gemini-1.5-pro-002',
+		'gemini-1.5-pro-exp-0827',
+		'moonshot-v1-auto',
+		'deepseek-chat',
 	],
 };
 globalThis.getFunctionalModelList = () => {
