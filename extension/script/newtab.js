@@ -28,6 +28,7 @@ var curerntStatusMention = null;
 var aiSearchInputter = null;
 var tmrThinkingHint = null;
 var searchResult = '';
+var searchRecord = {};
 var advSearchConversation = null;
 var ntfDeepThinking = null;
 var running = false;
@@ -209,7 +210,7 @@ const onSelectReference = ({target}) => {
 	var panel = document.body.querySelector('.reference_page');
 	var title = panel.querySelector('.title');
 	var content = panel.querySelector('.content');
-	title.innerText = target._data.title.replace(/[\n\r]+/g, ' ');
+	title.innerText = (target._data?.title || 'Untitled').replace(/[\n\r]+/g, ' ');
 	parseMarkdownWithOutwardHyperlinks(content, messages.aiSearch.hintReferenceTitle + '[URL](' + target._data.url + ')\n\n----\n\n' + target._data.reply);
 
 	panel.style.display = 'block';
@@ -557,6 +558,7 @@ const switchToXPageConv = async () => {
 				'cached_article_list': list
 			});
 		}).catch(err => {
+			logger.error('GetArticleInfo', err);
 			err = err.message || err.msg || err.data || err.toString();
 			Notification.show('', err, "middleTop", 'error', 5 * 1000);
 		});
@@ -571,6 +573,7 @@ const switchToXPageConv = async () => {
 		}
 		catch (err) {
 			list = [];
+			logger.error('GetArticleInfo', err);
 			err = err.message || err.msg || err.data || err.toString();
 			Notification.show('', err, "middleTop", 'error', 5 * 1000);
 		}
@@ -793,8 +796,8 @@ const searchWebPage = async (keywords, mention, logName) => {
 				}
 			}
 			catch (err) {
-				logger.error('Search: ' + logName, err);
 				result = [];
+				logger.error('Search: ' + logName, err);
 				err = err.message || err.msg || err.data || err.toString();
 				Notification.show('', err, "middleTop", 'error', 5 * 1000);
 			}
@@ -979,7 +982,7 @@ const showGoogleSearchResult = (frame, messages, keywords, most, all, shouldFold
 			var link = newEle('a');
 			link.href = item.url;
 			link.target = "_blank";
-			link.innerText = (item.title || '').replace(/[\r\n]+/g, ' ');
+			link.innerText = (item.title || 'Untitled').replace(/[\r\n]+/g, ' ');
 			li.appendChild(link);
 			list.appendChild(li);
 			used.push(item.url);
@@ -999,6 +1002,7 @@ const showGoogleSearchResult = (frame, messages, keywords, most, all, shouldFold
 		hint.innerText = messages.aiSearch.hintViceSearchResult;
 	}
 	frame.appendChild(hint);
+	if (!keywords) keywords = [];
 	for (let kw of keywords) {
 		let li = newEle('li', 'search_result_item');
 		let link = newEle('a');
@@ -1018,7 +1022,7 @@ const showGoogleSearchResult = (frame, messages, keywords, most, all, shouldFold
 		let link = newEle('a');
 		link.href = item.url;
 		link.target = "_blank";
-		link.innerText = item.title.replace(/[\r\n]+/g, ' ');
+		link.innerText = (item.title || 'Untitled').replace(/[\r\n]+/g, ' ');
 		li.appendChild(link);
 		list.appendChild(li);
 		count ++;
@@ -1041,6 +1045,7 @@ const showOtherSearchResult = (frame, messages, title, keywords, webPages, shoul
 	}
 	frame.appendChild(hint);
 	// Show Search Keywords
+	if (!keywords) keywords = [];
 	for (let kw of keywords) {
 		let li = newEle('li', 'search_result_item');
 		let link = newEle('a');
@@ -1056,7 +1061,7 @@ const showOtherSearchResult = (frame, messages, title, keywords, webPages, shoul
 		let link = newEle('a');
 		link.href = item.url;
 		link.target = "_blank";
-		link.innerText = item.title.replace(/[\r\n]+/g, ' ');
+		link.innerText = (item.title || 'Untitled').replace(/[\r\n]+/g, ' ');
 		li.appendChild(link);
 		list.appendChild(li);
 	}
@@ -1091,13 +1096,13 @@ const showReferences = (list, messages) => {
 		inner.appendChild(cover);
 		li.appendChild(inner);
 		var title = newEle('div', 'reference_title');
-		title.innerText = item.title.replace(/[\n\r]+/g, ' ');
+		title.innerText = (item.title || 'Untitled').replace(/[\n\r]+/g, ' ');
 		li.appendChild(title);
 
 		var float = newEle('div', 'reference_float');
 
 		title = newEle('div', 'reference_float_title');
-		title.innerText = item.title.replace(/[\n\r]+/g, ' ');
+		title.innerText = (item.title || 'Untitled').replace(/[\n\r]+/g, ' ');
 		float.appendChild(title);
 		inner = newEle('div', 'reference_float_desc');
 		inner.innerText = item.summary.length > 200 ? item.summary.substring(0, 198) + '......' : item.summary;
@@ -1199,6 +1204,7 @@ const readAndReplyWebpages = async (webPages, request, messages) => {
 			}
 			catch (err) {
 				data = '';
+				logger.error('ReadWebPage', err);
 				err = err.message || err.msg || err.data || err.toString();
 				Notification.show('', err, "middleTop", 'error', 5 * 1000);
 			}
@@ -1254,12 +1260,12 @@ const replyOnWebpage = async (title, content, request) => {
 		reply = await askAIandWait('raedAndReply', {content, request});
 		updateUsage(usage, reply.usage);
 		reply = reply.reply || '';
-		logger.log('ReadPage&Reply', (title || '').replace(/\s+/gi, ' '));
+		logger.log('ReadPage&Reply', (title || 'Untitled').replace(/\s+/gi, ' '));
 		console.log(reply);
 	}
 	catch (err) {
-		logger.error('ReadPage&Reply', err);
 		reply = '';
+		logger.error('ReadPage&Reply', err);
 		err = err.message || err.msg || err.data || err.toString();
 		Notification.show('', err, "middleTop", 'error', 5 * 1000);
 	}
@@ -1406,21 +1412,7 @@ const searchDocumentLocally = async (messages, quest) => {
 
 	// Show Article List
 	if (articles.length > 0) {
-		let hint = newEle('div', 'search_result_title', 'foldhint');
-		hint.innerText = messages.aiSearch.hintLocalResult + ' (' + articles.length + ')';
-		aiSearchInputter.resultLocal.appendChild(hint);
-		let list = newEle('ul', 'search_result_list', 'foldable');
-		for (let item of articles) {
-			let li = newEle('li', 'search_result_item');
-			let link = newEle('a');
-			link.href = item.url;
-			link.target = "_blank";
-			link.innerText = item.title.replace(/[\r\n]+/g, ' ');
-			li.appendChild(link);
-			list.appendChild(li);
-		}
-		aiSearchInputter.resultLocal.appendChild(list);
-		aiSearchInputter.resultLocal.scrollIntoViewIfNeeded();
+		showOtherSearchResult(aiSearchInputter.resultLocal, messages, messages.aiSearch.hintLocalResult, [], articles, true);
 	}
 
 	return {articles, usage};
@@ -1514,11 +1506,20 @@ const searchInformationByKeywrods = async (messages, quest, shouldFold=false, is
 		search: searchResults,
 		arxiv: arxivResults,
 		wikipedia: wikipediaResults,
+		local: localArticles,
 		usage
 	};
 };
 const replyQuestBySearchResult = async (messages, quest) => {
-	var {search, arxiv, wikipedia, usage} = await searchInformationByKeywrods(messages, quest, true);
+	searchRecord = {};
+	searchRecord.mode = 'fullAnswer';
+	searchRecord.quest = quest;
+	searchRecord.searchResult = {};
+
+	var {search, arxiv, wikipedia, local, usage} = await searchInformationByKeywrods(messages, quest, true);
+	searchRecord.searchResult.google = search;
+	searchRecord.searchResult.arxiv = arxiv;
+	searchRecord.searchResult.wikipedia = wikipedia;
 	var readList = [...search, ...arxiv, ...wikipedia];
 	readList = readList.filter(item => !!item.summary);
 
@@ -1542,11 +1543,13 @@ const replyQuestBySearchResult = async (messages, quest) => {
 		answer = messages.aiSearch.msgEmptyAnswer;
 		Notification.show('', err.message || err.msg || err.data || err.toString(), "middleTop", 'error', 5 * 1000);
 	}
+	searchRecord.answer = answer;
+	searchRecord.more = moreList;
 
 	// Show Answer
 	searchResult = answer;
 	aiSearchInputter.answerPanelHint.innerText = messages.aiSearch.hintAnswering;
-	aiSearchInputter.answerPanelHint.innerHTML = aiSearchInputter.answerPanelHint.innerHTML + '<img button="true" action="copySearchResult" src="../images/copy.svg">'
+	aiSearchInputter.answerPanelHint.innerHTML = aiSearchInputter.answerPanelHint.innerHTML + '<img button="true" action="copySearchResult" src="../images/copy.svg"> <img button="true" action="saveSearchResult" src="../images/save.svg">';
 	parseMarkdownWithOutwardHyperlinks(aiSearchInputter.answerPanel, answer, messages.aiSearch.msgEmptyAnswer);
 	[...document.querySelectorAll('.content_container .result_panel .foldable')].forEach(ui => ui.classList.add('folded'));
 	[...document.querySelectorAll('.content_container .result_panel .foldhint')].forEach(ui => ui.classList.add('folded'));
@@ -1561,7 +1564,7 @@ const replyQuestBySearchResult = async (messages, quest) => {
 	};
 	conversationOption.webpages = readList.map(item => {
 		var article = ['<webpage>'];
-		article.push('<title>' + item.title.replace(/\s+/g, ' ') + '</title>');
+		article.push('<title>' + (item.title || 'Untitled').replace(/\s+/g, ' ') + '</title>');
 		article.push('<url>' + item.url + '</title>');
 		article.push('<summary>');
 		article.push(item.summary);
@@ -1573,6 +1576,7 @@ const replyQuestBySearchResult = async (messages, quest) => {
 	advSearchConversation.push(['system', PromptLib.assemble(PromptLib.preliminaryThinkingContinueSystem, conversationOption)]);
 	advSearchConversation.push(['human', quest]);
 	advSearchConversation.push(['ai', answer]);
+	searchRecord.conversation = advSearchConversation;
 	document.body.querySelector('.furthure_dialog').style.display = 'block';
 	resizeCurrentInputter();
 
@@ -1598,11 +1602,48 @@ const showMoreQuestions = (moreList) => {
 	});
 	aiSearchInputter.morequestionPanel.appendChild(mqList);
 };
+const getAISearchRecordList = async () => {
+	var list;
+	try {
+		list = await askSWandWait('LoadAISearchRecordList');
+	}
+	catch (err) {
+		logger.error('GetSearchRecordList', err);
+	}
+	list = list || [];
+
+	return list;
+};
+const saveAISearchRecord = async () => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	if (!searchRecord) return;
+
+	searchRecord.conversation = advSearchConversation;
+	searchRecord.timestamp = Date.now();
+	searchRecord.datestring = timestmp2str("YYYY/MM/DD hh:mm :WDE:");
+	try {
+		await askSWandWait('SaveAISearchRecord', {quest: searchRecord.quest, record: searchRecord});
+		logger.log('SaveSearchRecord', 'Quest Saved:', searchRecord.quest);
+		Notification.show('', messages.newTab.hintSaveSearchRecordSuccess, 'middleTop', 'success', 5 * 1000);
+	}
+	catch (err) {
+		logger.error('SaveSearchRecord', err);
+		Notification.show('', messages.newTab.hintSaveSearchRecordFailed, 'middleTop', 'error', 5 * 1000);
+	}
+};
+const hideAISearchPanel = () => {
+	[...document.body.querySelectorAll('[group="intelligentSearch"] .chat_item')].forEach(item => {
+		item.parentNode.removeChild(item);
+	});
+	document.body.querySelector('.furthure_dialog').style.display = 'none';
+	document.body.querySelector('.search_history').style.display = 'none';
+	document.body.querySelector('.search_records').style.display = 'none';
+};
 ActionCenter.changeMode = async (button) => {
-	var mode = button.getAttribute('mode');
+	var mode = isString(button) ? button : button.getAttribute('mode');
 	var ele = aiSearchInputter.parentNode.querySelector('.mode_chooser > li[checked]');
 	if (!!ele) ele.removeAttribute('checked');
-	chrome.storage.local.set({searchMode: mode});
+	await chrome.storage.local.set({searchMode: mode});
 	ele = aiSearchInputter.parentNode.querySelector('.mode_chooser > li[mode="' + mode + '"]');
 	ele.setAttribute('checked', 'true');
 	myInfo.searchMode = mode;
@@ -1639,11 +1680,7 @@ ActionCenter.startAISearch = async () => {
 
 	// Update Search History and Further Conversation
 	advSearchConversation = null;
-	[...document.body.querySelectorAll('[group="intelligentSearch"] .chat_item')].forEach(item => {
-		item.parentNode.removeChild(item);
-	});
-	document.body.querySelector('.furthure_dialog').style.display = 'none';
-	document.body.querySelector('.search_history').style.display = 'none';
+	hideAISearchPanel();
 	getSearchRequestList().then(list => {
 		content = content.trim();
 
@@ -1662,6 +1699,7 @@ ActionCenter.startAISearch = async () => {
 	});
 
 	var timeused = Date.now();
+	searchRecord = null;
 	if (myInfo.searchMode === 'keywordOnly') {
 		await analyzeSearchKeywords(messages, content);
 	}
@@ -1693,6 +1731,89 @@ ActionCenter.chooseQuestion = (host, data, evt) => {
 		let inputter = document.querySelector('[group="intelligentSearch"] .furthure_dialog .input_container');
 		inputter.innerText = target._question;
 		inputter.focus();
+	}
+};
+ActionCenter.loadSearchRecord = async (host, data, evt) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	const target = evt.target;
+
+	// Delete Record
+	if (target.classList.contains('item_closer')) {
+		let ele = target.parentNode;
+		let quest = ele._quest;
+		if (!quest) return;
+		try {
+			await askSWandWait('DeleteAISearchRecord', quest);
+			ele.parentNode.removeChild(ele);
+			Notification.show('', messages.newTab.hintDeleteSearchRecordSuccess, 'middleTop', 'success', 5 * 1000);
+		}
+		catch (err) {
+			logger.error('LoadSearchRecord', err);
+			Notification.show('', messages.newTab.hintDeleteSearchRecordFailed, 'middleTop', 'error', 5 * 1000);
+		}
+	}
+	// Load Record
+	else if (target.classList.contains('search_record_item')) {
+		let quest = target._quest;
+		if (!quest) return;
+
+		let info;
+		try {
+			info = await askSWandWait('GetAISearchRecord', target._quest);
+		}
+		catch (err) {
+			logger.error('LoadAISearchRecord', err);
+			Notification.show('', messages.newTab.hintLoadSearchRecordFailed, 'middleTop', 'error', 5 * 1000);
+			return;
+		}
+		searchRecord = info;
+
+		hideAISearchPanel();
+		aiSearchInputter.innerText = target._quest;
+		ActionCenter.changeMode(info.mode);
+		if (!!info.searchResult) {
+			if (!!info.searchResult.arxiv && !!info.searchResult.arxiv.length) {
+				showOtherSearchResult(aiSearchInputter.resultArxiv, messages, messages.aiSearch.hintArxivResult, [], info.searchResult.arxiv, true);
+			}
+			if (!!info.searchResult.wikipedia && !!info.searchResult.wikipedia.length) {
+				showOtherSearchResult(aiSearchInputter.resultWikipedia, messages, messages.aiSearch.hintWikipediaResult, [], info.searchResult.wikipedia, true);
+			}
+			if (!!info.searchResult.google && !!info.searchResult.google.length) {
+				showGoogleSearchResult(aiSearchInputter.resultWikipedia, messages, [], info.searchResult.google, [], true);
+			}
+			if (!!info.searchResult.local && !!info.searchResult.local.length) {
+				showOtherSearchResult(aiSearchInputter.resultLocal, messages, messages.aiSearch.hintLocalResult, [], info.searchResult.local, true);
+			}
+			[...document.querySelectorAll('.content_container .result_panel .foldable')].forEach(ui => ui.classList.add('folded'));
+			[...document.querySelectorAll('.content_container .result_panel .foldhint')].forEach(ui => ui.classList.add('folded'));
+		}
+		searchResult = info.answer;
+		aiSearchInputter.answerPanelHint.innerText = messages.aiSearch.hintAnswering;
+		aiSearchInputter.answerPanelHint.innerHTML = aiSearchInputter.answerPanelHint.innerHTML + '<img button="true" action="copySearchResult" src="../images/copy.svg"> <img button="true" action="saveSearchResult" src="../images/save.svg">';
+		parseMarkdownWithOutwardHyperlinks(aiSearchInputter.answerPanel, info.answer, messages.aiSearch.msgEmptyAnswer);
+		if (info.more) {
+			showMoreQuestions(info.more);
+		}
+		if (!!info.reference && !!info.reference.length) {
+			showReferences(info.reference, messages);
+		}
+		if (!!info.conversation && !!info.conversation.length) {
+			let last = info.conversation[info.conversation.length - 1];
+			if (last[0] === 'human') info.conversation.pop();
+			document.body.querySelector('.furthure_dialog').style.display = 'block';
+			let limit = info.mode === 'fullAnalyze' ? 7 : 3;
+			if (info.conversation.length > limit) {
+				for (let i = limit; i < info.conversation.length; i ++) {
+					let item = info.conversation[i];
+					let name = item[0] === 'human' ? 'human' : 'cyprite';
+					let content = item[1];
+					content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
+					addChatItem('intelligentSearch', content, name, null, true);
+				}
+			}
+			advSearchConversation = info.conversation;
+			resizeCurrentInputter();
+		}
 	}
 };
 EventHandler.updateDeepThinkingStatus = (msg) => {
@@ -1747,8 +1868,8 @@ const loadFileList = async () => {
 		list = await askSWandWait('GetArticleInfo', [false, OrderTypes[orderType]]);
 	}
 	catch (err) {
-		logger.error('LoadFileList', err);
 		list = [];
+		logger.error('LoadFileList', err);
 		err = err.message || err.msg || err.data || err.toString();
 		Notification.show('', err, "middleTop", 'error', 5 * 1000);
 	}
@@ -1758,7 +1879,7 @@ const loadFileList = async () => {
 		var link = newEle('a');
 		link.href = item.url;
 		link.target = '_blank';
-		link.innerText = item.title.replace(/\s+/g, ' ');
+		link.innerText = (item.title || 'Untitled').replace(/\s+/g, ' ');
 		li.appendChild(link);
 
 		if (!!item.hash) {
@@ -2043,7 +2164,8 @@ ActionCenter.sendMessage = async (button) => {
 		}
 	}
 	else if (target === 'intelligentSearch') {
-		conversation = advSearchConversation || [];
+		if (!advSearchConversation) advSearchConversation = [];
+		conversation = advSearchConversation;
 		let option = {
 			request: content,
 			time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")
@@ -2237,11 +2359,18 @@ ActionCenter.changeRequest = async (target, ui) => {
 	}
 };
 ActionCenter.onMayCopySearchResult = async (target, ui, evt) => {
-	var ele = evt.target;
-	if (ele.getAttribute('action') !== 'copySearchResult') return;
-	await navigator.clipboard.writeText(searchResult);
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	Notification.show('', messages.mentions.contentCopied, 'middleTop', 'success', 2 * 1000);
+	const ele = evt.target;
+	const action = ele.getAttribute('action');
+	if (action === 'copySearchResult') {
+		await navigator.clipboard.writeText(searchResult);
+		Notification.show('', messages.mentions.contentCopied, 'middleTop', 'success', 2 * 1000);
+	}
+	else if (action === 'saveSearchResult') {
+		if (!!searchRecord) {
+			await saveAISearchRecord();
+		}
+	}
 };
 
 window.addEventListener('beforeunload', () => {
@@ -2254,7 +2383,8 @@ const init = async () => {
 	var ot = await Promise.all([
 		chrome.storage.local.get('FilesOrderType'),
 		getSearchRequestList(),
-		getConfig()
+		getConfig(),
+		getAISearchRecordList(),
 	]);
 	if (isArray(ot[1])) {
 		let ul = document.body.querySelector('.search_history');
@@ -2262,6 +2392,36 @@ const init = async () => {
 			var li = newEle('li', 'search_result_item', 'more_question');
 			li.innerText = hist.replace(/[\r\n]+/g, ' ');
 			li._question = hist;
+			ul.appendChild(li);
+		});
+	}
+	if (isArray(ot[3]) && ot[3].length > 0) {
+		let list = ot[3];
+		let ul = document.body.querySelector('.search_records');
+		list.forEach(item => {
+			var li = newEle('li', 'search_record_item');
+			li._quest = item.quest;
+
+			var cover = newEle('img', 'item_logo');
+			cover.src = '../images/book.svg';
+			li.appendChild(cover);
+
+			var cap = newEle('span', 'item_title');
+			cap.innerText = item.quest.replace(/(\s*[\n\r\t]\s*)+/g, ' ');
+			li.appendChild(cap);
+
+			var date = newEle('span', 'item_date');
+			date.innerText = item.datestring;
+			li.appendChild(date);
+
+			var desc = newEle('span', 'item_desc');
+			desc.innerText = item.quest;
+			li.appendChild(desc);
+
+			var closer = newEle('img', 'item_closer');
+			closer.src = '../images/circle-xmark.svg';
+			li.appendChild(closer);
+
 			ul.appendChild(li);
 		});
 	}

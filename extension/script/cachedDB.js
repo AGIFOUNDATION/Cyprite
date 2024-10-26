@@ -15,13 +15,13 @@
 				this.conn = indexedDB.open(this.name, this.version);
 				this.conn.onupgradeneeded = evt => {
 					this.db = this.conn.result;
-					this.cbUpdates.forEach(cb => cb(this));
+					this.cbUpdates.forEach(cb => cb(evt, this));
 				};
 				this.conn.onsuccess = evt => {
 					this.ready = true;
 					this.available = true;
 					this.db = this.conn.result;
-					this.cbConnects.forEach(cb => cb(this));
+					this.cbConnects.forEach(cb => cb(evt, this));
 					res(this);
 				};
 				this.conn.onerror = err => {

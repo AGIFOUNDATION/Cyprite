@@ -120,20 +120,37 @@ const callLLMOneByOne = async (modelList, conversation, needParse=true, tag="Cal
 const DBs = {};
 const initDB = async () => {
 	const dbPageInfos = new CachedDB("PageInfos", 1);
-	dbPageInfos.onUpdate(() => {
-		dbPageInfos.open('tabInfo', 'tid');
-		dbPageInfos.open('pageInfo', 'url');
-		dbPageInfos.open('notifyChecker', 'url');
-		dbPageInfos.open('pageConversation', 'url');
-		logger.info('DB', 'Updated');
+	dbPageInfos.onUpdate((evt) => {
+		if (evt.oldVersion === 0) {
+			dbPageInfos.open('tabInfo', 'tid');
+			dbPageInfos.open('pageInfo', 'url');
+			dbPageInfos.open('notifyChecker', 'url');
+			dbPageInfos.open('pageConversation', 'url');
+		}
+		logger.info('DB[PageInfo]', 'Updated');
 	});
 	dbPageInfos.onConnect(() => {
 		globalThis.dbPageInfos = dbPageInfos; // test
-		logger.info('DB', 'Connected');
+		logger.info('DB[PageInfo]', 'Connected');
 	});
 
 	await dbPageInfos.connect();
 	DBs.pageInfo = dbPageInfos;
+
+	const dbSearchRecord = new CachedDB("AISearchRecord", 1);
+	dbSearchRecord.onUpdate((evt) => {
+		if (evt.oldVersion === 0) {
+			dbSearchRecord.open('searchRecord', 'quest');
+		}
+		logger.info('DB[SearchRecord]', 'Updated');
+	});
+	dbSearchRecord.onConnect(() => {
+		globalThis.dbSearchRecord = dbSearchRecord; // test
+		logger.info('DB[SearchRecord]', 'Connected');
+	});
+
+	await dbSearchRecord.connect();
+	DBs.searchRecord = dbSearchRecord;
 };
 if (!globalThis.DefaultSendMessage) globalThis.DefaultSendMessage = () => {};
 if (!globalThis.sendMessage) globalThis.sendMessage = DefaultSendMessage;
@@ -386,7 +403,7 @@ const getPageInfo = async url => {
 	if (!info) {
 		if (!DBs.pageInfo) await initDB();
 		info = await DBs.pageInfo.get('pageInfo', url);
-		logger.log('DB', 'Get Page Info: ' + url);
+		logger.log('DB[PageInfo]', 'Get Page Info: ' + url);
 		if (!info) {
 			info = {
 				totalDuration: 0,
@@ -408,14 +425,14 @@ const setPageInfo = async (url, info, immediately=false) => {
 		delete DBs.tmrPageInfos;
 		if (!DBs.pageInfo) await initDB();
 		await DBs.pageInfo.set('pageInfo', url, info);
-		logger.log('DB', 'Set Page Info: ' + url);
+		logger.log('DB[PageInfo]', 'Set Page Info: ' + url);
 	}
 	else {
 		DBs.tmrPageInfos = setTimeout(async () => {
 			delete DBs.tmrPageInfos;
 			if (!DBs.pageInfo) await initDB();
 			await DBs.pageInfo.set('pageInfo', url, info);
-			logger.log('DB', 'Set Page Info: ' + url);
+			logger.log('DB[PageInfo]', 'Set Page Info: ' + url);
 		}, 200);
 	}
 };
@@ -429,7 +446,7 @@ const delPageInfo = async (url, immediately=false) => {
 		delete TabInfo[key];
 		if (!DBs.pageInfo) await initDB();
 		await DBs.pageInfo.del('pageInfo', key);
-		logger.log('DB', 'Del Page Info: ' + key);
+		logger.log('DB[PageInfo]', 'Del Page Info: ' + key);
 		return;
 	}
 	DBs.tmrPageInfos = setTimeout(async () => {
@@ -442,7 +459,7 @@ const getTabInfo = async tid => {
 		if (!DBs.pageInfo) await initDB();
 		if (!!DBs.pageInfo) {
 			info = await DBs.pageInfo.get('tabInfo', 'T-' + tid);
-			logger.log('DB', 'Get TabInfo: ' + tid);
+			logger.log('DB[PageInfo]', 'Get TabInfo: ' + tid);
 		}
 		if (!info) {
 			info = {
@@ -463,7 +480,7 @@ const setTabInfo = async (tid, info) => {
 		delete DBs.tmrTabInfos;
 		if (!DBs.pageInfo) await initDB();
 		await DBs.pageInfo.set('tabInfo', 'T-' + tid, info);
-		logger.log('DB', 'Set TabInfo: ' + tid);
+		logger.log('DB[PageInfo]', 'Set TabInfo: ' + tid);
 	}, 200);
 };
 const delTabInfo = async (tid) => {
@@ -482,7 +499,7 @@ const delTabInfo = async (tid) => {
 		}
 		catch {
 			await DBs.pageInfo.del('tabInfo', name);
-			logger.log('DB', 'Del TabInfo: ' + tid);
+			logger.log('DB[PageInfo]', 'Del TabInfo: ' + tid);
 		}
 	}
 };
@@ -1233,6 +1250,41 @@ EventHandler.ChangePageTitle = async (data) => {
 	var info = await getPageInfo(data.url);
 	info.title = data.title;
 	await setPageInfo(data.url, info, true);
+};
+
+EventHandler.SaveAISearchRecord = async (data) => {
+	if (!DBs.searchRecord) await initDB();
+
+	var {quest, record} = data;
+	await DBs.searchRecord.set('searchRecord', quest, record);
+	logger.log('DB[SearchRecord]', 'Save Search Record:', quest);
+};
+EventHandler.LoadAISearchRecordList = async (data) => {
+	if (!DBs.searchRecord) await initDB();
+
+	var all = await DBs.searchRecord.all('searchRecord');
+
+	var list = [];
+	for (let quest in all) {
+		let info = all[quest];
+		info.quest = info.quest || quest;
+		info.timestamp = info.timestamp || 0;
+		info.datestring = info.datestring || '(NONE)';
+		list.push(info);
+	}
+	list.sort((a, b) => b.timestamp - a.timestamp);
+
+	return list;
+};
+EventHandler.GetAISearchRecord = async (quest) => {
+	if (!DBs.searchRecord) await initDB();
+
+	return await DBs.searchRecord.get('searchRecord', quest);
+};
+EventHandler.DeleteAISearchRecord = async (quest) => {
+	if (!DBs.searchRecord) await initDB();
+
+	await DBs.searchRecord.del('searchRecord', quest);
 };
 
 /* AI */

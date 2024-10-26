@@ -400,6 +400,81 @@ body {
 	margin-bottom: 30px;
 	padding: 5px;
 }
+.panel_operation_area .search_records {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 10px;
+	row-gap: 10px;
+}
+.panel_operation_area .search_records .search_record_item {
+	list-style: none;
+	position: relative;
+	min-width: 175px;
+	max-width: 250px;
+	height: 50px;
+	flex: 0 1 20%;
+	padding: 0px;
+	cursor: pointer;
+}
+.panel_operation_area .search_records .search_record_item img {
+	filter: invert(0.6) sepia(1.0) hue-rotate(60deg) brightness(1.5);
+}
+.panel_operation_area .search_records .search_record_item .item_logo {
+	height: 100%;
+	pointer-events: none;
+}
+.panel_operation_area .search_records .search_record_item .item_closer {
+	display: none;
+	position: absolute;
+	top: -5px;
+	left: -5px;
+	z-index: 2;
+	width: 15px;
+	pointer-events: none;
+	cursor: pointer;
+}
+.panel_operation_area .search_records .search_record_item:hover .item_closer {
+	display: block;
+	pointer-events: all;
+}
+.panel_operation_area .search_records .search_record_item .item_title {
+	position: absolute;
+	top: 5px;
+	left: 50px;
+	right: 0px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	pointer-events: none;
+}
+.panel_operation_area .search_records .search_record_item .item_date {
+	position: absolute;
+	bottom: 5px;
+	left: 50px;
+	right: 0px;
+	font-size: 10px;
+	color: darkgray;
+	pointer-events: none;
+}
+.panel_operation_area .search_records .search_record_item .item_desc {
+	display: none;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	z-index: 1;
+	box-sizing: border-box;
+	width: 100%;
+	padding: 8px;
+	border-radius: 5px;
+	background-color: rgba(20, 20, 25, 0.8);
+	backdrop-filter: blur(2px);
+	box-shadow: 2px 2px 5px rgba(23, 23, 23, 0.6), inset 0px 0px 2px white;
+	pointer-events: none;
+}
+.panel_operation_area .search_records .search_record_item:hover .item_desc {
+	display: block;
+}
 .panel_operation_area .furthure_dialog {
 	display: none;
 }
