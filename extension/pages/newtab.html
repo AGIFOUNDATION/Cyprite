@@ -34,13 +34,23 @@
 			<div class="panel_tab invalid" titlePath="newTab.freelyConversation" showGroup="freelyConversation"></div>
 			<div class="panel_tab" titlePath="newTab.instantTranslation" showGroup="instantTranslation"></div>
 
-			<div class="panel_button" titlePath="buttons.btnClearHistory" group="crossPageConversation|freelyConversation|instantTranslation" action="clearConversation"></div>
+			<div class="panel_button" hintPath="newTab.cleanConversation" group="crossPageConversation|freelyConversation|instantTranslation|intelligentSearch" action="clearConversation">
+				<img src="../images/eraser.svg">
+			</div>
+			<div class="panel_button" hintPath="newTab.downloadConversation" group="crossPageConversation|intelligentSearch" action="downloadConversation">
+				<img src="../images/download.svg">
+			</div>
+			<div class="panel_button" hintPath="newTab.saveConversation" group="intelligentSearch" action="saveConversation">
+				<img src="../images/save.svg">
+			</div>
+			<div class="panel_button" hintPath="newTab.copyConversation" group="intelligentSearch" action="copyConversation">
+				<img src="../images/copy.svg">
+			</div>
 			<div class="panel_button" group="instantTranslation">
 				<span titlePath="buttons.hintTranslateInto"></span>
 				<input name="translation_language" type="text" class="panel_input">
 			</div>
 			<div class="panel_button" titlePath="newTab.chooseArticles" group="crossPageConversation" action="showArticleChooser"></div>
-			<div class="panel_button" titlePath="newTab.downloadConversation" group="crossPageConversation" action="downloadConversation"></div>
 		</nav>
 		<section class="panel_operation_area scrollable" group="articleManager">
 			<div class="caption">
@@ -97,7 +107,7 @@
 					<div class="wikipedia_result_panel" action="switchFold"></div>
 					<div class="arxiv_result_panel" action="switchFold"></div>
 					<div class="search_result_panel" action="switchFold"></div>
-					<div class="answer_panel_hint search_result_title" action="onMayCopySearchResult"></div>
+					<div class="answer_panel_hint search_result_title" action="onOperateSearchResult"></div>
 					<div class="answer_panel"></div>
 					<div class="reference_panel"></div>
 					<div class="morequestion_panel" action="chooseQuestion"></div>

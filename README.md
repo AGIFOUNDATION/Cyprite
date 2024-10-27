@@ -98,6 +98,7 @@ The AI platforms we can currently connect to include:
 - **Gemini**: Flash 1.5, Pro 1.5
 - **OpenAI**: o1 Preview, o1 Mini, GPT-4o, GPT-40 mini
 - **Anthropic**: Claude 3.5 Sonnet, Claude 3 Opus
+- **Grok**: Grok Beta
 - **Mistral**: open-mixtral-8x22b, open-mistral-7b, open-mistral-nemo, pixtral-12b-latest, open-codestral-mamba
 - **Groq**: gemma2-9b-it, llama-3.1-70b-versatile, llama-3.2-90b-text-preview
 - **MoonShot** (Full Version only): moonshot-v1-auto, moonshot-web-search
@@ -108,7 +109,7 @@ The AI platforms we can currently connect to include:
 
 Most models are optional, while some models can only be used covertly in the Full Version, such as `open-codestral-mamba` and `deepseek-coder` for writing code.
 
-![](./assets/readme1.png)
+![](./assets/readme1.webp)
 
 In the Full Version, some specific functional tasks will be executed according to a prioritized list of models that we have tested for best results, rather than solely based on the model you choose. This is done to ensure that Cyprite can provide the best service.
 

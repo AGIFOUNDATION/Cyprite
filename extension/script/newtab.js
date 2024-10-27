@@ -27,7 +27,6 @@ var currentTabId = 0;
 var curerntStatusMention = null;
 var aiSearchInputter = null;
 var tmrThinkingHint = null;
-var searchResult = '';
 var searchRecord = {};
 var advSearchConversation = null;
 var ntfDeepThinking = null;
@@ -468,13 +467,12 @@ const parseWebPage = (content, keepLink=false, host) => {
 const downloadConversation = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 
-	var gid = currentTabId + ':crosspageConv';
-	var conversation = await chrome.storage.session.get(gid);
-	conversation = (conversation || {})[gid];
+	const gid = currentTabId + ':crosspageConv';
+	const conversation = ((await chrome.storage.session.get(gid)) || {})[gid];
 	if (!conversation) return;
 
-	var name = messages.newTab.crossPageConversation;
-	var model = myInfo.model;
+	const name = messages.newTab.crossPageConversation;
+	const model = myInfo.model;
 
 	var markdown = ["#\t" + name];
 	markdown.push('> AI: ' + model);
@@ -495,14 +493,15 @@ const downloadConversation = async () => {
 	});
 	markdown = markdown.join('\n\n');
 
-	var blob = new Blob([markdown], { type: 'text/plain' });
-	var link = URL.createObjectURL(blob);
-	var downloader = newEle('a');
-	downloader.setAttribute('href', link);
-	downloader.setAttribute('download', 'conversation.md');
-	downloader.click();
-
-	Notification.show('', messages.crossPageConv.hintConversationDownloaded, 'middleTop', 'success', 2 * 1000);
+	const saved = await saveContentToLocalFile(markdown, 'conversation.md', {
+		description: 'Markdown',
+		accept: {
+			'text/markdown': ['.md'],
+		},
+	});
+	if (saved) {
+		Notification.show('', messages.crossPageConv.hintConversationDownloaded, 'middleTop', 'success', 2 * 1000);
+	}
 };
 const resizeCurrentInputter = () => {
 	var container = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"]');
@@ -762,6 +761,25 @@ const getDialogPair = (button) => {
 ActionCenter.downloadConversation = () => {
 	if (currentMode === 'crossPageConversation') {
 		downloadConversation();
+	}
+	else if (currentMode === 'intelligentSearch') {
+		if (!!searchRecord) {
+			dowloadAISearchRecord();
+		}
+	}
+};
+ActionCenter.saveConversation = () => {
+	if (currentMode === 'intelligentSearch') {
+		if (!!searchRecord) {
+			saveAISearchRecord();
+		}
+	}
+};
+ActionCenter.copyConversation = () => {
+	if (currentMode === 'intelligentSearch') {
+		if (!!searchRecord) {
+			copyAISearchRecord();
+		}
 	}
 };
 EventHandler.updateCurrentStatus = (msg) => {
@@ -1105,7 +1123,8 @@ const showReferences = (list, messages) => {
 		title.innerText = (item.title || 'Untitled').replace(/[\n\r]+/g, ' ');
 		float.appendChild(title);
 		inner = newEle('div', 'reference_float_desc');
-		inner.innerText = item.summary.length > 200 ? item.summary.substring(0, 198) + '......' : item.summary;
+		let summary = item.reply || item.summary || messages.hintNone;
+		inner.innerText = summary.length > 200 ? summary.substring(0, 198) + '......' : summary;
 		float.appendChild(inner);
 		li.appendChild(float);
 
@@ -1374,7 +1393,7 @@ const searchWebpageFromInternet = async (messages, quest) => {
 	var [searchResults, arxivResults, wikipediaResults] = await Promise.all(tasks);
 
 	// Decompose the search results
-	for (let url in searchResult) {
+	for (let url in searchResults) {
 		if (url.match(/arxiv\.org/i)) {
 			if (!arxivResults[url]) {
 				arxivResults[url] = searchResults[url];
@@ -1510,6 +1529,56 @@ const searchInformationByKeywrods = async (messages, quest, shouldFold=false, is
 		usage
 	};
 };
+const searchResultButtons = (all=true) => {
+	var buttons = [];
+	buttons.push('<img button="true" action="copySearchResult" src="../images/copy.svg">');
+	if (all) {
+		buttons.push('<img button="true" action="saveSearchResult" src="../images/save.svg">');
+		buttons.push('<img button="true" action="downloadSearchResult" src="../images/download.svg">');
+	}
+	return buttons.join(' ');
+};
+const generateSearchResultContent = () => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	var info = {
+		quest: searchRecord.quest,
+		answer: searchRecord.answer,
+		time: searchRecord.datestring,
+	};
+	if (!!searchRecord.reference) {
+		info.reference = searchRecord.reference.map(item => {
+			return '- [' + (item.title || messages.hintNone) + '](' + item.url + ')';
+		}).join('\n');
+	}
+	else {
+		info.reference = messages.hintNone;
+	}
+	if (!!searchRecord.conversation) {
+		const limit = searchRecord.mode === "fullAnalyze" ? 7 : 3;
+		const chat = [];
+		for (let i = limit; i < searchRecord.conversation.length; i ++) {
+			const part = [];
+			const item = searchRecord.conversation[i];
+			let content = item[1] || '';
+			if (item[0] === 'human') {
+				part.push('##\t' + myInfo.name);
+				content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
+			}
+			else if (item[0] === 'ai') {
+				part.push('##\t' + messages.cypriteName);
+				content = content.replace(/^[\w\W]*?<reply>\s*|\s*<\/reply>[\w\W]*?$/gi, '');
+			}
+			else {
+				return;
+			}
+			part.push(content);
+			chat.push(part.join('\n\n'));
+		}
+		info.conversation = chat.join('\n\n----\n\n');
+	}
+	var content = PromptLib.assemble(messages.newTab.templateContent, info);
+	return content;
+};
 const replyQuestBySearchResult = async (messages, quest) => {
 	searchRecord = {};
 	searchRecord.mode = 'fullAnswer';
@@ -1547,9 +1616,8 @@ const replyQuestBySearchResult = async (messages, quest) => {
 	searchRecord.more = moreList;
 
 	// Show Answer
-	searchResult = answer;
 	aiSearchInputter.answerPanelHint.innerText = messages.aiSearch.hintAnswering;
-	aiSearchInputter.answerPanelHint.innerHTML = aiSearchInputter.answerPanelHint.innerHTML + '<img button="true" action="copySearchResult" src="../images/copy.svg"> <img button="true" action="saveSearchResult" src="../images/save.svg">';
+	aiSearchInputter.answerPanelHint.innerHTML = aiSearchInputter.answerPanelHint.innerHTML + searchResultButtons();
 	parseMarkdownWithOutwardHyperlinks(aiSearchInputter.answerPanel, answer, messages.aiSearch.msgEmptyAnswer);
 	[...document.querySelectorAll('.content_container .result_panel .foldable')].forEach(ui => ui.classList.add('folded'));
 	[...document.querySelectorAll('.content_container .result_panel .foldhint')].forEach(ui => ui.classList.add('folded'));
@@ -1618,11 +1686,77 @@ const saveAISearchRecord = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	if (!searchRecord) return;
 
-	searchRecord.conversation = advSearchConversation;
-	searchRecord.timestamp = Date.now();
-	searchRecord.datestring = timestmp2str("YYYY/MM/DD hh:mm :WDE:");
+	const clearData = item => {
+		const data = Object.assign({}, item);
+		if (!!data.reply) {
+			delete data.summary;
+		}
+		else {
+			data.summary = data.summary || data.description;
+		}
+		delete data.content;
+		delete data.description;
+		delete data.embedding;
+		delete data.hash;
+		delete data.similar;
+		delete data.totalDuration;
+		delete data.currentDuration;
+		delete data.viewed;
+		delete data.reading;
+		return data;
+	};
+
+	const data = Object.assign({}, searchRecord);
+	data.conversation = advSearchConversation;
+	data.timestamp = Date.now();
+	data.datestring = timestmp2str("YYYY/MM/DD hh:mm :WDE:");
+	if (!!searchRecord.reference) {
+		data.reference = searchRecord.reference.map(item => {
+			return clearData(item);
+		});
+	}
+	if (!!searchRecord.searchResult) {
+		data.searchResult = data.searchResult || {};
+		if (!!searchRecord.searchResult.google) {
+			data.searchResult.google = searchRecord.searchResult.google.map(item => {
+				const data = {
+					title: item.title,
+					url: item.url,
+				};
+				return data;
+			});
+		}
+		if (!!searchRecord.searchResult.arxiv) {
+			data.searchResult.arxiv = searchRecord.searchResult.arxiv.map(item => {
+				const data = {
+					title: item.title,
+					url: item.url,
+				};
+				return data;
+			});
+		}
+		if (!!searchRecord.searchResult.wikipedia) {
+			data.searchResult.wikipedia = searchRecord.searchResult.wikipedia.map(item => {
+				const data = {
+					title: item.title,
+					url: item.url,
+				};
+				return data;
+			});
+		}
+		if (!!searchRecord.searchResult.local) {
+			data.searchResult.local = searchRecord.searchResult.local.map(item => {
+				const data = {
+					title: item.title,
+					url: item.url,
+				};
+				return data;
+			});
+		}
+	}
+
 	try {
-		await askSWandWait('SaveAISearchRecord', {quest: searchRecord.quest, record: searchRecord});
+		await askSWandWait('SaveAISearchRecord', {quest: searchRecord.quest, record: data});
 		logger.log('SaveSearchRecord', 'Quest Saved:', searchRecord.quest);
 		Notification.show('', messages.newTab.hintSaveSearchRecordSuccess, 'middleTop', 'success', 5 * 1000);
 	}
@@ -1630,6 +1764,23 @@ const saveAISearchRecord = async () => {
 		logger.error('SaveSearchRecord', err);
 		Notification.show('', messages.newTab.hintSaveSearchRecordFailed, 'middleTop', 'error', 5 * 1000);
 	}
+};
+const dowloadAISearchRecord = async () => {
+	const saved = await saveContentToLocalFile(generateSearchResultContent(), 'aisearch.md', {
+		description: 'Markdown',
+		accept: {
+			'text/markdown': ['.md'],
+		},
+	});
+	if (saved) {
+		const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+		Notification.show('', messages.aiSearch.hintSearchRecordDownloaded, 'middleTop', 'success', 2 * 1000);
+	}
+};
+const copyAISearchRecord = async () => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	await navigator.clipboard.writeText(generateSearchResultContent());
+	Notification.show('', messages.mentions.contentCopied, 'middleTop', 'success', 2 * 1000);
 };
 const hideAISearchPanel = () => {
 	[...document.body.querySelectorAll('[group="intelligentSearch"] .chat_item')].forEach(item => {
@@ -1719,7 +1870,10 @@ ActionCenter.startAISearch = async () => {
 	isAISearching = false;
 };
 ActionCenter.chooseQuestion = (host, data, evt) => {
+	if (!evt) return;
 	var target = evt.target;
+	if (!target) return;
+
 	if (!target.classList.contains('more_question')) return;
 	if (!target._question) return;
 	if (!advSearchConversation) {
@@ -1787,9 +1941,8 @@ ActionCenter.loadSearchRecord = async (host, data, evt) => {
 			[...document.querySelectorAll('.content_container .result_panel .foldable')].forEach(ui => ui.classList.add('folded'));
 			[...document.querySelectorAll('.content_container .result_panel .foldhint')].forEach(ui => ui.classList.add('folded'));
 		}
-		searchResult = info.answer;
 		aiSearchInputter.answerPanelHint.innerText = messages.aiSearch.hintAnswering;
-		aiSearchInputter.answerPanelHint.innerHTML = aiSearchInputter.answerPanelHint.innerHTML + '<img button="true" action="copySearchResult" src="../images/copy.svg"> <img button="true" action="saveSearchResult" src="../images/save.svg">';
+		aiSearchInputter.answerPanelHint.innerHTML = aiSearchInputter.answerPanelHint.innerHTML + searchResultButtons();
 		parseMarkdownWithOutwardHyperlinks(aiSearchInputter.answerPanel, info.answer, messages.aiSearch.msgEmptyAnswer);
 		if (info.more) {
 			showMoreQuestions(info.more);
@@ -1805,9 +1958,17 @@ ActionCenter.loadSearchRecord = async (host, data, evt) => {
 			if (info.conversation.length > limit) {
 				for (let i = limit; i < info.conversation.length; i ++) {
 					let item = info.conversation[i];
-					let name = item[0] === 'human' ? 'human' : 'cyprite';
-					let content = item[1];
-					content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
+					let content = item[1], name = item[0];
+					if (name === 'human') {
+						content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
+					}
+					else if (name === 'ai') {
+						name = 'cyprite';
+						content = content.replace(/^[\w\W]*?<reply>\s*|\s*<\/reply>[\w\W]*?$/gi, '');
+					}
+					else {
+						continue;
+					}
 					addChatItem('intelligentSearch', content, name, null, true);
 				}
 			}
@@ -1821,8 +1982,11 @@ EventHandler.updateDeepThinkingStatus = (msg) => {
 	if (!!ntfDeepThinking) ntfDeepThinking._hide();
 	ntfDeepThinking = Notification.show('', msg, 'middleTop', 'mention', 24 * 3600 * 1000);
 };
-ActionCenter.switchFold = (host, data, {target}) => {
+ActionCenter.switchFold = (host, data, evt) => {
+	if (!evt) return;
+	var target = evt.target;
 	if (!target) return;
+
 	if (target.classList.contains('foldhint')) {
 		let next = target.nextElementSibling;
 		if (!next || !next.classList.contains('foldable')) return;
@@ -2053,7 +2217,9 @@ ActionCenter.clearConversation = async () => {
 
 	var container = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"]');
 	var content = container.querySelector('.content_container');
-	content.innerHTML = '';
+	[...content.querySelectorAll('.chat_item')].forEach(item => {
+		item.parentElement.removeChild(item);
+	});
 
 	if (currentMode === 'crossPageConversation') {
 		let conversation = await chrome.storage.session.get(currentTabId + ':crosspageConv');
@@ -2068,6 +2234,14 @@ ActionCenter.clearConversation = async () => {
 	}
 	else if (currentMode === 'instantTranslation') {
 		addChatItem('instantTranslation', messages.translation.instantTranslateHint, 'cyprite');
+	}
+	else if (currentMode === 'intelligentSearch') {
+		if (!!advSearchConversation) {
+			const limit = myInfo.searchMode === 'fullAnalyze' ? 7 : 3;
+			if (advSearchConversation.length > limit) {
+				advSearchConversation.splice(limit);
+			}
+		}
 	}
 };
 ActionCenter.showArticleChooser = () => {
@@ -2358,18 +2532,21 @@ ActionCenter.changeRequest = async (target, ui) => {
 		contentPad.focus();
 	}
 };
-ActionCenter.onMayCopySearchResult = async (target, ui, evt) => {
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+ActionCenter.onOperateSearchResult = async (target, ui, evt) => {
+	if (!evt) return;
 	const ele = evt.target;
+	if (!ele) return;
+	if (!searchRecord) return;
+
 	const action = ele.getAttribute('action');
 	if (action === 'copySearchResult') {
-		await navigator.clipboard.writeText(searchResult);
-		Notification.show('', messages.mentions.contentCopied, 'middleTop', 'success', 2 * 1000);
+		await copyAISearchRecord();
 	}
 	else if (action === 'saveSearchResult') {
-		if (!!searchRecord) {
-			await saveAISearchRecord();
-		}
+		await saveAISearchRecord();
+	}
+	else if (action === 'downloadSearchResult') {
+		await dowloadAISearchRecord();
 	}
 };
 

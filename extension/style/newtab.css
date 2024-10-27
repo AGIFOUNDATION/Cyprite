@@ -43,6 +43,12 @@ body {
 .panel_button.active {
 	display: inline-block;
 }
+.panel_button img {
+	height: 18px;
+	margin: 3px 0px;
+	filter: invert(0.6) sepia(1.0) hue-rotate(60deg) brightness(1.5);
+	pointer-events: none;
+}
 .panel_operation_area {
 	display: none;
 	position: absolute;

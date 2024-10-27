@@ -1252,27 +1252,83 @@ EventHandler.ChangePageTitle = async (data) => {
 	await setPageInfo(data.url, info, true);
 };
 
+/* AI Search Record */
+
+const TagSearchRecord = 'CACHE_SEARCH_RECORDS';
 EventHandler.SaveAISearchRecord = async (data) => {
 	if (!DBs.searchRecord) await initDB();
 
-	var {quest, record} = data;
-	await DBs.searchRecord.set('searchRecord', quest, record);
+	const tasks = [];
+	const {quest, record} = data;
+	tasks.push(DBs.searchRecord.set('searchRecord', quest, record));
+
+	// Update Cache
+	var list;
+	try {
+		list = await chrome.storage.session.get(TagSearchRecord);
+	}
+	catch (err) {
+		logger.error('SaveAISearchRecord', err);
+		list = null;
+	}
+	list = (list || {})[TagSearchRecord];
+	if (!!list) {
+		const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+		let isNew = true;
+		list.some(item => {
+			if (item.quest !== quest) return;
+			item.timestamp = record.timestamp || 0;
+			item.datestring = record.datestring || messages.hintNone;
+			isNew = false;
+			return true;
+		});
+		if (isNew) {
+			list.unshift({
+				quest,
+				timestamp: record.timestamp || 0,
+				datestring: record.datestring || messages.hintNone,
+			});
+		}
+		list.sort((a, b) => b.timestamp - a.timestamp);
+		const data = {};
+		data[TagSearchRecord] = list;
+		tasks.push(chrome.storage.session.set(data));
+	}
+
+	await Promise.all(tasks);
 	logger.log('DB[SearchRecord]', 'Save Search Record:', quest);
 };
-EventHandler.LoadAISearchRecordList = async (data) => {
+EventHandler.LoadAISearchRecordList = async () => {
 	if (!DBs.searchRecord) await initDB();
 
-	var all = await DBs.searchRecord.all('searchRecord');
+	// Load from Cache first
+	var list;
+	try {
+		list = await chrome.storage.session.get(TagSearchRecord);
+	}
+	catch (err) {
+		logger.error('LoadAISearchRecordList', err);
+		list = null;
+	}
+	list = (list || {})[TagSearchRecord];
+	if (!!list) return list;
 
-	var list = [];
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	const all = await DBs.searchRecord.all('searchRecord');
+	list = [];
 	for (let quest in all) {
 		let info = all[quest];
-		info.quest = info.quest || quest;
-		info.timestamp = info.timestamp || 0;
-		info.datestring = info.datestring || '(NONE)';
-		list.push(info);
+		let item = {};
+		item.quest = info.quest || quest;
+		item.timestamp = info.timestamp || 0;
+		item.datestring = info.datestring || messages.hintNone;
+		list.push(item);
 	}
 	list.sort((a, b) => b.timestamp - a.timestamp);
+
+	const data = {};
+	data[TagSearchRecord] = list;
+	await chrome.storage.session.set(data);
 
 	return list;
 };
@@ -1284,7 +1340,29 @@ EventHandler.GetAISearchRecord = async (quest) => {
 EventHandler.DeleteAISearchRecord = async (quest) => {
 	if (!DBs.searchRecord) await initDB();
 
-	await DBs.searchRecord.del('searchRecord', quest);
+	var tasks = [];
+	tasks.push(DBs.searchRecord.del('searchRecord', quest));
+
+	var list;
+	try {
+		list = await chrome.storage.session.get(TagSearchRecord);
+	}
+	catch (err) {
+		logger.error('SaveAISearchRecord', err);
+		list = null;
+	}
+	list = (list || {})[TagSearchRecord];
+	if (!!list) {
+		let count = list.length;
+		list = list.filter(item => item.quest !== quest);
+		if (list.length !== count) {
+			let data = {};
+			data[TagSearchRecord] = list;
+			tasks.push(chrome.storage.session.set(data));
+		}
+	}
+
+	await Promise.all(tasks);
 };
 
 /* AI */
@@ -2112,8 +2190,8 @@ const findRelativeArticles = async (data, source, sid) => {
 
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	const isWebPage = isBoolean(data.isWebPage) ? data.isWebPage : true;
-	const request = (data.requests || []).join('\n\n') || '(NONE)';
-	const currentSummary = (data.content || []).map(ctx => '<summary>\n' + ctx.trim() + '\n</summary>').join('\n\n') || '(NONE)';
+	const request = (data.requests || []).join('\n\n') || messages.hintNone;
+	const currentSummary = (data.content || []).map(ctx => '<summary>\n' + ctx.trim() + '\n</summary>').join('\n\n') || messages.hintNone;
 
 	logger.log('SW', data.articles.length + ' Similar Articles for ' + (data.url || '(NONE)'));
 

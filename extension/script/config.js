@@ -86,56 +86,55 @@ ActionCenter.saveConfigToFile = async () => {
 		config[key] = myInfo[key];
 	}
 
-	const blob = new Blob([JSON.stringify(config, '\t', '\t')], { type: 'text/plain' });
-	const link = URL.createObjectURL(blob);
-	const downloader = newEle('a');
-	downloader.setAttribute('href', link);
-	downloader.setAttribute('download', 'cyprite.config.json');
-	downloader.click();
-
-	Notification.show('', messages.configPage.hintConfigurationSaved, 'middleTop', 'success', 2 * 1000);
+	const saved = await saveContentToLocalFile(config, 'cyprite.config.json', {
+		description: 'JSON',
+		accept: {
+			'application/json': ['.json'],
+		},
+	});
+	if (!!saved) {
+		Notification.show('', messages.configPage.hintConfigurationSaved, 'middleTop', 'success', 2 * 1000);
+	}
 };
-ActionCenter.loadConfigFromFile = () => {
-	const fileSelector = newEle('input');
-	fileSelector.type = 'file';
-	fileSelector.accept = '.json';
-	fileSelector.addEventListener('change', evt => {
-		const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-		const file = evt.target.files[0];
-		if (!file) return;
-		const reader = new FileReader();
-		reader.onload = async (e) => {
-			const content = e.target.result;
-			try {
-				const json = JSON.parse(content);
-				for (let key in myInfo) {
-					let value = json[key];
-					if (!value) continue;
-					let obj = myInfo[key];
-					if (isObject(obj)) {
-						if (isObject(value)) {
-							for (let key in value) {
-								let v = value[key];
-								if (!v) continue;
-								obj[key] = v;
-							}
-						}
-					}
-					else {
-						myInfo[key] = value;
+ActionCenter.loadConfigFromFile = async () => {
+	try {
+		const json = await loadContentFromLocalFile({
+			description: 'JSON',
+			accept: {
+				'application/json': ['.json'],
+			},
+		}, true);
+		if (json === null) return;
+	
+		if (!isObject(json)) {
+			const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+			Notification.show('', messages.configPage.hintReadConfigurationFailed, 'middleTop', 'error', 5 * 1000);
+			return;
+		}
+		for (let key in myInfo) {
+			let value = json[key];
+			if (!value) continue;
+			let obj = myInfo[key];
+			if (isObject(obj)) {
+				if (isObject(value)) {
+					for (let key in value) {
+						let v = value[key];
+						if (!v) continue;
+						obj[key] = v;
 					}
 				}
-				await saveConfig();
 			}
-			catch (err) {
-				logger.error('FileReader', err);
-				Notification.show('', messages.configPage.hintReadConfigurationFailed, 'middleTop', 'error', 5 * 1000);
+			else {
+				myInfo[key] = value;
 			}
-		};
-		reader.readAsText(file);
-	});
-
-	fileSelector.click();
+		}
+		await saveConfig();
+	}
+	catch (err) {
+		logger.error('LoadConfigFile', err);
+		const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+		Notification.show('', messages.configPage.hintReadConfigurationFailed, 'middleTop', 'error', 5 * 1000);
+	}
 };
 ActionCenter.turnShowTokenUsageOff = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];

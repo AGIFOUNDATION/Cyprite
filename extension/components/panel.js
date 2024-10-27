@@ -25,6 +25,10 @@ const renderI18N = (messages, container) => {
 		var path = item.getAttribute('htmlPath');
 		item.innerHTML = readData(messages, path);
 	});
+	[...container.querySelectorAll('[hintPath]')].forEach(item => {
+		var path = item.getAttribute('hintPath');
+		item.title = readData(messages, path);
+	});
 	[...container.querySelectorAll('[placeholderName]')].forEach(item => {
 		var path = item.getAttribute('placeholderName');
 		item.placeholder = readData(messages, path) || path;

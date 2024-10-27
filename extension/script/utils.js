@@ -96,6 +96,10 @@ const renderI18N = () => {
 		var path = item.getAttribute('htmlPath');
 		item.innerHTML = readData(messages, path);
 	});
+	[...document.body.querySelectorAll('[hintPath]')].forEach(item => {
+		var path = item.getAttribute('hintPath');
+		item.title = readData(messages, path);
+	});
 	[...document.body.querySelectorAll('[placeholderName]')].forEach(item => {
 		var path = item.getAttribute('placeholderName');
 		item.placeholder = readData(messages, path) || path;
@@ -145,6 +149,105 @@ const selectTranslationLanguages = (lang, defLang) => {
 	// }
 	return LangName[lang] || lang;
 };
+
+/* File Handler */
+
+const saveContentToLocalFile = async (content, filename, filetype) => {
+	if (!isString(content)) {
+		content = JSON.stringify(content, '\t', '\t');
+	}
+
+	if (!!window.showSaveFilePicker) {
+		filetype = filetype || {
+			description: 'JSON',
+			accept: {
+				'application/json': ['.json'],
+			},
+		};
+
+		var saveHandler;
+		try {
+			saveHandler = await window.showSaveFilePicker({
+				startIn: "downloads",
+				suggestedName: filename,
+				types: [filetype],
+			});
+		}
+		// Not choose any file.
+		catch {
+			return false;
+		}
+		const writer = await saveHandler.createWritable();
+		await writer.write(content);
+		await writer.close();
+	}
+	else {
+		const blob = new Blob([content], { type: 'text/plain' });
+		const link = URL.createObjectURL(blob);
+		const downloader = newEle('a');
+		downloader.setAttribute('href', link);
+		downloader.setAttribute('download', filename);
+		downloader.click();
+	}
+	return true;
+};
+const loadContentFromLocalFile = (filetype, isJSON=false) => new Promise(async (res, rej) => {
+	const afterLoadFile = file => {
+		const reader = new FileReader();
+		reader.onload = async (e) => {
+			const content = e.target.result;
+			if (isJSON) {
+				try {
+					const json = JSON.parse(content);
+					res(json);
+				}
+				catch {
+					res(content);
+				}
+			}
+			else {
+				res(content);
+			}
+		};
+		reader.onerror = rej;
+		reader.readAsText(file);
+	};
+
+	if (!!window.showOpenFilePicker) {
+		filetype = filetype || {
+			description: 'JSON',
+			accept: {
+				'application/json': ['.json'],
+			},
+		};
+		var loadHandler;
+		try {
+			loadHandler = await window.showOpenFilePicker({
+				types: [filetype],
+			});
+			loadHandler = loadHandler[0];
+		}
+		// Not choose any file.
+		catch {
+			res(null);
+		}
+		const file = await loadHandler.getFile();
+		if (!file) return res(null);
+		afterLoadFile(file);
+	}
+	else {
+		const fileSelector = newEle('input');
+		fileSelector.type = 'file';
+		fileSelector.accept = '.json';
+		fileSelector.addEventListener('change', evt => {
+			const file = evt.target.files[0];
+			if (!file) return res(null);
+			afterLoadFile(file);
+		});
+	
+		fileSelector.click();
+	}
+});
 
 /* Communication */
 

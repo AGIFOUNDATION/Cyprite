@@ -98,6 +98,7 @@ $$
 - **Gemini**：Flash 1.5，Pro 1.5
 - **OpenAI**：o1 Preview，o1 Mini，GPT-4o，GPT-40 mini
 - **Anthropic**：Claude 3.5 Sonnet，Claude 3 Opus
+- **Grok**: Grok Beta
 - **Mistral**：open-mixtral-8x22b，open-mistral-7b，open-mistral-nemo，pixtral-12b-latest，open-codestral-mamba
 - **Groq**：gemma2-9b-it，llama-3.1-70b-versatile，llama-3.2-90b-text-preview
 - **MoonShot**（仅限完整版）：moonshot-v1-auto，moonshot-web-search
@@ -108,7 +109,7 @@ $$
 
 大部分模型都是可选的，而部分模型只能在完整版中被隐藏式地使用，比如写代码时会调用 `open-codestral-mamba` 、 `deepseek-coder` 等。
 
-![](./assets/readme1.png)
+![](./assets/readme1.webp)
 
 在完整版中，一些具体的事务功能会优先根据我们测试后效果最好的模型顺序列表来依次执行，而不会只根据您选择的模型来进行执行。这么做是为了确保机灵能提供最好的服务。
 
