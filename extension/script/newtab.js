@@ -8,10 +8,6 @@ const MaximumConcurrentWebpageReading = 3;
 const MaximumWebpageRead = 15;
 const SearchHistoryCount = 20;
 const DefaultPanel = 'intelligentSearch';
-const OrderTypes = {
-	totalDuration: 'TotalDuration',
-	lastVisit: 'LastVisit',
-};
 const SearchModeOrderList = [
 	'fullAnalyze',
 	'fullAnswer',
@@ -33,7 +29,6 @@ var ntfDeepThinking = null;
 var running = false;
 var orderType = 'totalDuration';
 var lastTranslatContent = '';
-var cachedArticleList = null;
 var webpageReaded = 0;
 
 /* Cache Control */
@@ -47,7 +42,7 @@ const getCachedInformation = async (type, name) => {
 	info = info[key];
 	if (!info) return null;
 	if (!info.data || !info.timestamp) {
-		chrome.storage.session.remove(key);
+		await chrome.storage.session.remove(key);
 		return null;
 	}
 	return info.data;
@@ -160,7 +155,7 @@ const generateModelList = async () => {
 const onChooseModel = async ({target}) => {
 	if (!target.classList.contains("panel_model_item")) return;
 	var model = target.getAttribute('name');
-	chrome.storage.local.set({'AImodel': model});
+	await chrome.storage.local.set({'AImodel': model});
 	updateModelList(model);
 
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
@@ -525,6 +520,33 @@ globalThis.afterChangeTab = async () => {
 
 /* XPageConv */
 
+const getArticleList = async (onlyCached, isLastVisit) => {
+	var cachedArticleList = await chrome.storage.local.get(TagArticleList);
+	cachedArticleList = (cachedArticleList || {})[TagArticleList];
+	if (!!cachedArticleList) {
+		if (onlyCached) {
+			cachedArticleList = cachedArticleList.filter(item => item.isCached);
+		}
+		if (isLastVisit) {
+			cachedArticleList.sort((pa, pb) => pb.lastVisit - pa.lastVisit);
+		}
+		else {
+			cachedArticleList.sort((pa, pb) => pb.duration - pa.duration);
+		}
+	}
+	else {
+		try {
+			cachedArticleList = await askSWandWait('GetArticleList', { onlyCached, isLastVisit });
+		}
+		catch (err) {
+			cachedArticleList = [];
+			logger.error('GetArticleList', err);
+			err = err.message || err.msg || err.data || err.toString();
+			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+		}
+	}
+	return cachedArticleList;
+};
 const switchToXPageConv = async () => {
 	var container = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"]');
 	var content = container.querySelector('.content_container');
@@ -544,40 +566,7 @@ const switchToXPageConv = async () => {
 		needShowArticleList = false;
 	}
 
-	var list = cachedArticleList;
-	if (!list) {
-		list = await chrome.storage.local.get('cached_article_list')
-		list = (list || {})['cached_article_list'];
-	}
-	if (!!list) {
-		cachedArticleList = list;
-		askSWandWait('GetArticleInfo', [true, OrderTypes[orderType]]).then(list => {
-			cachedArticleList = list;
-			chrome.storage.local.set({
-				'cached_article_list': list
-			});
-		}).catch(err => {
-			logger.error('GetArticleInfo', err);
-			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
-		});
-	}
-	else {
-		try {
-			list = await askSWandWait('GetArticleInfo', [true, OrderTypes[orderType]]);
-			cachedArticleList = list;
-			chrome.storage.local.set({
-				'cached_article_list': list
-			});
-		}
-		catch (err) {
-			list = [];
-			logger.error('GetArticleInfo', err);
-			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
-		}
-	}
-
+	var list = await getArticleList(true, orderType === 'lastVisit');
 	var container = document.body.querySelector('.panel_article_list');
 	if (!!list && !!list.length) {
 		container.innerHTML = '';
@@ -613,9 +602,11 @@ const prepareXPageConv = async (request) => {
 		// For selected articles
 		let items = [...document.body.querySelectorAll('.panel_article_list .panel_article_list_item[selected]')];
 		if (items.length > 0) {
-			items = items.map(item => item.url);
 			try {
-				items = await askSWandWait('GetArticleInfo', [items, OrderTypes[orderType]]);
+				items = await askSWandWait('GetArticleInfo', {
+					articles: items.map(item => item.url),
+					isLastVisit: orderType === 'lastVisit',
+				});
 			}
 			catch (err) {
 				items = [];
@@ -701,7 +692,10 @@ const prepareXPageConv = async (request) => {
 		if (CurrentArticleList.join('|') !== articleList.join('|') && articleList.length > 0) {
 			CurrentArticleList.splice(0);
 			try {
-				items = await askSWandWait('GetArticleInfo', [items.map(item => item.url), OrderTypes[orderType]]);
+				items = await askSWandWait('GetArticleInfo', {
+					articles: items.map(item => item.url),
+					isLastVisit: orderType === 'lastVisit',
+				});
 			}
 			catch (err) {
 				items = [];
@@ -728,7 +722,6 @@ const prepareXPageConv = async (request) => {
 			conversation[0][1] = systemPrompt;
 		}
 	}
-	conversation.push(['human', request]);
 
 	return {conversation, usage};
 };
@@ -1170,6 +1163,7 @@ const readAndReplyWebpages = async (webPages, request, messages) => {
 	var notify = Notification.show('', messages.aiSearch.msgReadingWebPage, 'middleTop', 'mention', 24 * 3600 * 1000), usage = {};
 
 	await Promise.all(webPages.map(async (item, idx) => {
+		if (!item.url) return;
 		await wait(idx * 50); // Interleave all read requests
 
 		await WebpageReadLock.start();
@@ -1671,7 +1665,19 @@ const showMoreQuestions = (moreList) => {
 	aiSearchInputter.morequestionPanel.appendChild(mqList);
 };
 const getAISearchRecordList = async () => {
+	// Load from Cache
 	var list;
+	try {
+		list = await chrome.storage.session.get(TagSearchRecord);
+	}
+	catch (err) {
+		logger.error('LoadAISearchRecordList', err);
+		list = null;
+	}
+	list = (list || {})[TagSearchRecord];
+	if (!!list) return list;
+
+	// Load from DB
 	try {
 		list = await askSWandWait('LoadAISearchRecordList');
 	}
@@ -2028,16 +2034,7 @@ const loadFileList = async () => {
 	container.innerHTML = '';
 
 	var notify = Notification.show('', messages.fileManager.loadingList, 'middleTop', 'message', 24 * 3600 * 1000);
-	try {
-		list = await askSWandWait('GetArticleInfo', [false, OrderTypes[orderType]]);
-	}
-	catch (err) {
-		list = [];
-		logger.error('LoadFileList', err);
-		err = err.message || err.msg || err.data || err.toString();
-		Notification.show('', err, "middleTop", 'error', 5 * 1000);
-	}
-
+	var list = await getArticleList(false, orderType === 'lastVisit');
 	list.forEach(item => {
 		var li = newEle('li', 'file_item');
 		var link = newEle('a');
@@ -2046,19 +2043,13 @@ const loadFileList = async () => {
 		link.innerText = (item.title || 'Untitled').replace(/\s+/g, ' ');
 		li.appendChild(link);
 
-		if (!!item.hash) {
+		if (!!item.isCached) {
 			btn = newEle('img');
 			btn.src = '../images/memory.svg';
 			btn.title = messages.fileManager.imgHasHash;
 			li.appendChild(btn);
 		}
-		if (!!item.content) {
-			btn = newEle('img');
-			btn.src = '../images/layer-group.svg';
-			btn.title = messages.fileManager.imgHasVector;
-			li.appendChild(btn);
-		}
-		if (!!item.cached) { // for local files
+		if (!!item.isLocal) { // for local files
 			btn = newEle('img');
 			btn.src = '../images/database.svg';
 			btn.title = messages.fileManager.imgHasContent;
@@ -2161,26 +2152,15 @@ ActionCenter.changeOrderType = async (button) => {
 	updateOrderType();
 	loadFileList();
 };
-ActionCenter.refreshFileList = loadFileList;
-ActionCenter.removeUnsummarized = async () => {
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	var notify = Notification.show('', messages.fileManager.loadingList, 'middleTop', 'message', 24 * 3600 * 1000);
-	try {
-		await askSWandWait('RemovePageInfos', false);
-	}
-	catch (err) {
-		logger.error('RemoveUnsummarized', err);
-		err = err.message || err.msg || err.data || err.toString();
-		Notification.show('', err, "middleTop", 'error', 5 * 1000);
-	}
-	notify._hide();
+ActionCenter.refreshFileList = async () => {
+	await chrome.storage.local.remove(TagArticleList);
 	await loadFileList();
 };
 ActionCenter.removeUncached = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	var notify = Notification.show('', messages.fileManager.loadingList, 'middleTop', 'message', 24 * 3600 * 1000);
 	try {
-		await askSWandWait('RemovePageInfos', true);
+		await askSWandWait('RemovePageInfos');
 	}
 	catch (err) {
 		logger.error('RemoveUncached', err);
@@ -2293,7 +2273,12 @@ ActionCenter.sendMessage = async (button) => {
 		conversation = await prepareXPageConv(content);
 		updateUsage(usage, conversation.usage);
 		conversation = conversation.conversation;
-		conversation[conversation.length - 1].push(cid);
+		let option = {
+			request: content,
+			time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")
+		};
+		let prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationTemplate, option);
+		conversation.push(['human', prompt, cid]);
 		try {
 			result = await askAIandWait('directSendToAI', conversation);
 			updateUsage(usage, result.usage);
@@ -2305,10 +2290,12 @@ ActionCenter.sendMessage = async (button) => {
 			err = err.message || err.msg || err.data || err.toString();
 			Notification.show('', err, "middleTop", 'error', 5 * 1000);
 		}
-		if (!result) {
-			conversation.pop();
-		}
-		else {
+		conversation.pop();
+		if (!!result) {
+			let prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
+			conversation.push(['human', prompt, cid]);
+			result = parseReplyAsXMLToJSON(result);
+			result = result.reply?._origin || result.reply || result._origin;
 			conversation.push(['ai', result]);
 		}
 	}
@@ -2362,9 +2349,9 @@ ActionCenter.sendMessage = async (button) => {
 		if (!!result) {
 			let prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
 			conversation.push(['human', prompt]);
-			conversation.push(['ai', result]);
 			result = parseReplyAsXMLToJSON(result);
 			result = result.reply?._origin || result.reply || result._origin;
+			conversation.push(['ai', result]);
 		}
 	}
 	else {
@@ -2374,8 +2361,8 @@ ActionCenter.sendMessage = async (button) => {
 	}
 	cid = addChatItem(target, result, 'cyprite', null, true);
 	if (!!conversation) {
-		conversation[conversation.length - 1].push(cid);
 		if (target === 'crossPageConversation') {
+			conversation[conversation.length - 1].push(cid);
 			let item = {};
 			item[currentTabId + ':crosspageConv'] = conversation;
 			chrome.storage.session.set(item);
@@ -2603,10 +2590,7 @@ const init = async () => {
 		});
 	}
 	ot = (ot[0] || {}).FilesOrderType;
-	if (!!ot) {
-		let t = OrderTypes[ot];
-		if (!!t) orderType = ot;
-	}
+	orderType = ot || orderType;
 	await getConfig();
 	updateAIModelList();
 

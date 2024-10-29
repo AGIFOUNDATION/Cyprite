@@ -653,3 +653,7 @@ body {
 .panel_container ul.reference_area li.reference_item .reference_float .reference_float_title {
 	font-weight: bolder;
 }
+img.fontawesome {
+	height: 1em;
+	filter: invert(0.6) sepia(1.0) hue-rotate(60deg) brightness(1.5);
+}

@@ -244,7 +244,7 @@ const loadContentFromLocalFile = (filetype, isJSON=false) => new Promise(async (
 			if (!file) return res(null);
 			afterLoadFile(file);
 		});
-	
+
 		fileSelector.click();
 	}
 });

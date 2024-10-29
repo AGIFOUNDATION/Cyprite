@@ -118,11 +118,63 @@ const getPageContent = (container, keepLink=false) => {
 	return content;
 };
 const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
+	const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v6.6.0/svgs/";
+
+
+	// Parse FontAwesome
+	content = content.replace(/:fa([rsb])\.([\w\-]+):/gi, (m, type, icon) => {
+		type = (type || '').toLowerCase();
+		if (type === 'r') {
+			type = 'regular';
+		}
+		else if (type === 's') {
+			type = 'solid';
+		}
+		else {
+			type = 'brands';
+		}
+		const url = FONTAWESOMEROOT + type + '/' + icon + '.svg';
+		return '<img class="fontawesome" src="' + url + '">'
+	});
+	content = content.replace(/\bfa([rsb])::([\w\-]+)\b/gi, (m, type, icon) => {
+		type = (type || '').toLowerCase();
+		if (type === 'r') {
+			type = 'regular';
+		}
+		else if (type === 's') {
+			type = 'solid';
+		}
+		else {
+			type = 'brands';
+		}
+		const url = FONTAWESOMEROOT + type + '/' + icon + '.svg';
+		return '<img class="fontawesome" src="' + url + '">'
+	});
+	content = content.replace(/<i class=('|")fa([rsb]) fa-([\w\-]+)\1\s*(><\/i>|\/>)/gi, (m, _, type, icon) => {
+		type = (type || '').toLowerCase();
+		if (type === 'r') {
+			type = 'regular';
+		}
+		else if (type === 's') {
+			type = 'solid';
+		}
+		else {
+			type = 'brands';
+		}
+		const url = FONTAWESOMEROOT + type + '/' + icon + '.svg';
+		return '<img class="fontawesome" src="' + url + '">'
+	});
+	content = content.replace(/<i class=('|")fa-(solid|regular|brands) fa-([\w\-]+)\1\s*(><\/i>|\/>)/gi, (m, _, type, icon) => {
+		type = (type || '').toLowerCase();
+		const url = FONTAWESOMEROOT + type + '/' + icon + '.svg';
+		return '<img class="fontawesome" src="' + url + '">'
+	});
 
 	// Parse Markdown
-	var parsed = marked.parse(content, {breaks: true}) || defaults || '';
+	content = marked.parse(content, {breaks: true}) || defaults || '';
 
-	container.innerHTML = parsed;
+
+	container.innerHTML = content;
 
 	// Make hyperlink open page in new frame
 	[...container.querySelectorAll('a')].forEach(link => {
@@ -130,10 +182,11 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 	});
 
 
-	return parsed;
+	return content;
 };
 
 const showTokenUsage = (usage, isLeft=false) => {
+	if (!globalThis.myInfo) return;
 	if (!myInfo.showTokenUsage) return;
 	var html = '', count = 0;
 	for (let key in usage) {

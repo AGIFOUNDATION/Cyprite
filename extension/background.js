@@ -390,6 +390,22 @@ const savePageActivities = async (url, duration, title, closed) => {
 
 /* Infos */
 
+const convertPageInfoToRecord = (info, old) => {
+	old = old || {};
+	var item = old;
+	item.title = info.title || old.title;
+	item.url = info.url || old.url;
+	item.isLocal = !!info.isLocal;
+	item.isCached = !!info.url && (!!info.isLocal || (!!info.content && !!info.hash && !!info.embedding));
+	item.duration = info.totalDuration || old.totalDuration || 0;
+	if (!info.timestamp) {
+		item.lastVisit = Date.now();
+	}
+	else {
+		item.lastVisit = (new Date(info.timestamp.replace(/\s+[a-z]+$/i, ''))).getTime();
+	}
+	return item;
+};
 const getPageInfo = async url => {
 	if (url.match(/^chrome/i)) {
 		return {
@@ -417,41 +433,127 @@ const setPageInfo = async (url, info, immediately=false) => {
 	if (url.match(/^chrome/i)) return;
 
 	info.url = url;
-	url = parseURL(url);
-	if (!!DBs.tmrPageInfos) {
-		clearTimeout(DBs.tmrPageInfos);
-	}
-	if (immediately) {
-		delete DBs.tmrPageInfos;
-		if (!DBs.pageInfo) await initDB();
-		await DBs.pageInfo.set('pageInfo', url, info);
-		logger.log('DB[PageInfo]', 'Set Page Info: ' + url);
-	}
-	else {
-		DBs.tmrPageInfos = setTimeout(async () => {
-			delete DBs.tmrPageInfos;
-			if (!DBs.pageInfo) await initDB();
-			await DBs.pageInfo.set('pageInfo', url, info);
-			logger.log('DB[PageInfo]', 'Set Page Info: ' + url);
-		}, 200);
-	}
-};
-const delPageInfo = async (url, immediately=false) => {
 	var key = parseURL(url);
 	if (!!DBs.tmrPageInfos) {
 		clearTimeout(DBs.tmrPageInfos);
 	}
 	if (immediately) {
 		delete DBs.tmrPageInfos;
-		delete TabInfo[key];
 		if (!DBs.pageInfo) await initDB();
-		await DBs.pageInfo.del('pageInfo', key);
-		logger.log('DB[PageInfo]', 'Del Page Info: ' + key);
-		return;
+		let tasks = [];
+		tasks.push((async () => {
+			var list = await chrome.storage.local.get(TagArticleList);
+			list = (list || {})[TagArticleList] || [];
+			var notHas = true;
+			list.some(item => {
+				if (parseURL(item.url) !== key) return;
+				convertPageInfoToRecord(info, item);
+				notHas = false;
+				return true;
+			});
+			if (notHas) {
+				list.push(convertPageInfoToRecord(info));
+			}
+			var data = {};
+			data[TagArticleList] = list;
+			await chrome.storage.local.set(data);
+		}) ());
+		tasks.push(DBs.pageInfo.set('pageInfo', key, info));
+		await Promise.all(tasks);
+		logger.log('DB[PageInfo]', 'Set Page Info: ' + url);
 	}
-	DBs.tmrPageInfos = setTimeout(async () => {
-		delPageInfo(url, true);
-	}, 200);
+	else {
+		DBs.tmrPageInfos = setTimeout(async () => {
+			delete DBs.tmrPageInfos;
+			if (!DBs.pageInfo) await initDB();
+			await DBs.pageInfo.set('pageInfo', key, info);
+			logger.log('DB[PageInfo]', 'Set Page Info: ' + url);
+		}, 200);
+		let list = await chrome.storage.local.get(TagArticleList);
+		list = (list || {})[TagArticleList] || [];
+		let notHas = true;
+		list.some(item => {
+			if (parseURL(item.url) !== key) return;
+			convertPageInfoToRecord(info, item);
+			notHas = false;
+			return true;
+		});
+		if (notHas) {
+			list.push(convertPageInfoToRecord(info));
+		}
+		let data = {};
+		data[TagArticleList] = list;
+		await chrome.storage.local.set(data);
+	}
+};
+const delPageInfo = async (urlList, immediately=false) => {
+	if (isString(urlList)) urlList = [urlList];
+	else if (!isArray(urlList)) return;
+
+	var keyList = urlList.map(url => parseURL(url));
+
+	if (!!DBs.tmrPageInfos) {
+		clearTimeout(DBs.tmrPageInfos);
+	}
+
+	if (immediately) {
+		delete DBs.tmrPageInfos;
+		if (!DBs.pageInfo) await initDB();
+
+		let tasks = [];
+		tasks.push((async () => {
+			var list = await chrome.storage.local.get(TagArticleList);
+			list = (list || {})[TagArticleList] || [];
+			var has = false;
+			list = list.filter(item => {
+				if (!!item.url && !keyList.includes(parseURL(item.url))) return true;
+				has = true;
+				return false;
+			});
+			if (has) {
+				let data = {};
+				data[TagArticleList] = list;
+				await chrome.storage.local.set(data);
+			}
+		}) ());
+		keyList.forEach(key => {
+			tasks.push((async key => {
+				delete TabInfo[key];
+				await DBs.pageInfo.del('pageInfo', key);
+			}) (key));
+		});
+		await Promise.all(tasks);
+		logger.log('DB[PageInfo]', 'Del Page Info: ' + urlList.join(', '));
+	}
+	else {
+		DBs.tmrPageInfos = setTimeout(async () => {
+			delete DBs.tmrPageInfos;
+			if (!DBs.pageInfo) await initDB();
+
+			var tasks = [];
+			keyList.forEach(key => {
+				tasks.push((async key => {
+					delete TabInfo[key];
+					await DBs.pageInfo.del('pageInfo', key);
+				}) (key));
+			});
+			await Promise.all(tasks);
+			logger.log('DB[PageInfo]', 'Del Page Info: ' + urlList.join(', '));
+		}, 200);
+		let list = await chrome.storage.local.get(TagArticleList);
+		list = (list || {})[TagArticleList] || [];
+		let has = false;
+		list = list.filter(item => {
+			if (!!item.url && !keyList.includes(parseURL(item.url))) return true;
+			has = true;
+			return false;
+		});
+		if (has) {
+			let data = {};
+			data[TagArticleList] = list;
+			await chrome.storage.local.set(data);
+		}
+	}
 };
 const getTabInfo = async tid => {
 	var info = TabInfo[tid];
@@ -948,55 +1050,75 @@ EventHandler.ClearSummaryConversation = async (url) => {
 		return false;
 	}
 };
-EventHandler.GetArticleInfo = async (options) => {
+EventHandler.GetArticleList = async (options) => {
 	if (!DBs.pageInfo) await initDB();
+
 	var list = await DBs.pageInfo.all('pageInfo');
 	list = Object.keys(list).map(id => list[id]);
 
-	var filterCondition = null, filterNoCache = false, orderType;
-	if (isArray(options)) {
-		let opt = options[0];
-		orderType = options[1];
-		if (opt === false) {
-			filterNoCache = false;
-		}
-		else if (opt === true) {
-			filterNoCache = true;
-		}
-		else if (isArray(opt)) {
-			filterNoCache = true;
-			filterCondition = opt;
-		}
-		else {
-			filterNoCache = true;
-		}
-	}
-	else if (!options) {
-		filterNoCache = true;
+	// Cache
+	var storage = {};
+	storage[TagArticleList] = list.map(item => {
+		return convertPageInfoToRecord(item);
+	});
+	await chrome.storage.local.set(storage);
+
+	// Parse options
+	var onlyCached = true, isLastVisit = true;
+	if (!!options) {
+		onlyCached = isBoolean(options.onlyCached) ? options.onlyCached : onlyCached;
+		isLastVisit = isBoolean(options.isLastVisit) ? options.isLastVisit : isLastVisit;
 	}
 
-	if (filterNoCache) {
-		list = list.filter(item => !!item.content && !!item.hash);
+	list = storage[TagArticleList];
+	if (onlyCached) {
+		list = list.filter(item => item.isCached);
 	}
-	if (!!filterCondition) {
-		list = list.filter(item => filterCondition.includes(item.url));
-	}
-
-	if (orderType === 'LastVisit') {
-		list.forEach(item => {
-			var timestamp = item.timestamp;
-			if (!timestamp) {
-				item._time = Date.now();
-			}
-			else {
-				item._time = (new Date(timestamp.replace(/\s+[a-z]+$/i, ''))).getTime();
-			}
-		});
-		list.sort((pa, pb) => pb._time - pa._time);
+	if (isLastVisit) {
+		list.sort((pa, pb) => pb.lastVisit - pa.lastVisit);
 	}
 	else {
-		list.sort((pa, pb) => pb.totalDuration - pa.totalDuration);
+		list.sort((pa, pb) => pb.duration - pa.duration);
 	}
+
+	return list;
+};
+EventHandler.GetArticleInfo = async (options) => {
+	if (!options.articles || !options.articles.length) return [];
+
+	if (!DBs.pageInfo) await initDB();
+
+	var list = await Promise.all(options.articles.map(async url => {
+		var item = await DBs.pageInfo.get(url);
+		if (!item.title || !item.url || !item.content) return null; // Need change for local file.
+		if (!!item.timestamp) {
+			item.lastVisit = Date.now();
+		}
+		else {
+			item.lastVisit = (new Date(item.timestamp.replace(/\s+[a-z]+$/i, ''))).getTime();
+		}
+		return item;
+	}));
+	list = list.filter(item => !!item);
+
+	var isLastVisit = true;
+	if (!!options) {
+		isLastVisit = isBoolean(options.isLastVisit) ? options.isLastVisit : isLastVisit;
+	}
+	if (isLastVisit) {
+		list.sort((pa, pb) => pb.lastVisit - pa.lastVisit);
+	}
+	else {
+		list.sort((pa, pb) => pb.duration - pa.duration);
+	}
+
+	list = list.map(item => {
+		return {
+			title: item.title,
+			url: item.url,
+			content: item.content,
+		};
+	});
 	return list;
 };
 AIHandler.getSearchKeyWord = async (request) => {
@@ -1227,24 +1349,27 @@ EventHandler.ReadWebPage = async (url) => {
 EventHandler.RemovePageInfo = async (url) => {
 	await delPageInfo(url, true);
 };
-EventHandler.RemovePageInfos = async (isUncached) => {
+EventHandler.RemovePageInfos = async () => {
 	if (!DBs.pageInfo) await initDB();
-	var list = await DBs.pageInfo.all('pageInfo');
-	console.log(list);
+	var [list, cache] = await Promise.all([
+		DBs.pageInfo.all('pageInfo'),
+		chrome.storage.local.get(TagArticleList),
+	]);
+	cache = (cache || {})[TagArticleList] || [];
+	console.log(list, cache);
 	var targets = [];
 	for (let key in list) {
 		let item = list[key];
-		if (isUncached) {
-			if (!item.content) targets.push(key);
-		}
-		else {
-			if (!item.hash || !item.embedding) targets.push(key);
-		}
+		let isCached = !!item.url && (!!item.isLocal || (!!item.content && !!item.hash && !!item.embedding));
+		if (isCached) continue;
+		if (!targets.includes(item.url)) targets.push(item.url);
 	}
+	cache.forEach(item => {
+		if (item.isCached) return;
+		if (!targets.includes(item.url)) targets.push(item.url);
+	});
 	console.log(targets);
-	await Promise.all(targets.map(async key => {
-		await delPageInfo(key, true);
-	}));
+	await delPageInfo(targets, true);
 };
 EventHandler.ChangePageTitle = async (data) => {
 	var info = await getPageInfo(data.url);
@@ -1254,7 +1379,6 @@ EventHandler.ChangePageTitle = async (data) => {
 
 /* AI Search Record */
 
-const TagSearchRecord = 'CACHE_SEARCH_RECORDS';
 EventHandler.SaveAISearchRecord = async (data) => {
 	if (!DBs.searchRecord) await initDB();
 
@@ -1301,21 +1425,9 @@ EventHandler.SaveAISearchRecord = async (data) => {
 EventHandler.LoadAISearchRecordList = async () => {
 	if (!DBs.searchRecord) await initDB();
 
-	// Load from Cache first
-	var list;
-	try {
-		list = await chrome.storage.session.get(TagSearchRecord);
-	}
-	catch (err) {
-		logger.error('LoadAISearchRecordList', err);
-		list = null;
-	}
-	list = (list || {})[TagSearchRecord];
-	if (!!list) return list;
-
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	const all = await DBs.searchRecord.all('searchRecord');
-	list = [];
+	var list = [];
 	for (let quest in all) {
 		let info = all[quest];
 		let item = {};
@@ -1409,7 +1521,7 @@ AIHandler.sayHello = async () => {
 	var lastHello = await chrome.storage.session.get('lastHello');
 	lastHello = lastHello.lastHello;
 	if (!!lastHello && lastHello === currentDate) return;
-	chrome.storage.session.set({lastHello: currentDate});
+	await chrome.storage.session.set({lastHello: currentDate});
 
 	var reply = await callAIandWait('sayHello');
 	reply = reply.reply; // test
@@ -2350,6 +2462,7 @@ const parseParams = param => {
 
 initDB();
 // initInjectScript();
+chrome.storage.local.remove('cached_article_list'); // clear old version cache
 
 /* ------------ */
 

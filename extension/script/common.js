@@ -1,5 +1,8 @@
 const HTMLTags = ('a|b|i|strong|em|u|del|img|div|span|p|input|textarea|button|br|hr|h1|h2|h3|h4|h5|h6|ul|ol|li|blockquote').split('|').map(tag => tag.toLowerCase());
 
+globalThis.TagSearchRecord = 'CACHE_SEARCH_RECORDS';
+globalThis.TagArticleList = 'CACHE_ARTICLE_LIST';
+
 globalThis.ForceServer = false;
 globalThis.TrialVersion = true;
 

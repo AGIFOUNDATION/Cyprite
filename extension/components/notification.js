@@ -106,7 +106,13 @@ const newNotification = (title, message, duration=3000, type, position) => {
 	}
 
 	var closer = newEle('div', 'notification_close');
-	closer.innerHTML = '<img src="' + chrome.runtime.getURL('/images/xmark.svg') + '">';
+	try {
+		closer.innerHTML = '<img src="' + chrome.runtime.getURL('/images/xmark.svg') + '">';
+	}
+	catch (err) {
+		logger.error('Notification', err);
+		closer.innerHTML = "X";
+	}
 	closer.addEventListener('click', notify._hide);
 	inner.appendChild(closer);
 
