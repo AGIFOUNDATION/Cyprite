@@ -31,7 +31,7 @@
 			<div class="panel_tab" titlePath="newTab.articleManager" showGroup="articleManager"></div>
 			<div class="panel_tab" titlePath="newTab.intelligentSearch" showGroup="intelligentSearch"></div>
 			<div class="panel_tab" titlePath="newTab.crossPageConversation" showGroup="crossPageConversation"></div>
-			<div class="panel_tab invalid" titlePath="newTab.freelyConversation" showGroup="freelyConversation"></div>
+			<div class="panel_tab" titlePath="newTab.freelyConversation" showGroup="freelyConversation" needFullVersion="true" versionAction="invalid"></div>
 			<div class="panel_tab" titlePath="newTab.instantTranslation" showGroup="instantTranslation"></div>
 
 			<div class="panel_button" hintPath="newTab.cleanConversation" group="crossPageConversation|freelyConversation|instantTranslation|intelligentSearch" action="clearConversation">
@@ -59,6 +59,10 @@
 				<span class="small" titlePath="fileManager.hintOrderType"></span>
 				<span class="small order" orderType="totalDuration" titlePath="fileManager.hintOrderByMost" action="changeOrderType"></span>
 				<span class="small order" orderType="lastVisit" titlePath="fileManager.hintOrderByLatest" action="changeOrderType"></span>
+			</div>
+			<div class="vice">
+				<span titlePath="fileManager.hintSearchArticle"></span>
+				<input name="search_keywords" type="text" class="keywords_input" placeholderName="fileManager.hintStartSearch" action="searchArticleInVault">
 			</div>
 			<div class="manager_panel">
 				<img src="../images/eraser.svg" action="removeUncached" titlePath="fileManager.btnRemoveUncached">

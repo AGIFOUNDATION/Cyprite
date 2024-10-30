@@ -128,14 +128,26 @@ const registerAction = () => {
 		var action = item.getAttribute('action');
 		var handler = ActionCenter[action];
 		if (!handler) return;
-		item.addEventListener('click', (evt) => {
-			var dataGroup = item.getAttribute('dataFetch');
-			var data;
-			if (!!dataGroup) {
-				data = getDataGroup(dataGroup);
-			}
-			handler(item, data, evt);
-		});
+		if (['INPUT', 'TEXTAREA', 'SELECT', 'OPTION'].includes(item.tagName)) {
+			item.addEventListener('keyup', (evt) => {
+				var dataGroup = item.getAttribute('dataFetch');
+				var data;
+				if (!!dataGroup) {
+					data = getDataGroup(dataGroup);
+				}
+				handler(item, data, evt);
+			});
+		}
+		else {
+			item.addEventListener('click', (evt) => {
+				var dataGroup = item.getAttribute('dataFetch');
+				var data;
+				if (!!dataGroup) {
+					data = getDataGroup(dataGroup);
+				}
+				handler(item, data, evt);
+			});
+		}
 	});
 };
 const selectTranslationLanguages = (lang, defLang) => {

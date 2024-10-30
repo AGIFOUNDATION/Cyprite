@@ -520,33 +520,6 @@ globalThis.afterChangeTab = async () => {
 
 /* XPageConv */
 
-const getArticleList = async (onlyCached, isLastVisit) => {
-	var cachedArticleList = await chrome.storage.local.get(TagArticleList);
-	cachedArticleList = (cachedArticleList || {})[TagArticleList];
-	if (!!cachedArticleList) {
-		if (onlyCached) {
-			cachedArticleList = cachedArticleList.filter(item => item.isCached);
-		}
-		if (isLastVisit) {
-			cachedArticleList.sort((pa, pb) => pb.lastVisit - pa.lastVisit);
-		}
-		else {
-			cachedArticleList.sort((pa, pb) => pb.duration - pa.duration);
-		}
-	}
-	else {
-		try {
-			cachedArticleList = await askSWandWait('GetArticleList', { onlyCached, isLastVisit });
-		}
-		catch (err) {
-			cachedArticleList = [];
-			logger.error('GetArticleList', err);
-			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
-		}
-	}
-	return cachedArticleList;
-};
 const switchToXPageConv = async () => {
 	var container = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"]');
 	var content = container.querySelector('.content_container');
@@ -2028,13 +2001,243 @@ const updateOrderType = () => {
 	types = document.querySelector('.panel_operation_area .caption .small.order[orderType="' + orderType + '"]');
 	types.classList.add('selected');
 };
-const loadFileList = async () => {
+const parseConditionSentence = (condition, subs=[]) => {
+	// Parsing Parenthesis Pairs
+	var pairs = [], lev = 0;
+	condition.replace(/[\(\)（）]/g, (m, l) => {
+		if (m === '(' || m === '（') {
+			if (lev === 0) {
+				pairs.push([l]);
+			}
+			lev ++;
+		}
+		else {
+			lev --;
+			if (lev <= 0) {
+				pairs[pairs.length - 1][1] = l;
+			}
+		}
+	});
+	if (pairs.length > 0) {
+		if (!pairs[pairs.length - 1][1]) pairs[pairs.length - 1][1] = condition.length;
+		pairs.reverse().forEach(pair => {
+			var pre = condition.substr(0, pair[0]);
+			var post = condition.substring(pair[1] + 1);
+			var inner = condition.substring(pair[0], pair[1] + 1);
+			inner = inner.replace(/(\s*[\(（]\s*|\s*[\)）]\s*)/g, '');
+			var idx = subs.length;
+			condition = pre + '{[:' + idx + ':]}' + post;
+			var sub = [true];
+			subs.push(sub);
+			inner = parseConditionSentence(inner, subs);
+			sub.push(inner);
+		});
+	}
+
+	// Parse symbols and conditional fields
+	lev = 0;
+	pairs = [];
+	condition.replace(/(\+|\*|\||\&|\s+or\s+|\s+and\s+)/gi, (m, op, pos) => {
+		var pre = condition.substring(lev, pos);
+		pre = pre.trim();
+		if (!!pre) pairs.push([false, pre]);
+		lev = pos + op.length;
+		op = op.trim().toLowerCase();
+		if (op === '+' || op === 'or' || op === '|') {
+			pairs.push([true, 'OR']);
+		}
+		else {
+			pairs.push([true, 'AND']);
+		}
+	});
+	if (lev < condition.length) {
+		let post = condition.substring(lev);
+		post = post.trim();
+		if (!!post) pairs.push([false, post]);
+	}
+	while (true) {
+		if (pairs.length === 0) break;
+		if (!pairs[0][0]) break;
+		pairs.shift();
+	}
+	while (true) {
+		if (pairs.length === 0) break;
+		if (!pairs[pairs.length - 1][0]) break;
+		pairs.pop();
+	}
+	for (let i = pairs.length - 1; i > 0; i --) {
+		if (!pairs[i][0]) continue;
+		if (!pairs[i - 1][0]) continue;
+		pairs.splice(i, 1);
+	}
+	if (pairs.length === 0) return [];
+
+	// Parse Execution Process
+	var execution = [];
+	execution.push(['SET', pairs[0][1]]);
+	for (let i = 1; i < pairs.length; i += 2) {
+		let op = pairs[i][1], value = pairs[i + 1][1];
+		execution.push([op, value]);
+	}
+	execution = execution.map(item => {
+		var op = item[0];
+		var value = item[1];
+		var neg = value.match(/^(\s*[\!\-])+/);
+		if (!neg) {
+			neg = false;
+		}
+		else {
+			neg = neg[0];
+			value = value.replace(neg, '').trim();
+			neg = neg.match(/[\!\-]/g).length;
+			neg = neg >> 1 << 1 !== neg;
+		}
+		var match = value.match(/^\{\[:(\d+):\]\}$/);
+		if (!!match) {
+			let idx = match[1] * 1;
+			let v = subs[idx];
+			if (!v) {
+				return {
+					op,
+					sub: false,
+					neg,
+					range: 'A',
+					value,
+				};
+			}
+			else {
+				return {
+					op,
+					sub: true,
+					neg,
+					range: 'A',
+					value: v[1],
+				};
+			}
+		}
+		else {
+			let range = value.split(':');
+			if (range > 1) {
+				let r = range.shift();
+				value = range.join(':');
+				r = r.toLowerCase();
+				if (r === 't' || r === 'title') {
+					range = "T";
+				}
+				else if (r === 'k' || r === 'keyword' || r === 'keywords') {
+					range = "K";
+				}
+				else if (r === 'c' || r === 'category' || r === 'categories') {
+					range = "C";
+				}
+				else {
+					range = 'A';
+				}
+			}
+			else {
+				range = 'A';
+			}
+			return {
+				op,
+				sub: false,
+				neg,
+				range,
+				value,
+			};
+		}
+	});
+
+	return execution;
+};
+const applyConditionFilter = (condition, articleInfo) => {
+	var available = true;
+
+	condition.forEach(item => {
+		if (item.op === 'OR' && available) return;
+		if (item.op === 'AND' && !available) return;
+
+		var value;
+		if (item.sub) {
+			value = applyConditionFilter(item.value, articleInfo);
+		}
+		else {
+			if (item.range === 'K') {
+				if (!articleInfo.keywords) {
+					value = false;
+				}
+				else {
+					value = articleInfo.keywords.includes(item.value);
+				}
+			}
+			else if (item.range === 'C') {
+				if (!articleInfo.category) {
+					value = false;
+				}
+				else {
+					value = articleInfo.category.includes(item.value);
+				}
+			}
+			else if (item.range === 'T') {
+				if (!articleInfo.title) {
+					value = false;
+				}
+				else {
+					value = articleInfo.title.indexOf(item.value) >= 0;
+				}
+			}
+			else {
+				value = (articleInfo.keywords || []).includes(item.value) || (articleInfo.category || []).includes(item.value) || ((articleInfo.title || '').indexOf(item.value) >= 0);
+			}
+		}
+		if (item.neg) value = !value;
+
+		available = value;
+	});
+
+	return available;
+};
+const getArticleList = async (onlyCached, isLastVisit, filterCondition) => {
+	var cachedArticleList = await chrome.storage.local.get(TagArticleList);
+	cachedArticleList = (cachedArticleList || {})[TagArticleList];
+	if (!!cachedArticleList) {
+		if (onlyCached) {
+			cachedArticleList = cachedArticleList.filter(item => item.isCached);
+		}
+		if (isLastVisit) {
+			cachedArticleList.sort((pa, pb) => pb.lastVisit - pa.lastVisit);
+		}
+		else {
+			cachedArticleList.sort((pa, pb) => pb.duration - pa.duration);
+		}
+	}
+	else {
+		try {
+			cachedArticleList = await askSWandWait('GetArticleList', { onlyCached, isLastVisit });
+		}
+		catch (err) {
+			cachedArticleList = [];
+			logger.error('GetArticleList', err);
+			err = err.message || err.msg || err.data || err.toString();
+			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+		}
+	}
+
+	if (!!filterCondition) {
+		filterCondition = parseConditionSentence(filterCondition);
+		if (!!filterCondition && !!filterCondition.length) {
+			cachedArticleList = cachedArticleList.filter(item => applyConditionFilter(filterCondition, item));
+		}
+	}
+
+	return cachedArticleList;
+};
+const loadFileList = async (filterCondition) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	var container = document.body.querySelector('.articleManagerFileList');
 	container.innerHTML = '';
 
 	var notify = Notification.show('', messages.fileManager.loadingList, 'middleTop', 'message', 24 * 3600 * 1000);
-	var list = await getArticleList(false, orderType === 'lastVisit');
+	var list = await getArticleList(false, orderType === 'lastVisit', filterCondition);
 	list.forEach(item => {
 		var li = newEle('li', 'file_item');
 		var link = newEle('a');
@@ -2169,6 +2372,12 @@ ActionCenter.removeUncached = async () => {
 	}
 	notify._hide();
 	await loadFileList();
+};
+ActionCenter.searchArticleInVault = async (ele, data, evt) => {
+	if (evt.key !== 'Enter') return;
+
+	var content = (ele.value || '').trim();
+	loadFileList(content);
 };
 
 /* Event Center */
@@ -2600,6 +2809,11 @@ const init = async () => {
 			let action = ele.getAttribute('versionAction');
 			if (action === 'disable') {
 				ele.setAttribute('disabled', 'true');
+				ele.removeAttribute('versionAction');
+				ele.removeAttribute('needFullVersion');
+			}
+			else if (action === 'invalid') {
+				ele.classList.add('invalid');
 				ele.removeAttribute('versionAction');
 				ele.removeAttribute('needFullVersion');
 			}

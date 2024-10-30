@@ -404,6 +404,12 @@ const convertPageInfoToRecord = (info, old) => {
 	else {
 		item.lastVisit = (new Date(info.timestamp.replace(/\s+[a-z]+$/i, ''))).getTime();
 	}
+	if (!!info.keywords) {
+		item.keywords = info.keywords || old.keywords;
+	}
+	if (!!info.category) {
+		item.category = info.category || old.category;
+	}
 	return item;
 };
 const getPageInfo = async url => {
