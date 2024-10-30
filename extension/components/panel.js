@@ -493,7 +493,7 @@ UIAction.onSendToCyprite = async () => {
 	}
 	else if (currentMode === 'translate') {
 		let lang = UIList.TranslationLanguage.value || translationInfo.lang || myLang;
-		lang = chooseTargetLanguage(lang);
+		// lang = chooseTargetLanguage(lang);
 		try {
 			result = await askAIandWait('translateSentence', { lang, content: question });
 			if (!!result && !!result.usage) {
@@ -579,8 +579,9 @@ UIAction.copyReplyContent = async () => {
 const showPageSummary = async (summary, quick=false) => {
 	currentMode = 'summary';
 
-	var conversation = await restoreConversation();
-	var messages = I18NMessages[myLang] || I18NMessages.en;
+	const messages = I18NMessages[myLang] || I18NMessages.en;
+	const conversation = await restoreConversation();
+	console.log(conversation);
 
 	if (!UIList.Container) await generateAIPanel(messages);
 
@@ -660,14 +661,17 @@ const restoreHistory = conversation => {
 };
 const restoreConversation = async () => {
 	if (!pageInfo) return;
-	if (!pageInfo.title) return;
+	var conversation;
 	try {
-		await askSWandWait('GetConversation', location.href);
+		conversation = await askSWandWait('GetConversation', location.href);
 	}
 	catch (err) {
+		conversation = null;
+		logger.error('RestoreConversation', err);
+		err = err.message || err.msg || err.data || err.toString();
 		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
 	}
-	return;
+	return conversation;
 };
 const normalVector = vectors => {
 	var weight = 0, vector = [], len = 0;

@@ -522,7 +522,7 @@ globalThis.afterChangeTab = async () => {
 
 const switchToXPageConv = async () => {
 	var container = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"]');
-	var content = container.querySelector('.content_container');
+	const content = container.querySelector('.content_container');
 	var needShowArticleList = true;
 	if (content.querySelectorAll('.chat_item').length <= 1) {
 		let conversation = await chrome.storage.session.get(currentTabId + ':crosspageConv');
@@ -540,7 +540,7 @@ const switchToXPageConv = async () => {
 	}
 
 	var list = await getArticleList(true, orderType === 'lastVisit');
-	var container = document.body.querySelector('.panel_article_list');
+	container = document.body.querySelector('.panel_article_list');
 	if (!!list && !!list.length) {
 		container.innerHTML = '';
 		list.forEach(item => {
