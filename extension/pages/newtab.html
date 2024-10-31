@@ -150,7 +150,13 @@
 			</div>
 		</section>
 		<div class="panel_inner_mask" action="hideFloatWindow"></div>
-		<div class="panel_article_list scrollable"></div>
+		<div class="panel_article_list">
+			<div class="search_bar">
+				<span titlePath="fileManager.hintSearchArticle"></span>
+				<input name="search_keywords" type="text" class="keywords_input" placeholderName="fileManager.hintStartSearch" action="searchArticleInConversation">
+			</div>
+			<div class="panel_article_list_container scrollable"></div>
+		</div>
 	</div>
 </div>
 </body>

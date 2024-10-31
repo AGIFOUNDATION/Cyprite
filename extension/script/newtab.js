@@ -521,8 +521,7 @@ globalThis.afterChangeTab = async () => {
 /* XPageConv */
 
 const switchToXPageConv = async () => {
-	var container = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"]');
-	const content = container.querySelector('.content_container');
+	const content = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"] .content_container');
 	var needShowArticleList = true;
 	if (content.querySelectorAll('.chat_item').length <= 1) {
 		let conversation = await chrome.storage.session.get(currentTabId + ':crosspageConv');
@@ -539,8 +538,13 @@ const switchToXPageConv = async () => {
 		needShowArticleList = false;
 	}
 
-	var list = await getArticleList(true, orderType === 'lastVisit');
-	container = document.body.querySelector('.panel_article_list');
+	refreshFileListInConversation();
+
+	if (needShowArticleList) ActionCenter.showArticleChooser();
+};
+const refreshFileListInConversation = async (condition) => {
+	const container = document.body.querySelector('.panel_article_list .panel_article_list_container');
+	var list = await getArticleList(true, orderType === 'lastVisit', condition);
 	if (!!list && !!list.length) {
 		container.innerHTML = '';
 		list.forEach(item => {
@@ -559,8 +563,12 @@ const switchToXPageConv = async () => {
 		let messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 		container.innerHTML = messages.crossPageConv.noArticle;
 	}
+};
+ActionCenter.searchArticleInConversation = async (ele, data, evt) => {
+	if (evt.key !== 'Enter') return;
 
-	if (needShowArticleList) ActionCenter.showArticleChooser();
+	var content = (ele.value || '').trim();
+	refreshFileListInConversation(content);
 };
 const prepareXPageConv = async (request) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
