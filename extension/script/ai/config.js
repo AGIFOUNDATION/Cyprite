@@ -244,10 +244,27 @@ globalThis.PickLongContextModel = () => {
 /* Functional Model Allocation */
 
 const FunctionalModel = {
+	analyzeKeywordCategory: [
+		'claude-3-haiku-20240307',
+		'grok-beta',
+		'glm-4-flash',
+		'moonshot-v1-auto',
+		'gemini-1.5-flash-exp-0827',
+	],
+	findArticlesFromList: [
+		"gpt-4o-mini",
+		"gemini-1.5-flash-002",
+		"grok-beta",
+		"abab6.5s-chat",
+	],
+
+
+
 	excludeIrrelevants: [
 		"gemini-1.5-flash-exp-0827",
 		"gemini-1.5-flash-002",
 		"o1-mini",
+		"gpt-4o-mini",
 		"deepseek-chat",
 		"moonshot-v1-auto",
 	],
@@ -259,6 +276,9 @@ const FunctionalModel = {
 		"glm-4-plus",
 		"claude-3-5-sonnet-latest",
 	],
+
+
+
 	analyzeSearchKeywords: [
 		'gemini-1.5-flash-exp-0827',
 		"gemini-1.5-flash-002",

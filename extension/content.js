@@ -337,9 +337,12 @@ const getPageDescription = (isArticle, container) => {
 	return desc;
 };
 const getPageInfo = async () => {
-	var info = {};
-	var container = findContainer();
+	const messages = I18NMessages[myLang] || I18NMessages[DefaultLang];
+
+	const info = {};
+	const container = findContainer();
 	logger.strong('DOC', container);
+
 	info.isArticle = checkIsArticle(container);
 	if (info.isArticle) {
 		info.title = getPageTitle(container);
@@ -349,14 +352,28 @@ const getPageInfo = async () => {
 		info.title = document.title.trim();
 		info.content = getPageContent(document.body, false);
 	}
+
 	try {
-		let hash = await askSWandWait("CalculateHash", info.content);
+		let [hash, article] = await Promise.all([
+			askSWandWait("CalculateHash", info.content),
+			askSWandWait('GetArticleInfo', {
+				articles: [location.href],
+				isLastVisit: true,
+			}),
+		]);
+		article = (article || [])[0] || {}
 		info.hash = hash;
+		info.title = article.title || info.title;
+		if (info.hash === article.hash && !!article.description) {
+			info.description = article.description;
+		}
 	}
 	catch (err) {
+		logger.error('GetPageInfo', err);
+		err = err.message || err.msg || err.data || err.toString();
 		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
 	}
-	info.description = getPageDescription(info.isArticle, container);
+	if (!info.description) info.description = getPageDescription(info.isArticle, container);
 	logger.em('DOC', info);
 
 	return info;
@@ -698,31 +715,6 @@ EventHandler.onContextMenuAction = async (data) => {
 	else if (data.action === 'translateSelection') {
 		await translateSelection(data.text);
 	}
-};
-EventHandler.foundRelativeArticles = (data) => {
-	if (!data || !data.length) return;
-
-	var hashes = [], usage = data.usage;
-	relativeArticles = [...data.relatives].filter(item => {
-		if (hashes.includes(item.hash)) return false;
-		hashes.push(item.hash);
-		return true;
-	});
-
-	var list = UIList.Panel.querySelector('.related_articles_list');
-	if (!list) return;
-	list.innerHTML = '';
-	relativeArticles.forEach(item => {
-		var frame = newEle('li', 'cyprite', 'related_articles_item');
-		var link = newEle('a', 'cyprite', 'related_articles_link');
-		link.innerText = item.title;
-		link.href = item.url;
-		link.target = '_blank';
-		frame.appendChild(link);
-		list.appendChild(frame);
-	});
-
-	showTokenUsage(usage);
 };
 EventHandler.requestHeartBeating = () => {
 	logger.log('AI', 'HeartBeating...');

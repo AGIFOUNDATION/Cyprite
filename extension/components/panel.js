@@ -233,19 +233,8 @@ UIAction.onShowDialogInputter = async () => {
 	await wait(300);
 	UIList.DialogInputter.focus();
 };
-UIAction.onQuickSend = async (evt) => {
-	if (evt.key !== 'Enter' || !evt.ctrlKey) return;
-	var question = UIList.DialogInputter.value;
-	if (!question) return;
-	UIList.DialogInputter.value = '';
-
-	runningAI = true;
-
-	var messages = I18NMessages[myLang] || I18NMessages.en;
-	UIList.QuickAccess.classList.remove('showDialogInputter');
-	var notification = Notification.show(messages.cypriteName, messages.thinkingHeartBeating, 'middleBottom', 'mention', 24 * 3600 * 1000);
-
-	// Get Embedding Vector for Request
+const askCypriteOnPageContentAndConversation = async (question, messages) => {
+		// Get Embedding Vector for Request
 	var vector;
 	if (MatchRelevantArticlesBasedOnConversation) {
 		try {
@@ -271,46 +260,15 @@ UIAction.onQuickSend = async (evt) => {
 		}
 		if (!!conversationVector) {
 			conversationVector.push(...vector);
-			if (conversationVector.length > ChatVectorLimit) conversationVector = conversationVector.splice(conversationVector.length - ChatVectorLimit, ChatVectorLimit);
-			try {
-				related = await askSWandWait('FindSimilarArticle', {url: location.href, vector: conversationVector});
+			if (conversationVector.length > ChatVectorLimit) {
+				conversationVector = conversationVector.splice(conversationVector.length - ChatVectorLimit, ChatVectorLimit);
 			}
-			catch (err) {
-				related = [];
-				Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
-			}
-			findRelativeArticles();
-			relativeArticles.forEach(item => {
-				var article;
-				related.some(art => {
-					if (!!art.hash && !!item.hash) {
-						if (art.hash === item.hash) {
-							article = art;
-							return true;
-						}
-					}
-					else if (art.url === item.url) {
-						article = art;
-						return true;
-					}
-				});
-				if (!!article) {
-					if (article.similar < item.similar) {
-						article.similar = item.similar
-					}
-					article.similar *= ArticleSimilarRate;
-				}
-				else {
-					related.push(item);
-				}
-			});
-			related.sort((a, b) => b.similar - a.similar);
+			related = await findRelativeArticles(messages);
 		}
 	}
 	else {
 		related = [...relativeArticles];
 	}
-	related = filterSimilarArticle(related, 10);
 
 	// Call AI for reply
 	var {title, content} = pageInfo;
@@ -326,7 +284,23 @@ UIAction.onQuickSend = async (evt) => {
 	catch (err) {
 		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
 	}
+
 	if (!result) result = messages.conversation.AIFailed;
+	return result;
+};
+UIAction.onQuickSend = async (evt) => {
+	if (evt.key !== 'Enter' || !evt.ctrlKey) return;
+	const question = UIList.DialogInputter.value;
+	if (!question) return;
+	UIList.DialogInputter.value = '';
+
+	runningAI = true;
+
+	const messages = I18NMessages[myLang] || I18NMessages.en;
+	UIList.QuickAccess.classList.remove('showDialogInputter');
+	var notification = Notification.show(messages.cypriteName, messages.thinkingHeartBeating, 'middleBottom', 'mention', 24 * 3600 * 1000);
+
+	var result = await askCypriteOnPageContentAndConversation(question, messages);
 	result = parseMarkdownWithOutwardHyperlinks(UIList.QuickReplyContent, result, messages.conversation.AIFailed);
 	UIList.QuickAccess.classList.add('showQuickReply');
 
@@ -399,8 +373,8 @@ UIAction.onAfterInput = evt => {
 UIAction.onSendToCyprite = async () => {
 	runningAI = true;
 
-	var messages = I18NMessages[myLang] || I18NMessages.en;
-	var question = getPageContent(UIList.Asker, true);
+	const messages = I18NMessages[myLang] || I18NMessages.en;
+	const question = getPageContent(UIList.Asker, true);
 	if (!question) return;
 	addChatItem(question, 'human');
 	UIList.Asker.innerText = messages.conversation.waitForAI;
@@ -410,86 +384,7 @@ UIAction.onSendToCyprite = async () => {
 	var result, usage;
 
 	if (currentMode === 'summary') {
-		// Get Embedding Vector for Request
-		let vector;
-		if (MatchRelevantArticlesBasedOnConversation) {
-			try {
-				vector = await askAIandWait('embeddingContent', {title: "Request", article: question});
-			}
-			catch (err) {
-				vector = null;
-				Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
-			}
-		}
-
-		// Match relevant articles
-		let related = null;
-		if (!!vector) {
-			if (!conversationVector && !!pageVector) {
-				conversationVector = [];
-				pageVector.forEach(item => {
-					conversationVector.push({
-						weight: item.weight,
-						vector: [...item.vector],
-					});
-				});
-			}
-			if (!!conversationVector) {
-				conversationVector.push(...vector);
-				if (conversationVector.length > ChatVectorLimit) conversationVector = conversationVector.splice(conversationVector.length - ChatVectorLimit, ChatVectorLimit);
-				try {
-					related = await askSWandWait('FindSimilarArticle', {url: location.href, vector: conversationVector});
-				}
-				catch (err) {
-					related = [];
-					Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
-				}
-				findRelativeArticles();
-				relativeArticles.forEach(item => {
-					var article;
-					related.some(art => {
-						if (!!art.hash && !!item.hash) {
-							if (art.hash === item.hash) {
-								article = art;
-								return true;
-							}
-						}
-						else if (art.url === item.url) {
-							article = art;
-							return true;
-						}
-					});
-					if (!!article) {
-						if (article.similar < item.similar) {
-							article.similar = item.similar
-						}
-						article.similar *= ArticleSimilarRate;
-					}
-					else {
-						related.push(item);
-					}
-				});
-				related.sort((a, b) => b.similar - a.similar);
-			}
-		}
-		else {
-			related = [...relativeArticles];
-		}
-		related = filterSimilarArticle(related, 10);
-
-		// Call AI for reply
-		let {title, content} = pageInfo;
-		if (!content) content = getPageContent(document.body, true);
-		try {
-			result = await askAIandWait('askArticle', { url: location.href, title, content, question, related });
-			if (!!result) {
-				usage = result.usage;
-				result = result.reply || '';
-			}
-		}
-		catch (err) {
-			Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
-		}
+		result = await askCypriteOnPageContentAndConversation(question, messages);
 	}
 	else if (currentMode === 'translate') {
 		let lang = UIList.TranslationLanguage.value || translationInfo.lang || myLang;
@@ -502,11 +397,13 @@ UIAction.onSendToCyprite = async () => {
 			result = result.translation || '';
 		}
 		catch (err) {
+			logger.error('OnSendToCyprite[Translate]', err);
+			err = err.message || err.msg || err.data || err.toString();
 			Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
 		}
+		if (!result) result = messages.conversation.AIFailed;
 	}
 
-	if (!result) result = messages.conversation.AIFailed;
 	addChatItem(result, 'cyprite');
 
 	UIList.Asker.innerText = '';
@@ -575,6 +472,24 @@ UIAction.copyReplyContent = async () => {
 	var messages = I18NMessages[myLang] || I18NMessages.en;
 	Notification.show(messages.cypriteName, messages.mentions.contentCopied, 'middleTop', 'success', 2 * 1000);
 };
+UIAction.onEditContentTitle = async (evt) => {
+	if (evt.key !== 'Enter') return;
+	evt.preventDefault();
+
+	const messages = I18NMessages[myLang] || I18NMessages.en;
+	const editor = evt.target;
+	const content = editor.innerText;
+	pageInfo.title = content;
+	try {
+		await askSWandWait('ChangePageTitle', {url: location.href, title: content});
+		Notification.show('', messages.fileManager.msgModifyingFileTitle, 'middleTop', 'success', 2 * 1000);
+	}
+	catch (err) {
+		logger.error('EditContentTitle', err);
+		err = err.message || err.msg || err.data || err.toString();
+		Notification.show(messages.cypriteName, err, 'middleTop', 'error', 5 * 1000);
+	}
+};
 
 const showPageSummary = async (summary, quick=false) => {
 	currentMode = 'summary';
@@ -584,6 +499,7 @@ const showPageSummary = async (summary, quick=false) => {
 	console.log(conversation);
 
 	if (!UIList.Container) await generateAIPanel(messages);
+	document.body.querySelector('.panel_title_editor').innerText = (pageInfo.title || 'Untitled').replace(/[\n\r]+/g, ' ');
 
 	generateModelList();
 	addSummaryAndRelated(messages, UIList.Container.querySelector('.content_container'), summary);
@@ -598,7 +514,7 @@ const showPageSummary = async (summary, quick=false) => {
 	else {
 		document.body.classList.add('showCypritePanel');
 		document.body.classList.remove('showCypriteAccess');
-		findRelativeArticles();
+		findRelativeArticles(messages);
 	}
 };
 const showTranslationResult = async (translation, list) => {
@@ -695,46 +611,86 @@ const normalVector = vectors => {
 
 	return { weight, vector };
 };
-const filterSimilarArticle = (articles, count) => {
-	var hashes = [];
-	if (!articles) return [];
-	articles = articles.filter(item => {
+const findRelativeArticles = async (messages) => {
+	if (!pageInfo) return [];
+
+	const notify = Notification.show('', messages.crossPageConv.statusFindingSimilarFiles, 'middleTop', 'message', 24 * 3600 * 1000);
+
+	// Get similar articles
+	var related, time = Date.now();
+	try {
+		related = await askSWandWait('SearchSimilarArticleForCurrentPage', location.href);
+	}
+	catch (err) {
+		notify._hide();
+		logger.error('FindRelativeArticles', err);
+		err = err.message || err.msg || err.data || err.toString();
+		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		return [];
+	}
+	if (!!related.usage) showTokenUsage(related.usage);
+	related = related.list;
+	if (!related) {
+		notify._hide();
+		return [];
+	}
+	time = Date.now() - time;
+	logger.info('FindRelativeArticles', 'Count: ' + related.length + ', TimeSpent: ' + time + 'ms');
+
+	// Organize and merge lists of similar articles
+	const hashes = [];
+	related = related.filter(item => {
+		if (!item.hash) return true;
 		if (hashes.includes(item.hash)) return false;
 		hashes.push(item.hash);
 		return true;
 	});
-	if (articles.length > count) articles.splice(count);
-
-	var log = [];
-	articles = articles.map(item => {
-		log.push({
-			title: item.title,
-			similar: item.similar,
+	relativeArticles.forEach(item => {
+		var article;
+		related.some(art => {
+			if (!!art.hash && !!item.hash) {
+				if (art.hash === item.hash) {
+					article = art;
+					return true;
+				}
+			}
+			else if (art.url === item.url) {
+				article = art;
+				return true;
+			}
 		});
-		return {
-			url: item.url,
-			title: item.title,
-			similar: item.similar,
-			hash: item.hash,
-		};
+		if (!!article) {
+			if (article.similar < item.similar) {
+				article.similar = item.similar
+			}
+		}
+		else {
+			related.push(item);
+		}
 	});
-	logger.info('Content', 'Similar Articles:');
-	console.table(log);
-	return articles;
-};
-const findRelativeArticles = () => {
-	if (!pageInfo) return;
+	related.sort((a, b) => b.similar - a.similar);
+	relativeArticles = [...related];
 
-	var requests = [];
-	[...UIList.HistoryList.querySelectorAll('.chat_item.human .chat_content')].forEach(item => {
-		requests.push(item._data);
-	});
+	// Show similar articles
+	const container = UIList.Panel.querySelector('.related_articles_list');
+	if (!!container) {
+		container.innerHTML = '';
+		if (relativeArticles.length === 0) {
+			container.innerHTML = '<li>' + messages.summarizeArticle.noRelatedArticle + '</li>';
+		}
+		else {
+			relativeArticles.forEach(item => {
+				var frame = newEle('li', 'cyprite', 'related_articles_item');
+				var link = newEle('a', 'cyprite', 'related_articles_link');
+				link.innerText = item.title;
+				link.href = item.url;
+				link.target = '_blank';
+				frame.appendChild(link);
+				container.appendChild(frame);
+			});
+		}
+	}
 
-	sendMessage('FindRelativeArticles', {
-		url: location.href,
-		hash: pageHash,
-		vector: pageVector,
-		content: [pageInfo.content],
-		requests
-	}, 'BackEnd');
+	notify._hide();
+	return related;
 };

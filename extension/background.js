@@ -15,7 +15,8 @@ const UtilList = {
 		css: ["/components/panel.css"],
 	},
 };
-const SimilarLimit = 20;
+
+const RelatedLimit = 20;
 
 globalThis.myInfo = {
 	inited: false,
@@ -953,91 +954,6 @@ EventHandler.LoadPageSummary = async (data, source, sid) => {
 		return null;
 	}
 };
-EventHandler.FindSimilarArticle = async (data) => {
-	var vector = data.vector, tabURL = parseURL(data.url || '');
-	if (!vector) return [];
-
-	if (!DBs.pageInfo) await initDB();
-	var all = await DBs.pageInfo.all('pageInfo');
-	var list = [];
-	var l1 = [], l2 = [], l3 = [], l4 = [];
-	for (let url in all) {
-		if (url === tabURL) continue;
-		let item = all[url];
-		if (!item || !item.embedding) continue;
-		if (data.needContent && !item.content) continue;
-
-		let info = {};
-		for (let key in item) {
-			info[key] = item[key];
-		}
-
-		let similar = calculateSimilarityRate(info.embedding, vector);
-		info.similar = similar;
-		if (similar > 0) list.push(info);
-	}
-	logger.log('SIMI', data.url || '(NONE)');
-	list = list.filter(f => f.similar >= 0.05);
-	list.sort((a, b) => b.similar - a.similar);
-	console.table(list.map(item => {
-		return {
-			title: item.title,
-			similar: item.similar,
-		}
-	}));
-
-	return list;
-};
-EventHandler.FindRelativeArticles = async (data, source, sid) => {
-	data.url = parseURL(data.url || '');
-	if (!data.url) return;
-
-	var url = RelativeHandler[sid];
-	if (url === data.url) {
-		delete RelativeHandler[sid];
-		return;
-	}
-	RelativeHandler[sid] = data.url;
-
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	var relatives, usage = {};
-
-	data.isWebPage = false;
-	dispatchEvent({
-		event: "updateCurrentStatus",
-		data: messages.crossPageConv.statusFindingSimilarFiles,
-		target: source,
-		tid: sid,
-	});
-	try {
-		data.articles = await EventHandler.FindSimilarArticle(data);
-		relatives = await findRelativeArticles(data, source, sid);
-		updateUsage(usage, relatives.usage);
-		relatives = relatives.relevants || [];
-	}
-	catch {
-		relatives = [];
-	}
-	dispatchEvent({
-		event: "updateCurrentStatus",
-		target: source,
-		tid: sid,
-	});
-
-	// Send to page
-	dispatchEvent({
-		event: "foundRelativeArticles",
-		data: {relatives, usage},
-		target: "FrontEnd",
-		tid: sid,
-	});
-
-	// Cold Down
-	await wait(ColdDownDuration);
-	logger.log('SW', 'Cold Down finished for ' + data.url);
-
-	delete RelativeHandler[sid];
-};
 EventHandler.GetConversation = async (url) => {
 	url = parseURL(url);
 	if (!DBs.pageInfo) await initDB();
@@ -1095,7 +1011,8 @@ EventHandler.GetArticleInfo = async (options) => {
 	if (!DBs.pageInfo) await initDB();
 
 	var list = await Promise.all(options.articles.map(async url => {
-		var item = await DBs.pageInfo.get(url);
+		var item = await DBs.pageInfo.get('pageInfo', parseURL(url));
+		if (!item) return null;
 		if (!item.title || !item.url || !item.content) return null; // Need change for local file.
 		if (!!item.timestamp) {
 			item.lastVisit = Date.now();
@@ -1123,6 +1040,8 @@ EventHandler.GetArticleInfo = async (options) => {
 			title: item.title,
 			url: item.url,
 			content: item.content,
+			description: item.description,
+			hash: item.hash,
 		};
 	});
 	return list;
@@ -1383,6 +1302,227 @@ EventHandler.ChangePageTitle = async (data) => {
 	await setPageInfo(data.url, info, true);
 };
 
+/* Search Similarity */
+
+const parseArray = array => {
+	if (isArray(array)) return array;
+	if (!isString(array)) return [];
+	return (array || '')
+		.replace(/^\{|\}$/g, '').trim()
+		.split(/\s*[\n\r]+\s*/).filter(line => !!line)
+		.map(line => line.replace(/^\s*(\-|\+|\d+\.)\s*/, '').trim())
+		.join(',').split(/\s*[,;，；]\s*/)
+	;
+};
+const fileterArticleByCategoryAndKeyword = (allArticles, category, keywords, key) => {
+	// Filter articles based on keywords and categories
+	const related = [];
+	allArticles.forEach(item => {
+		if (!item.url) return;
+		if (!item.isCached) return;
+		if (!!key && parseURL(item.url) === key) return;
+
+		item.score = 0;
+		if (!!item.keywords && !!item.keywords.length) {
+			keywords.forEach(kw => {
+				if (item.title.indexOf(kw) >= 0) item.score += 1;
+				if (item.keywords.includes(kw)) {
+					item.score += 5;
+				}
+				else if (item.keywords.join(',').includes(kw)) {
+					item.score += 3;
+				}
+			});
+		}
+		else {
+			keywords.forEach(kw => {
+				if (item.title.indexOf(kw) >= 0) item.score += 1;
+			});
+		}
+
+		if (!!item.category && !!item.category.length) {
+			let t = category.length + 1;
+			category.forEach((ct, i) => {
+				if (item.title.indexOf(ct) >= 0) item.score += 1;
+				if (item.category.includes(ct)) {
+					let rate = (i + 1) / t;
+					rate = (1 - rate) ** 2;
+					item.score += Math.ceil(2.5 * (1 - rate));
+				}
+				else if (item.category.join(',').includes(ct)) {
+					let rate = (i + 1) / t;
+					rate = (1 - rate) ** 2;
+					item.score += Math.ceil(1.5 * (1 - rate));
+				}
+			});
+		}
+		else {
+			category.forEach((ct, i) => {
+				if (item.title.indexOf(ct) >= 0) item.score += 1;
+			});
+		}
+
+		if (item.score > 0) {
+			related.push(item);
+		}
+	});
+	if (!related || !related.length) return {list: [], usage: {}};
+	related.sort((a, b) => b.score - a.score);
+	if (related.length > RelatedLimit) related.splice(RelatedLimit);
+
+	return related;
+};
+const searchRelativeArticles = async (options, prompt, related) => {
+	const usage = {}
+	options.articles = [];
+
+	// Assemble article list
+	const articleMap = {};
+	related.forEach(item => {
+		var line = ['- ' + (item.title || '(Untitled)').replace(/[\n\r]+/g, ' ')];
+		line.push('  URL: ' + item.url);
+		if (!!item.category && !!item.category.length) {
+			line.push('  Categories: ' + item.category.join(', '));
+		}
+		if (!!item.keywords && !!item.keywords.length) {
+			line.push('  Keywords: ' + item.keywords.join(', '));
+		}
+		options.articles.push(line.join('\n'));
+		articleMap[item.url] = item;
+	});
+	options.articles = options.articles.join('\n');
+
+	// Assemble conversation
+	prompt = PromptLib.assemble(prompt, options);
+	const conversation = [['human', prompt]];
+
+	// Call AI
+	var articleList = await callLLMOneByOne(getFunctionalModelList('findArticlesFromList'), conversation, true, 'FindArticlesFromList');
+	updateUsage(usage, articleList.usage);
+
+	articleList = articleList.reply._origin.split(/[\n\r]+/).map(line => {
+		line = line.replace(/^((\-|\+|\d+\.)\s*)+/, '').trim();
+		const match = line.match(/^\[[^\]]*\]\s*\(([\w\W]+)\)$/);
+		if (!!match) line = match[1];
+		const info = articleMap[line];
+		if (!info) return null;
+		return {
+			title: info.title,
+			url: info.url,
+		}
+	}).filter(item => !!item);
+
+	return {list: articleList, usage};
+};
+EventHandler.SearchSimilarArticleForCurrentPage = async (url) => {
+	if (!DBs.pageInfo) await initDB();
+	const key = parseURL(url), usage = {};
+	var [articleInfo, allArticles] = await Promise.all([
+		DBs.pageInfo.get('pageInfo', key),
+		chrome.storage.local.get(TagArticleList),
+	]);
+	articleInfo.keywords = articleInfo.keywords || [];
+	articleInfo.category = articleInfo.category || [];
+	allArticles = (allArticles || {})[TagArticleList];
+
+	// Get all article info from DB
+	if (!allArticles) {
+		allArticles = await EventHandler.GetArticleList({
+			onlyCached: true,
+			isLastVisit: true,
+		});
+	}
+
+	// Obtaining the keywords and categories of an article
+	if (articleInfo.keywords.length === 0 || articleInfo.category.length === 0) {
+		let conversation = [];
+		conversation.push(['human', PromptLib.assemble(PromptLib.analyzeKeywordsAndCategoryOfArticle, {
+			lang: LangName[myInfo.lang],
+			content: articleInfo.content,
+		})]);
+		let modelList = getFunctionalModelList('analyzeKeywordCategory');
+		let reply = await callLLMOneByOne(modelList, conversation, true, 'AnalyzeKeywordCategory');
+		updateUsage(usage, reply.usage);
+		reply = reply.reply;
+		articleInfo.category = parseArray(reply.category);
+		articleInfo.keywords = parseArray(reply.keywords);
+		await DBs.pageInfo.set('pageInfo', key, articleInfo);
+	}
+
+	// Filter articles based on keywords and categories
+	const related = fileterArticleByCategoryAndKeyword(allArticles, articleInfo.category, articleInfo.keywords, key);
+
+	// Find relative articles
+	const options = {
+		title: articleInfo.title,
+		category: "(No category)",
+		keywords: "(No keyword)",
+	};
+	if (articleInfo.keywords.length > 0) {
+		options.keywords = articleInfo.keywords.join(', ');
+	}
+	if (articleInfo.category.length > 0) {
+		options.category = articleInfo.category.join(', ');
+	}
+	const articleList = await searchRelativeArticles(options, PromptLib.findArticlesInList, related);
+	updateUsage(usage, articleList.usage);
+
+	return {
+		list: articleList.list,
+		usage,
+	};
+};
+const getCategoryKeywordsForConversation = async (dialog) => {
+	const usage = {};
+
+	// Analyze the categories and keywords of current topic
+	var conversation = [];
+	conversation.push(['human', PromptLib.assemble(PromptLib.analyzeKeywordsAndCategoryOfConversation, {
+		lang: LangName[myInfo.lang],
+		conversation: dialog,
+	})]);
+	var reply = await callLLMOneByOne(getFunctionalModelList('analyzeKeywordCategory'), conversation, true, 'AnalyzeKeywordCategory');
+	updateUsage(usage, reply.usage);
+	reply = reply.reply;
+
+	return {
+		usage,
+		category: parseArray(reply.category),
+		keywords: parseArray(reply.keywords),
+	};
+};
+AIHandler.selectArticlesAboutConversation = async (dialog, source, sid) => {
+	const usage = {};
+
+	var [ctAndKw, allArticles] = await Promise.all([
+		getCategoryKeywordsForConversation(dialog), // Analyze the categories and keywords of current dialog
+		chrome.storage.local.get(TagArticleList),
+	]);
+	updateUsage(usage, ctAndKw.usage);
+	allArticles = (allArticles || {})[TagArticleList] || [];
+	if (!allArticles.length) {
+		allArticles = await EventHandler.GetArticleList({
+			onlyCached: true,
+			isLastVisit: true,
+		});
+	}
+
+	// Filter articles by Category and Keyword
+	const related = fileterArticleByCategoryAndKeyword(allArticles, ctAndKw.category, ctAndKw.keywords);
+
+	// Find relative articles
+	const options = {
+		topic: dialog,
+	};
+	const articleList = await searchRelativeArticles(options, PromptLib.findArticlesForTopic, related);
+	updateUsage(usage, articleList.usage);
+
+	return {
+		articles: articleList.list,
+		usage,
+	};
+};
+
 /* AI Search Record */
 
 EventHandler.SaveAISearchRecord = async (data) => {
@@ -1556,18 +1696,8 @@ AIHandler.summarizeArticle = async (data) => {
 				usage = summary.usage;
 				summary = parseReplyAsXMLToJSON(summary.reply);
 				summary.summary = summary.summary?._origin || summary.summary || summary._origin;
-				summary.category = (summary.category || '')
-					.replace(/\r/g, '').split('\n')
-					.filter(line => !!line)
-					.map(line => line.replace(/^\s*\-\s*/, ''))
-					.join(',').split(/\s*[,;，；]\s*/)
-				;
-				summary.keywords = (summary.keywords || '')
-					.replace(/\r/g, '').split('\n')
-					.filter(line => !!line)
-					.map(line => line.replace(/^\s*\-\s*/, ''))
-					.join(',').split(/\s*[,;，；]\s*/)
-				;
+				summary.category = parseArray(summary.category);
+				summary.keywords = parseArray(summary.keywords);
 				return {summary, usage};
 			}
 			catch (err) {
@@ -1797,69 +1927,6 @@ AIHandler.translateSentence = async (data, source, sid) => {
 
 	return {translation, usage};
 };
-AIHandler.selectArticlesAboutConversation = async (data, source, sid) => {
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-
-	var limit = SimilarLimit, usage = {};
-	if (isObject(data)) {
-		limit = data.limit || limit;
-		data = data.request;
-	}
-
-	// Get embedding vector
-	dispatchEvent({
-		event: "updateCurrentStatus",
-		data: messages.crossPageConv.statusAnalyzeRequest,
-		target: source,
-		tid: sid,
-	});
-	var similarArticles;
-	try {
-		let requestVector = await AIHandler.embeddingContent({article: data});
-
-		// Find Similar articles
-		dispatchEvent({
-			event: "updateCurrentStatus",
-			data: messages.crossPageConv.statusFindingSimilarFiles,
-			target: source,
-			tid: sid,
-		});
-		similarArticles = await EventHandler.FindSimilarArticle({vector: requestVector, needContent: true});
-	}
-	catch {
-		if (!DBs.pageInfo) await initDB();
-		let list = await DBs.pageInfo.all('pageInfo');
-		list = Object.keys(list).map(id => list[id]);
-		list = list.filter(item => !!item.content && !!item.hash);
-		list.forEach(item => item._time = (new Date(item.timestamp.replace(/\s+[a-z]+$/i, ''))).getTime());
-		list.sort((pa, pb) => pb._time - pa._time);
-		similarArticles = list;
-	}
-
-	// Find Related articles
-	var relatedArticles;
-	try {
-		relatedArticles = await findRelativeArticles({
-			articles: similarArticles,
-			requests: [data],
-			isWebPage: true,
-			limit,
-		}, source, sid);
-		updateUsage(usage, relatedArticles.usage);
-		relatedArticles = relatedArticles.relevants || [];
-	}
-	catch {
-		relatedArticles = [];
-	}
-
-	dispatchEvent({
-		event: "updateCurrentStatus",
-		target: source,
-		tid: sid,
-	});
-
-	return {articles: relatedArticles, usage};
-};
 AIHandler.directSendToAI = async (conversation) => {
 	return await callAIandWait('directAskAI', conversation);
 };
@@ -1999,7 +2066,6 @@ AIHandler.preliminaryThinking = async (data, source, sid) => {
 /* Utils */
 
 const Tab2Article = {}, RelativeHandler = {};
-const ColdDownDuration = 5 * 60 * 1000;
 const WaitDuration = 5 * 1000;
 const RelativeArticleRange = 40;
 globalThis.waitUntil = fun => new Promise((res, rej) => {
@@ -2121,89 +2187,6 @@ const updatePageNeedAIInfo = async (data, info) => {
 		DBs.pageInfo.set('notifyChecker', data.path, info.path),
 		DBs.pageInfo.set('notifyChecker', data.host, info.host),
 	]);
-};
-const manhattanOfVectors = (v1, v2) => {
-	var len = Math.min(v1.length, v2.length);
-	var total = 0;
-	for (let i = 0; i < len; i ++) {
-		total = Math.max(total, Math.abs(v1[i] - v2[i]));
-	}
-	return total;
-};
-const innerProductOfVectors = (v1, v2) => {
-	var len = Math.min(v1.length, v2.length);
-	var total = 0;
-	for (let i = 0; i < len; i ++) {
-		total += v1[i] * v2[i];
-	}
-	return total;
-};
-const calculateSimilarityRate = (g1, g2) => {
-	if (!g1 || !g2) return 0;
-
-	var max1 = 0, max2 = 0, totalW2 = 0;
-	g1.forEach(v => {
-		if (v.weight > max1) max1 = v.weight;
-	});
-	g2.forEach(v => {
-		if (v.weight > max2) max2 = v.weight;
-		totalW2 += v.weight ** 2;
-	});
-	totalW2 /= max2;
-
-	var similarity = 0;
-	var nearest = [];
-	// Find the vector in G1 that is closest to each vector in G2
-	g2.forEach(v2 => {
-		var w2 = v2.weight;
-		v2 = v2.vector;
-
-		var most = 0, target = -1;
-		g1.forEach((v1, idx) => {
-			v1 = v1.vector;
-
-			var prod = innerProductOfVectors(v1, v2);
-			if (prod > most) {
-				target = idx;
-				most = prod;
-			}
-		});
-		if (target < 0) return;
-		var list = nearest[target];
-		if (!list) {
-			list = [];
-			nearest[target] = list;
-		}
-		list.push([w2, most]);
-	});
-	max1 = 0;
-	nearest.forEach((list, idx) => {
-		if (!list) return;
-		var w1 = g1[idx].weight;
-		if (w1 > max1) max1 = w1;
-		var simi = 0;
-		list.forEach(value => {
-			simi += w1 * value[0] * value[1];
-		});
-		similarity += (simi / max1 / totalW2);
-	});
-
-	return similarity;
-};
-const initInjectScript = async () => {
-	const USID = "CypriteInjection";
-
-	var scripts = await chrome.userScripts.getScripts({ids: [USID]});
-	if (scripts.length > 0) return;
-
-	chrome.userScripts.configureWorld({ messaging: true });
-
-	await chrome.userScripts.register([{
-		id: USID,
-		matches: ['*://*/*'],
-		js: [{file: 'inject.js'}],
-		world: "MAIN",
-	}]);
 };
 const decomposePackage = (pack, size=20) => {
 	pack = [...pack]; // Duplicate

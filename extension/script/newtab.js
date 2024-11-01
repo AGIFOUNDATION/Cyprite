@@ -1,12 +1,11 @@
 const PageName = 'HomeScreen';
 const WikiPediaMaxForDeepThinking = 5;
 const ArxivMaxForDeepThinking = 5;
-const SearchDefaultCount = 20;
 const SearchMaxCount = 10;
-const SearchLocalLimit = 10;
 const MaximumConcurrentWebpageReading = 3;
 const MaximumWebpageRead = 15;
 const SearchHistoryCount = 20;
+const RelativeArticleLimitForXPageConversation = 5;
 const DefaultPanel = 'intelligentSearch';
 const SearchModeOrderList = [
 	'fullAnalyze',
@@ -215,25 +214,6 @@ ActionCenter.closeReference = () => {
 
 /* Utils */
 
-const parseParams = () => {
-	var params = location.search.replace(/^\?*/, '');
-	params = params.split('&');
-	var info = {};
-	params.forEach(line => {
-		line = line.split('=');
-		var name = line.shift();
-		var value = line.join('=');
-		if (!value) {
-			value = true;
-		}
-		else {
-			let v = value * 1;
-			if (!isNaN(v)) value = v;
-		}
-		info[name] = value;
-	});
-	return info;
-};
 const updateAIModelList = () => {
 	var available = false;
 	ModelList.splice(0);
@@ -570,111 +550,65 @@ ActionCenter.searchArticleInConversation = async (ele, data, evt) => {
 	var content = (ele.value || '').trim();
 	refreshFileListInConversation(content);
 };
-const prepareXPageConv = async (request) => {
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+const compareTwoArrays = (arr1, arr2) => {
+	if (!isArray(arr1) || !isArray(arr2)) return false;
 
-	var conversation = await chrome.storage.session.get(currentTabId + ':crosspageConv'), usage = {};
-	conversation = (conversation || {})[currentTabId + ':crosspageConv'];
+	const l = arr1.length;
+	if (arr2.length !== l) return false;
 
-	// New conversation
-	if (!conversation || !conversation.length) {
-		CurrentArticleList.splice(0);
-		let files = [];
-		// For selected articles
-		let items = [...document.body.querySelectorAll('.panel_article_list .panel_article_list_item[selected]')];
-		if (items.length > 0) {
-			try {
-				items = await askSWandWait('GetArticleInfo', {
-					articles: items.map(item => item.url),
-					isLastVisit: orderType === 'lastVisit',
-				});
-			}
-			catch (err) {
-				items = [];
-				logger.error('GetArticleInfo', err);
-				err = err.message || err.msg || err.data || err.toString();
-				Notification.show('', err, "middleTop", 'error', 5 * 1000);
-			}
-			files = items.map(item => {
-				CurrentArticleList.push(item.url);
-				return {
-					title: item.title,
-					url: item.url,
-					content: item.content
-				};
-			});
-			CurrentArticleList.sort((a, b) => a === b ? 0 : (a > b ? 1 : -1));
-		}
-
-		// If no article has already been selected or related
-		if (files.length === 0) {
-			let articles;
-			try {
-				articles = await askAIandWait('selectArticlesAboutConversation', request);
-				updateUsage(usage, articles.usage);
-				articles = articles.articles;
-			}
-			catch (err) {
-				articles = [];
-				logger.error('SelectArticles', err);
-				err = err.message || err.msg || err.data || err.toString();
-				Notification.show('', err, "middleTop", 'error', 5 * 1000);
-			}
-			if (!articles) articles = [];
-			files = articles.map(item => {
-				return {
-					title: item.title,
-					url: item.url,
-					content: item.content
-				};
-			});
-			if (files.length > 0) {
-				let items = [...document.body.querySelectorAll('.panel_article_list .panel_article_list_item')];
-				let hint = ['**' + messages.crossPageConv.hintFoundArticles + '**\n'];
-				files.forEach(item => {
-					CurrentArticleList.push(item.url);
-					hint.push('-\t[' + item.title + '](' + item.url + ')');
-					items.some(li => {
-						if (li.url !== item.url) return;
-						li.setAttribute('selected', 'true');
-						return true;
-					});
-				});
-				addChatItem('crossPageConversation', hint.join('\n'), 'cyprite');
-				CurrentArticleList.sort((a, b) => a === b ? 0 : (a > b ? 1 : -1));
-			}
-		}
-
-		// Assemble SystemPrompt
-		let config = { lang: LangName[myInfo.lang], related: '(No Reference Material)' };
-		if (files.length > 0) {
-			let content = [];
-			files.forEach(item => {
-				content.push('<currentArticle title="' + item.title + '" url="' + item.url + '">\n' + item.content.trim() + '\n</currentArticle>');
-			});
-			config.content = content.join('\n');
-		}
-		else {
-			config.content = '(No Current Article)';
-		}
-		let systemPrompt = PromptLib.assemble(PromptLib.askPageSystem, config);
-		conversation = [['system', systemPrompt]];
+	for (let i = 0; i < l; i ++) {
+		if (arr1[i] !== arr2[i]) return false;
+	}
+	return true;
+};
+const assembleXPageConvSystemPrompt = (articles) => {
+	var config = { lang: LangName[myInfo.lang], related: '(No Reference Material)' };
+	if (articles.length > 0) {
+		let list = articles.map(item => {
+			var data = {
+				title: item.title || 'Untitled',
+				url: item.url || '(no url)',
+				content: item.content,
+			};
+			if (!item.content) data.length = 0;
+			data.length = item.content.length;
+			return data;
+		}).filter(item => !!item.length);
+		list.sort((a, b) => b.length - a.length);
+		if (list.length > RelativeArticleLimitForXPageConversation) list.splice(RelativeArticleLimitForXPageConversation);
+		let content = [];
+		list.forEach(item => {
+			if (!item.content) return;
+			content.push('<currentArticle title="' + item.title + '" url="' + item.url + '">\n' + item.content.trim() + '\n</currentArticle>');
+		});
+		config.content = content.join('\n');
 	}
 	else {
-		let articleList = [];
-		let items = [...document.body.querySelectorAll('.panel_article_list .panel_article_list_item[selected]')];
-		if (items.length > 0) {
-			items.forEach(item => {
-				articleList.push(item.url);
-			});
-			articleList.sort((a, b) => a === b ? 0 : (a > b ? 1 : -1));
-		}
-		// Selected articles have changed
-		if (CurrentArticleList.join('|') !== articleList.join('|') && articleList.length > 0) {
+		config.content = '(No Current Article)';
+	}
+	return PromptLib.assemble(PromptLib.askPageSystem, config);
+};
+const prepareXPageConv = async (request) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	const usage = {};
+	const conversation = ((await chrome.storage.session.get(currentTabId + ':crosspageConv')) || {})[currentTabId + ':crosspageConv'] || [];
+
+	// Determine whether to automatically filter related articles
+	var needUpdateSP = false;
+	var articles = [...document.body.querySelectorAll('.panel_article_list .panel_article_list_item[selected]')];
+	// If the user has already selected some articles
+	if (articles.length > 0 && conversation.length > 0) {
+		articles = articles.map(item => item.url);
+		articles.sort((a, b) => a === b ? 0 : (a > b ? 1 : -1));
+		if (!compareTwoArrays(CurrentArticleList, articles)) {
+			needUpdateSP = true;
 			CurrentArticleList.splice(0);
+			CurrentArticleList.push(...articles);
+
+			let items;
 			try {
 				items = await askSWandWait('GetArticleInfo', {
-					articles: items.map(item => item.url),
+					articles,
 					isLastVisit: orderType === 'lastVisit',
 				});
 			}
@@ -684,24 +618,74 @@ const prepareXPageConv = async (request) => {
 				err = err.message || err.msg || err.data || err.toString();
 				Notification.show('', err, "middleTop", 'error', 5 * 1000);
 			}
-
-			// Assemble SystemPrompt
-			let config = { lang: LangName[myInfo.lang], related: '(No Reference Material)' };
-			if (items.length > 0) {
-				let content = [];
-				items.forEach(item => {
-					CurrentArticleList.push(item.url);
-					content.push('<currentArticle title="' + item.title + '" url="' + item.url + '">\n' + item.content.trim() + '\n</currentArticle>');
-				});
-				config.content = content.join('\n');
-				CurrentArticleList.sort((a, b) => a === b ? 0 : (a > b ? 1 : -1));
-			}
-			else {
-				config.content = '(No Current Article)';
-			}
-			let systemPrompt = PromptLib.assemble(PromptLib.askPageSystem, config);
-			conversation[0][1] = systemPrompt;
+			articles = items.map(item => {
+				return {
+					title: item.title,
+					url: item.url,
+					content: item.content
+				};
+			});
 		}
+	}
+	// If the user has not yet selected any article
+	else {
+		needUpdateSP = true;
+		// Search relative articles based on current topic
+		try {
+			articles = await askAIandWait('selectArticlesAboutConversation', request);
+			updateUsage(usage, articles.usage);
+			articles = articles.articles;
+			let items = await askSWandWait('GetArticleInfo', {
+				articles: articles.map(item => item.url),
+				isLastVisit: orderType === 'lastVisit',
+			});
+			articles.forEach(item => {
+				var key = parseURL(item.url), has = false;
+				items.some(art => {
+					if (parseURL(art.url) !== key) return;
+					item.content = art.content;
+					has = true;
+					return true;
+				});
+				if (!has) {
+					item.content = "(No Content)";
+				}
+			});
+		}
+		catch (err) {
+			articles = [];
+			logger.error('SelectArticles', err);
+			err = err.message || err.msg || err.data || err.toString();
+			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+		}
+		let list = articles.map(item => item.url);
+		list.sort((a, b) => a === b ? 0 : (a > b ? 1 : -1));
+		CurrentArticleList.splice(0);
+		CurrentArticleList.push(...list);
+
+		// Update UI and Chat History
+		let items = [...document.body.querySelectorAll('.panel_article_list .panel_article_list_item')];
+		items.forEach(li => {
+			li.removeAttribute('selected');
+		});
+		let hint = ['**' + messages.crossPageConv.hintFoundArticles + '**\n'];
+		articles.forEach(item => {
+			hint.push('-\t[' + item.title + '](' + item.url + ')');
+			items.some(li => {
+				if (li.url !== item.url) return;
+				li.setAttribute('selected', 'true');
+				return true;
+			});
+		});
+		addChatItem('crossPageConversation', hint.join('\n'), 'cyprite');
+	}
+
+	// Processing dialogue history
+	if (conversation.length === 0) {
+		conversation.push(['system', assembleXPageConvSystemPrompt(articles)]);
+	}
+	else if (needUpdateSP) {
+		conversation[0][1] = assembleXPageConvSystemPrompt(articles);
 	}
 
 	return {conversation, usage};
@@ -970,6 +954,7 @@ const showGoogleSearchResult = (frame, messages, keywords, most, all, shouldFold
 	}
 	else {
 		most.forEach(item => {
+			if (!item.url) return;
 			var li = newEle('li', 'search_result_item');
 			var link = newEle('a');
 			link.href = item.url;
@@ -1010,6 +995,7 @@ const showGoogleSearchResult = (frame, messages, keywords, most, all, shouldFold
 	for (let url in all) {
 		if (used.includes(url)) continue;
 		let item = all[url];
+		if (!item.url) continue;
 		let li = newEle('li', 'search_result_item');
 		let link = newEle('a');
 		link.href = item.url;
@@ -1049,6 +1035,7 @@ const showOtherSearchResult = (frame, messages, title, keywords, webPages, shoul
 	}
 	// Show Search Result
 	for (let item of webPages) {
+		if (!item.url) continue;
 		let li = newEle('li', 'search_result_item');
 		let link = newEle('a');
 		link.href = item.url;
@@ -2940,6 +2927,7 @@ const init = async () => {
 		if (handled) {
 			evt.preventDefault();
 			evt.stopPropagation();
+			evt.cancelBubble = true;
 		}
 	});
 	document.body.querySelector('.articleManagerFileList').addEventListener('click', onClickFileItemOperator);

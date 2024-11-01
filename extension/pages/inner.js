@@ -16,6 +16,7 @@ globalThis.PageContents.mainPage = `
 				<div class="panel_tab active" action="showSummary" titlePath="buttons.showSummaryPanel" @click="onShowPageSummary"></div>
 				<div class="panel_tab" action="showTranslate" titlePath="buttons.showTranslatePanel" @click="onShowTranslationResult"></div>
 				<div class="panel_tab" action="showComprehensive" titlePath="buttons.showComprehensivePanel" @click="onShowComprehensive"></div>
+				<div class="panel_title_editor" contenteditable="true" @keydown="onEditContentTitle"></div>
 				<div id="ChatTrigger" class="panel_button showChatter always_show" titlePath="buttons.showChatPanel" @click="onChatTrigger"></div>
 				<div class="panel_button clearHistory active show" group="summary" titlePath="buttons.btnClearHistory" @click="clearSummaryConversation"></div>
 				<div class="panel_button reSummary always active show" group="summary" titlePath="buttons.btnReSummary" @click="summarizePage"></div>

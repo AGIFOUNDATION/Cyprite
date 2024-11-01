@@ -124,25 +124,52 @@ PromptLib.deepTranslation = `I need to translate an article (in the "Content to 
 
 /* Filter Documents */
 
-PromptLib.excludeIrrelevantsOnTopic = `Your task is to identify all the webpages that are clearly unrelated to the "Current Discussion Topic" in the following "Webpage List".
+PromptLib.findArticlesInList = `# Task
 
-**REMEMBER: You must strictly output according to the format required in the "Output Format", and only output the url list without anything else.**
+You need to identify articles related to article "{{title}}" from the "Candidate Article List".
 
-#	Current Discussion Topic
+- The categories of article "{{title}}" is: {{category}}.
+- The keywords of article "{{title}}" is: {{keywords}}.
 
-{{content}}
+# Requirements
 
-#	Webpage List
+1. **Do not list irrelevant articles**;
+2. Find as many relevant articles as possible;
+3. There may be no relevant articles, in which case you can output "No matching articles";
+4. According to the "Output Format", it's Markdown unordered list, complete the output without including content not required by the "Output Format".
 
-{{list}}
+# Output Format
 
-#	Output Format
+- {article url, and url only, no title, no keywords, no categories}
+...
 
-<unrelated>
--	{Article1 URL ONLY, NO TITLE}
--	{Article2 URL ONLY, NO TITLE}
-......
-</unrelated>`;
+# Candidate Article List
+
+{{articles}}`;
+PromptLib.findArticlesForTopic = `# Task
+
+You need to identify articles related to the "Conversation Topic" from the "Candidate Article List".
+
+# Requirements
+
+1. **Do not list irrelevant articles**;
+2. Find as many relevant articles as possible;
+3. There may be no relevant articles, in which case you can output "No matching articles";
+4. You need to analyze which articles might be helpful for the "Conversation Topic", potentially providing useful information, and exclude those articles that clearly seem irrelevant.
+5. According to the "Output Format", it's Markdown unordered list, complete the output without including content not required by the "Output Format".
+
+# Output Format
+
+- {article url, and url only, no title, no keywords, no categories}
+...
+
+# Conversation Topic
+
+{{topic}}
+
+# Candidate Article List
+
+{{articles}}`;
 PromptLib.excludeIrrelevantsOnArticle = `In the "Article Summary" there is a summary of the article I'm currently reading, while in the "Current Conversation Topic" there is the conversation topic currently being discussed. Your task is to identify all the webpages from the "Web Page List" that are clearly unrelated to this article and also clearly unrelated to the current conversation topic.
 
 **REMEMBER: You must strictly output according to the format required in the "Output Format", and only output the url list without anything else.**
@@ -241,6 +268,41 @@ PromptLib.moonshotSearch = `Search the internet for the webpages related to foll
 
 /* Read and Reply */
 
+PromptLib.analyzeKeywordsAndCategoryOfArticle = `#	Requirements
+
+-	Your reply MUST be in "{{lang}}".
+-	**You must strictly follow the format specified in the "Output Format" for your output.**
+
+#	Output Format
+
+<category>
+{The primary, secondary, and tertiary classifications of "Article Content", in an unordered list format, no title, caption or heading, with categories at each level separated by commas.}
+</category>
+<keywords>
+{The keywords of "Article Content", connected by commas between each keyword.}
+</keywords>
+
+#	Article Content
+
+{{content}}`;
+PromptLib.analyzeKeywordsAndCategoryOfConversation = `#	Requirements
+
+-	Your reply MUST be in "{{lang}}".
+-	**You must strictly follow the format specified in the "Output Format" for your output.**
+-	You must carefully analyze the "Topic", analyze the categories and keywords of it.
+
+#	Output Format
+
+<category>
+{The primary, secondary, and tertiary classifications of the recent conversation topic and content, in an unordered list format, no title, caption or heading, with categories at each level separated by commas.}
+</category>
+<keywords>
+{The keywords of the recent conversation topic and content, connected by commas between each keyword.}
+</keywords>
+
+#	Topic
+
+{{conversation}}`;
 PromptLib.replyBasedOnSearch = `You must, in accordance with the specific provisions in the "Requirements", while keeping in mind and fully understanding the information from the "Reference Materials" (whose authenticity has been ensured), and together with your own insights, provide a detailed response to the "Current Task/Problem."
 
 #	Requirements

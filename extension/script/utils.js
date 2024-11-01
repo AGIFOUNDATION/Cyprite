@@ -128,7 +128,7 @@ const registerAction = () => {
 		var action = item.getAttribute('action');
 		var handler = ActionCenter[action];
 		if (!handler) return;
-		if (['INPUT', 'TEXTAREA', 'SELECT', 'OPTION'].includes(item.tagName)) {
+		if (['INPUT', 'TEXTAREA', 'SELECT', 'OPTION'].includes(item.tagName) || (item.getAttribute('contentEditable') === 'true')) {
 			item.addEventListener('keyup', (evt) => {
 				var dataGroup = item.getAttribute('dataFetch');
 				var data;

@@ -264,6 +264,19 @@ body.showCypriteAccess .cyprite_access {
 	color: rgb(from var(--front-color) calc(r * 0.5) calc(g * 0.5) calc(b * 0.5) / 30%) !important;
 	pointer-events: none;
 }
+.panel_container .panel_title_editor {
+	float: left;
+	position: relative;
+	box-sizing: border-box !important;
+	min-width: 200px;
+	padding: 5px 10px;
+	margin-left: 10px;
+	border: none;
+	border-bottom: 1px solid var(--front-color);
+	font-size: 16px;
+	line-height: 1em;
+	color: var(--front-color) !important;
+}
 .panel_container .panel_button {
 	float: right;
 	position: relative;
