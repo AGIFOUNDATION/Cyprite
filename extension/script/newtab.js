@@ -494,6 +494,9 @@ globalThis.afterChangeTab = async () => {
 		updateOrderType();
 		await loadFileList();
 	}
+	else if (currentMode === 'freelyConversation') {
+		await switchToFreeCyprite();
+	}
 
 	resizeCurrentInputter();
 };
@@ -631,6 +634,7 @@ const prepareXPageConv = async (request) => {
 	else {
 		needUpdateSP = true;
 		// Search relative articles based on current topic
+		let notify = Notification.show('', messages.crossPageConv.statusFindingSimilarFiles, 'middleTop', 'message', 24 * 3600 * 1000);
 		try {
 			articles = await askAIandWait('selectArticlesAboutConversation', request);
 			updateUsage(usage, articles.usage);
@@ -658,6 +662,7 @@ const prepareXPageConv = async (request) => {
 			err = err.message || err.msg || err.data || err.toString();
 			Notification.show('', err, "middleTop", 'error', 5 * 1000);
 		}
+		notify._hide();
 		let list = articles.map(item => item.url);
 		list.sort((a, b) => a === b ? 0 : (a > b ? 1 : -1));
 		CurrentArticleList.splice(0);
@@ -748,6 +753,35 @@ EventHandler.updateCurrentStatus = (msg) => {
 };
 EventHandler.finishFirstTranslation = (content) => {
 	addChatItem('instantTranslation', content, 'cyprite', null, true);
+};
+
+/* Free Cyprite */
+
+const switchToFreeCyprite = async () => {
+	const content = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"] .content_container');
+	for (let item of content.querySelectorAll('.chat_item')) {
+		item.parentElement.removeChild(item);
+	}
+
+	var conversation = await chrome.storage.session.get('FREECYPRITECONVERSATION');
+	conversation = (conversation || {}).FREECYPRITECONVERSATION || [];
+	if (conversation.length === 0) return;
+
+	conversation.forEach(item => {
+		console.log(item);
+		var content = item[1] || '', type = item[0];
+		if (item[0] === 'human') {
+			content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
+		}
+		else if (item[0] === 'ai') {
+			type = 'cyprite';
+			content = content.replace(/^[\w\W]*?<reply>\s*|\s*<\/reply>[\w\W]*?$/gi, '');
+		}
+		else {
+			return;
+		}
+		addChatItem('freelyConversation', content, type, item[2]);
+	});
 };
 
 /* AISearch */
@@ -1531,7 +1565,7 @@ const generateSearchResultContent = () => {
 				content = content.replace(/^[\w\W]*?<reply>\s*|\s*<\/reply>[\w\W]*?$/gi, '');
 			}
 			else {
-				return;
+				continue;
 			}
 			part.push(content);
 			chat.push(part.join('\n\n'));
@@ -2558,10 +2592,32 @@ ActionCenter.sendMessage = async (button) => {
 			conversation.push(['ai', result]);
 		}
 	}
-	else {
-		console.log(target);
-		await wait(3000);
-		result = '哇哈哈哈哈哈哈';
+	else if (target === 'freelyConversation') {
+		conversation = await chrome.storage.session.get('FREECYPRITECONVERSATION');
+		conversation = (conversation || {}).FREECYPRITECONVERSATION || [];
+		if (conversation.length === 0) {
+			conversation.push(['system', PromptLib.assemble(PromptLib.freeCyprite, { lang: LangName[myInfo.lang] })]);
+		}
+		conversation.push(['human', content, cid]);
+		try {
+			result = await askAIandWait('directSendToAI', conversation);
+			console.log(result);
+			updateUsage(usage, result.usage);
+			result = result.reply;
+		}
+		catch (err) {
+			result = null;
+			logger.error('FreeCyprite', err);
+			err = err.message || err.msg || err.data || err.toString();
+			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+		}
+		conversation.pop();
+		if (!!result) {
+			conversation.push(['human', content + '\n\n(Time: ' + timestmp2str("YYYY/MM/DD hh:mm :WDE:") + ')', cid]);
+			conversation.push(['ai', result]);
+			result = parseReplyAsXMLToJSON(result);
+			result = result.reply._origin || result.reply;
+		}
 	}
 	cid = addChatItem(target, result, 'cyprite', null, true);
 	if (!!conversation) {
@@ -2569,6 +2625,12 @@ ActionCenter.sendMessage = async (button) => {
 			conversation[conversation.length - 1].push(cid);
 			let item = {};
 			item[currentTabId + ':crosspageConv'] = conversation;
+			chrome.storage.session.set(item);
+		}
+		else if (target === 'freelyConversation' && !!result) {
+			conversation[conversation.length - 1].push(cid);
+			let item = {};
+			item.FREECYPRITECONVERSATION = conversation;
 			chrome.storage.session.set(item);
 		}
 	}

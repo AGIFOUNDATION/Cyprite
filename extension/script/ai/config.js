@@ -257,9 +257,6 @@ const FunctionalModel = {
 		"grok-beta",
 		"abab6.5s-chat",
 	],
-
-
-
 	excludeIrrelevants: [
 		"gemini-1.5-flash-exp-0827",
 		"gemini-1.5-flash-002",
@@ -276,9 +273,6 @@ const FunctionalModel = {
 		"glm-4-plus",
 		"claude-3-5-sonnet-latest",
 	],
-
-
-
 	analyzeSearchKeywords: [
 		'gemini-1.5-flash-exp-0827',
 		"gemini-1.5-flash-002",
