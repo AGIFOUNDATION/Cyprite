@@ -763,12 +763,11 @@ const switchToFreeCyprite = async () => {
 		item.parentElement.removeChild(item);
 	}
 
-	var conversation = await chrome.storage.session.get('FREECYPRITECONVERSATION');
-	conversation = (conversation || {}).FREECYPRITECONVERSATION || [];
+	var conversation = await chrome.storage.session.get(TagFreeCypriteConversation);
+	conversation = (conversation || {})[TagFreeCypriteConversation] || [];
 	if (conversation.length === 0) return;
 
 	conversation.forEach(item => {
-		console.log(item);
 		var content = item[1] || '', type = item[0];
 		if (item[0] === 'human') {
 			content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
@@ -2461,6 +2460,9 @@ ActionCenter.clearConversation = async () => {
 			}
 		}
 	}
+	else if (currentMode === 'freelyConversation') {
+		await chrome.storage.session.remove(TagFreeCypriteConversation);
+	}
 };
 ActionCenter.showArticleChooser = () => {
 	var container = document.body.querySelector('.panel_container');
@@ -2593,12 +2595,12 @@ ActionCenter.sendMessage = async (button) => {
 		}
 	}
 	else if (target === 'freelyConversation') {
-		conversation = await chrome.storage.session.get('FREECYPRITECONVERSATION');
-		conversation = (conversation || {}).FREECYPRITECONVERSATION || [];
+		conversation = await chrome.storage.session.get(TagFreeCypriteConversation);
+		conversation = (conversation || {})[TagFreeCypriteConversation] || [];
 		if (conversation.length === 0) {
 			conversation.push(['system', PromptLib.assemble(PromptLib.freeCyprite, { lang: LangName[myInfo.lang] })]);
 		}
-		conversation.push(['human', content, cid]);
+		conversation.push(['human', content + '\n\n(Time: ' + timestmp2str("YYYY/MM/DD hh:mm :WDE:") + ')', cid]);
 		try {
 			result = await askAIandWait('directSendToAI', conversation);
 			console.log(result);
@@ -2611,12 +2613,13 @@ ActionCenter.sendMessage = async (button) => {
 			err = err.message || err.msg || err.data || err.toString();
 			Notification.show('', err, "middleTop", 'error', 5 * 1000);
 		}
-		conversation.pop();
 		if (!!result) {
-			conversation.push(['human', content + '\n\n(Time: ' + timestmp2str("YYYY/MM/DD hh:mm :WDE:") + ')', cid]);
 			conversation.push(['ai', result]);
-			result = parseReplyAsXMLToJSON(result);
-			result = result.reply._origin || result.reply;
+			let json = parseReplyAsXMLToJSON(result);
+			result = json.reply?._origin || json.reply || result;
+		}
+		else {
+			conversation.pop();
 		}
 	}
 	cid = addChatItem(target, result, 'cyprite', null, true);
@@ -2630,7 +2633,7 @@ ActionCenter.sendMessage = async (button) => {
 		else if (target === 'freelyConversation' && !!result) {
 			conversation[conversation.length - 1].push(cid);
 			let item = {};
-			item.FREECYPRITECONVERSATION = conversation;
+			item[TagFreeCypriteConversation] = conversation;
 			chrome.storage.session.set(item);
 		}
 	}

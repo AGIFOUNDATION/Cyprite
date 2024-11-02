@@ -2,6 +2,7 @@ const HTMLTags = ('a|b|i|strong|em|u|del|img|div|span|p|input|textarea|button|br
 
 globalThis.TagSearchRecord = 'CACHE_SEARCH_RECORDS';
 globalThis.TagArticleList = 'CACHE_ARTICLE_LIST';
+globalThis.TagFreeCypriteConversation = "FREECYPRITECONVERSATION"
 
 globalThis.ForceServer = false;
 globalThis.TrialVersion = true;
