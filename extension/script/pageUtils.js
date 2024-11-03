@@ -120,6 +120,27 @@ const getPageContent = (container, keepLink=false) => {
 const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 	const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v6.6.0/svgs/";
 
+	// MathJax
+	var mathList = [];
+	if (!!globalThis.MathJax) {
+		content = ('\n' + content + '\n').replace(/\n\r*\s*\$\$\s*\r*\n?\r*([\w\W]*?)\r*\n?\r*\s*\$\$\s*\r*\n/g, (m, inner) => {
+			inner = inner.replace(/\r+/g, '\n').split('\n').filter(line => !!line).join('\n');
+			var idx = mathList.length;
+			mathList.push(inner);
+			return '\n\n[MathBlock:' + idx + ']\n\n';
+		}).trim();
+		content = ('\n' + content + '\n').replace(/\n\r*\s*\\\[\s*\r*\n\r*([\w\W]*?)\r*\n\r*\s*\\\]\s*\r*\n/g, (m, inner) => {
+			inner = inner.replace(/\r+/g, '\n').split('\n').filter(line => !!line).join('\n');
+			var idx = mathList.length;
+			mathList.push(inner);
+			return '\n[MathBlock:' + idx + ']\n';
+		}).trim();
+		content = content.replace(/\$([^\n\r\$]+?)\$/g, (m, inner) => {
+			var idx = mathList.length;
+			mathList.push(inner);
+			return '[InlineMath:' + idx + ']';
+		}).trim();
+	}
 
 	// Parse FontAwesome
 	content = content.replace(/:fa([rsb])\.([\w\-]+):/gi, (m, type, icon) => {
@@ -173,6 +194,20 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 	// Parse Markdown
 	content = marked.parse(content, {breaks: true}) || defaults || '';
 
+	if (!!globalThis.MathJax && mathList.length > 0) {
+		content = content.replace(/\[(MathBlock|InlineMath):(\d+)\]/g, (m, type, idx) => {
+			idx = idx * 1;
+			if (!isNumber(idx)) return m;
+			var math = mathList[idx];
+			if (!math) return m;
+			if (type === 'MathBlock') {
+				return '$$<br>' + math.replace(/\n/g, '<br>') + '<br>$$';
+			}
+			else {
+				return '$' + math + '$'
+			}
+		});
+	}
 
 	container.innerHTML = content;
 
@@ -181,6 +216,10 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 		link.target = '_blank';
 	});
 
+	// Parse LaTeX by MathJax
+	if (!!globalThis.MathJax && mathList.length > 0) {
+		MathJax.Hub.Queue(["Typeset", MathJax.Hub, container]);
+	}
 
 	return content;
 };
@@ -204,5 +243,39 @@ const showTokenUsage = (usage, isLeft=false) => {
 	}
 	if (count === 0) return;
 	var position = isLeft ? 'leftBottom' : 'rightBottom';
-	Notification.show('Token Usage', html, position, 'message', 5000);
+	Notification.show('Token Usage', html, position, 'message');
 };
+
+const initMathJax = () => {
+	if (initMathJax.initialized) return;
+	initMathJax.initialized = true;
+	MathJax.Hub.Config({
+		extensions: ["tex2jax.js"],
+		TeX: {
+			extensions: ["AMSmath.js", "AMSsymbols.js", "noErrors.js", "noUndefined.js"],
+			noErrors: {
+				inlineDelimiters: ["$","$"],
+				multiLine: true,
+				style: {
+					"font-size": "normal",
+					"border": "1px solid black"
+				}
+			},
+		},
+		jax: ["input/TeX", "output/HTML-CSS"],
+		tex2jax: {
+			displayMath: [ ['$$', '$$'] ],
+			inlineMath: [ ['$', '$'] ],
+			skipTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+			processEscapes: true
+		},
+		"HTML-CSS": {
+			availableFonts: ["STIX","TeX"],
+			showMathMenu: false
+		}
+	});
+	MathJax.Hub.Configured();
+};
+if (!!globalThis.MathJax) {
+	initMathJax();
+}

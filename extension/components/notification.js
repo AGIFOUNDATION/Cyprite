@@ -1,6 +1,14 @@
 const AnimationDuration = 500;
 const AvailableTypes = ['message', 'success', 'fail', 'warn', 'error', 'fetal'];
 const AvailablePositions = ['leftBottom', 'leftCenter', 'leftTop', 'middleBottom', 'middleCenter', 'middleTop', 'rightBottom', 'rightCenter', 'rightTop'];
+const DefaultDurations = {
+	"error": 10 * 1000,
+	"fail": 10 * 1000,
+	"warn": 7.5 * 1000,
+	"message": 5 * 1000,
+	"success": 3 * 1000,
+	'fetal': 15 * 1000,
+};
 
 const newNotification = (title, message, duration=3000, type, position) => {
 	if (!title && !message) return;
@@ -174,7 +182,12 @@ Notification.init = (outside=true) => {
 Notification.show = (title, message, position, type, duration) => {
 	if (!document.body) return;
 
-	var notify = newNotification(title, message, duration, type, position);
+	if (!(duration > 0)) {
+		let def = DefaultDurations[type];
+		if (!!def) duration = def;
+	}
+
+	const notify = newNotification(title, message, duration, type, position);
 	notify._onready = () => {
 		var box = notify.getBoundingClientRect();
 		var list = MessageList[notify._position];

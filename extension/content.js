@@ -51,7 +51,7 @@ var sendMessage = (event, data, target, tid, sender=PageName) => {
 
 		logger.info('Runtime', 'Runtime Reconnect: ' + runtimeID);
 		if (!chrome.runtime?.id && !!globalThis.Notification) {
-			Notification.show(messages.cypriteName, messages.refreshHint, 'rightTop', 'fetal', 10 * 1000);
+			Notification.show(messages.cypriteName, messages.refreshHint, 'rightTop', 'fetal');
 		}
 		port = chrome.runtime.connect(runtimeID, {name: "cyberbutler_contentscript"});
 		port.onDisconnect.addListener(onPortDisconnect);
@@ -371,7 +371,7 @@ const getPageInfo = async () => {
 	catch (err) {
 		logger.error('GetPageInfo', err);
 		err = err.message || err.msg || err.data || err.toString();
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 	}
 	if (!info.description) info.description = getPageDescription(info.isArticle, container);
 	logger.em('DOC', info);
@@ -413,7 +413,7 @@ const summarizePage = async (isRefresh=false) => {
 	}
 
 	var messages = I18NMessages[myLang] || I18NMessages[DefaultLang];
-	var notify = Notification.show(messages.cypriteName, messages.summarizeArticle.running, isRefresh ? "middleTop" : 'rightTop', 'message', 24 * 3600 * 1000);
+	var notify = Notification.show(messages.cypriteName, messages.summarizeArticle.running, isRefresh ? "middleTop" : 'rightTop', 'message', DurationForever);
 
 	var embedding, summary, usage;
 	try {
@@ -425,7 +425,7 @@ const summarizePage = async (isRefresh=false) => {
 		}
 	}
 	catch (err) {
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 	}
 	notify._hide();
 
@@ -444,7 +444,7 @@ const summarizePage = async (isRefresh=false) => {
 		showPageSummary(pageSummary);
 	}
 	else {
-		Notification.show(messages.cypriteName, messages.summarizeArticle.failed, 'rightTop', 'fail', 5 * 1000);
+		Notification.show(messages.cypriteName, messages.summarizeArticle.failed, 'rightTop', 'fail');
 		showPageSummary('');
 	}
 
@@ -468,7 +468,7 @@ const translatePage = async (isRefresh=false, lang, content, requirement) => {
 	}
 
 	var messages = I18NMessages[myLang] || I18NMessages.en;
-	var notify = Notification.show(messages.cypriteName, messages.translation.translatingArticle, isRefresh ? "middleTop" : 'rightTop', 'message', 24 * 3600 * 1000);
+	var notify = Notification.show(messages.cypriteName, messages.translation.translatingArticle, isRefresh ? "middleTop" : 'rightTop', 'message', DurationForever);
 
 	if (!lang) lang = myLang;
 	lang = LangName[lang] || lang;
@@ -484,7 +484,7 @@ const translatePage = async (isRefresh=false, lang, content, requirement) => {
 		translationInfo.translation = translation;
 	}
 	catch (err) {
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 	}
 
 	if (translation) await showTranslationResult(translation);
@@ -498,7 +498,7 @@ const translateSelection = async (selection) => {
 	if (!!UIList.ContentContainer) UIList.ContentContainer.innerHTML = '';
 
 	var messages = I18NMessages[myLang] || I18NMessages.en;
-	var notify = Notification.show(messages.cypriteName, messages.translation.translatingSelection, 'rightTop', 'message', 24 * 3600 * 1000);
+	var notify = Notification.show(messages.cypriteName, messages.translation.translatingSelection, 'rightTop', 'message', DurationForever);
 
 	var lang;
 	if (!!UIList.TranslationLanguage) {
@@ -528,7 +528,7 @@ const translateSelection = async (selection) => {
 		translation = translation.translation || '';
 	}
 	catch (err) {
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 	}
 
 	// Show UI
@@ -547,7 +547,7 @@ const checkPageNeedAI = async (page, path, host) => {
 		data = await askSWandWait('CheckPageNeedAI', {page, path, host});
 	}
 	catch (err) {
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 		return false;
 	}
 
@@ -564,7 +564,7 @@ const updatePageNeedAIInfo = async (page, path, host, need) => {
 		await askSWandWait('UpdatePageNeedAIInfo', {page, path, host, need});
 	}
 	catch (err) {
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 	}
 };
 
@@ -650,7 +650,7 @@ EventHandler.requestCypriteNotify = async (data) => {
 					}
 				}
 				catch (err) {
-					Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+					Notification.show(messages.cypriteName, err, "middleTop", 'error');
 				}
 			}
 			notify._hide();
@@ -707,7 +707,7 @@ EventHandler.onContextMenuAction = async (data) => {
 				}
 			}
 			catch (err) {
-				Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+				Notification.show(messages.cypriteName, err, "middleTop", 'error');
 			}
 		}
 		await summarizePage();
@@ -743,7 +743,7 @@ EventHandler.updateCurrentStatus = (msg) => {
 	const messages = I18NMessages[myLang] || I18NMessages[DefaultLang];
 	if (!!curerntStatusMention) curerntStatusMention._hide();
 	if (!!msg) {
-		if (!!globalThis.Notification && !!globalThis.Notification.show) curerntStatusMention = Notification.show(messages.cypriteName, msg, 'middleTop', 'mention', 24 * 3600 * 1000);
+		if (!!globalThis.Notification && !!globalThis.Notification.show) curerntStatusMention = Notification.show(messages.cypriteName, msg, 'middleTop', 'mention', DurationForever);
 	}
 	else {
 		curerntStatusMention = null;
@@ -814,7 +814,7 @@ const initArticleInfo = async () => {
 	}
 	catch (err) {
 		await waitForMountUtil('notification');
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 	}
 	if (!data) return;
 	pageSummary = data.description || pageSummary;

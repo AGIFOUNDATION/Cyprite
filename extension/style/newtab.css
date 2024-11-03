@@ -157,6 +157,9 @@ body {
 	filter: invert(0.6) sepia(1.0) hue-rotate(160deg) brightness(1.9);
 	cursor: pointer;
 }
+.panel_operation_area .content_container strategy {
+	display: none;
+}
 .panel_operation_area .content_container pre,
 .panel_operation_area .answer_panel pre {
 	margin-left: -8px;
@@ -678,6 +681,18 @@ body {
 }
 .panel_container ul.reference_area li.reference_item .reference_float .reference_float_title {
 	font-weight: bolder;
+}
+span.MathJax {
+	margin-left: 0.3em;
+	margin-right: 0.3em;
+}
+div.MathJax_Display span.MathJax {
+	margin-left: 0em;
+	margin-right: 0em;
+}
+.MathJax > nobr > span.math > span:empty {
+	visibility: hidden !important;
+	border-left: none !important;
 }
 img.fontawesome {
 	height: 1em;

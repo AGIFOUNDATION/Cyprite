@@ -7,6 +7,8 @@ globalThis.TagFreeCypriteConversation = "FREECYPRITECONVERSATION"
 globalThis.ForceServer = false;
 globalThis.TrialVersion = true;
 
+globalThis.DurationForever = 24 * 3600 * 1000;
+
 globalThis.DefaultLang = 'en';
 globalThis.i18nList = ['en', 'zh', 'fr', 'de', 'it', 'jp'];
 globalThis.LangName = {

@@ -15,10 +15,10 @@ const saveConfig = async () => {
 		chrome.storage.local.set(localInfo),
 		chrome.storage.sync.set(remoteInfo)
 	]);
-	
+
 	// Notify
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	Notification.show('', messages.configPage.configurationSaved, 'rightBottom', 'success', 3000);
+	Notification.show('', messages.configPage.configurationSaved, 'rightBottom', 'success');
 };
 ActionCenter.saveConfig = async (ele, config) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
@@ -58,22 +58,22 @@ ActionCenter.resetUsage = async () => {
 EventHandler.getWebSiteURLFailed = (msg) => {
 	if (!!msg.ok) return;
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	Notification.show('', messages.configPage.connectFailed, 'rightBottom', 'fail', 3000);
+	Notification.show('', messages.configPage.connectFailed, 'rightBottom', 'fail');
 };
 EventHandler.connectWSHost = async (data) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	if (!data || !data.ok) {
-		Notification.show('', messages.configPage.wsConnectFailed, 'rightBottom', 'fail', 5000);
+		Notification.show('', messages.configPage.wsConnectFailed, 'rightBottom', 'fail');
 	}
 	else {
 		await chrome.storage.local.set({ wsHost: data.wsHost });
 		if (!data.wsHost) {
 			console.log('[WS] Use Edged Knowledge Vault.');
-			Notification.show('', messages.configPage.useEdgedVault, 'rightBottom', 'warn', 5000);
+			Notification.show('', messages.configPage.useEdgedVault, 'rightBottom', 'warn');
 		}
 		else {
 			console.log('[WS] Connect Knowledge Vault: ' + data.wsHost);
-			Notification.show('', messages.configPage.wsConnected, 'rightBottom', 'success', 3000);
+			Notification.show('', messages.configPage.wsConnected, 'rightBottom', 'success');
 		}
 	}
 };
@@ -93,7 +93,7 @@ ActionCenter.saveConfigToFile = async () => {
 		},
 	});
 	if (!!saved) {
-		Notification.show('', messages.configPage.hintConfigurationSaved, 'middleTop', 'success', 2 * 1000);
+		Notification.show('', messages.configPage.hintConfigurationSaved, 'middleTop', 'success');
 	}
 };
 ActionCenter.loadConfigFromFile = async () => {
@@ -105,10 +105,10 @@ ActionCenter.loadConfigFromFile = async () => {
 			},
 		}, true);
 		if (json === null) return;
-	
+
 		if (!isObject(json)) {
 			const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-			Notification.show('', messages.configPage.hintReadConfigurationFailed, 'middleTop', 'error', 5 * 1000);
+			Notification.show('', messages.configPage.hintReadConfigurationFailed, 'middleTop', 'error');
 			return;
 		}
 		for (let key in myInfo) {
@@ -133,21 +133,21 @@ ActionCenter.loadConfigFromFile = async () => {
 	catch (err) {
 		logger.error('LoadConfigFile', err);
 		const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-		Notification.show('', messages.configPage.hintReadConfigurationFailed, 'middleTop', 'error', 5 * 1000);
+		Notification.show('', messages.configPage.hintReadConfigurationFailed, 'middleTop', 'error');
 	}
 };
 ActionCenter.turnShowTokenUsageOff = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	myInfo.showTokenUsage = false;
 	await chrome.storage.local.set({showTokenUsage: myInfo.showTokenUsage});
-	Notification.show('', messages.configPage.configurationSaved, 'rightBottom', 'success', 3000);
+	Notification.show('', messages.configPage.configurationSaved, 'rightBottom', 'success');
 	renderI18N('configPage');
 };
 ActionCenter.turnShowTokenUsageOn = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	myInfo.showTokenUsage = true;
 	await chrome.storage.local.set({showTokenUsage: myInfo.showTokenUsage});
-	Notification.show('', messages.configPage.configurationSaved, 'rightBottom', 'success', 3000);
+	Notification.show('', messages.configPage.configurationSaved, 'rightBottom', 'success');
 	renderI18N('configPage');
 };
 

@@ -217,7 +217,7 @@ UIAction.onChooseModel = async ({target}) => {
 	UIAction.updateModelList(model);
 
 	var messages = I18NMessages[myLang] || I18NMessages.en;
-	Notification.show(messages.cypriteName, messages.mentions.changeModelSuccess, 'middleTop', 'success', 2 * 1000);
+	Notification.show(messages.cypriteName, messages.mentions.changeModelSuccess, 'middleTop', 'success');
 };
 UIAction.onCloseMe = () => {
 	document.body.classList.remove('showCypritePanel');
@@ -242,7 +242,7 @@ const askCypriteOnPageContentAndConversation = async (question, messages) => {
 		}
 		catch (err) {
 			vector = undefined;
-			Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+			Notification.show(messages.cypriteName, err, "middleTop", 'error');
 		}
 	}
 
@@ -282,7 +282,7 @@ const askCypriteOnPageContentAndConversation = async (question, messages) => {
 		}
 	}
 	catch (err) {
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 	}
 
 	if (!result) result = messages.conversation.AIFailed;
@@ -298,7 +298,7 @@ UIAction.onQuickSend = async (evt) => {
 
 	const messages = I18NMessages[myLang] || I18NMessages.en;
 	UIList.QuickAccess.classList.remove('showDialogInputter');
-	var notification = Notification.show(messages.cypriteName, messages.thinkingHeartBeating, 'middleBottom', 'mention', 24 * 3600 * 1000);
+	var notification = Notification.show(messages.cypriteName, messages.thinkingHeartBeating, 'middleBottom', 'mention', DurationForever);
 
 	var result = await askCypriteOnPageContentAndConversation(question, messages);
 	result = parseMarkdownWithOutwardHyperlinks(UIList.QuickReplyContent, result, messages.conversation.AIFailed);
@@ -315,7 +315,7 @@ UIAction.onQuickSend = async (evt) => {
 			conversationVector.push(...vector);
 			if (conversationVector.length > ChatVectorLimit) conversationVector = conversationVector.splice(conversationVector.length - ChatVectorLimit, ChatVectorLimit);
 		}).catch((err) => {
-			Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+			Notification.show(messages.cypriteName, err, "middleTop", 'error');
 		});
 	}
 };
@@ -399,7 +399,7 @@ UIAction.onSendToCyprite = async () => {
 		catch (err) {
 			logger.error('OnSendToCyprite[Translate]', err);
 			err = err.message || err.msg || err.data || err.toString();
-			Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+			Notification.show(messages.cypriteName, err, "middleTop", 'error');
 		}
 		if (!result) result = messages.conversation.AIFailed;
 	}
@@ -423,17 +423,17 @@ UIAction.onSendToCyprite = async () => {
 			conversationVector.push(...vector);
 			if (conversationVector.length > ChatVectorLimit) conversationVector = conversationVector.splice(conversationVector.length - ChatVectorLimit, ChatVectorLimit);
 		}).catch((err) => {
-			Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+			Notification.show(messages.cypriteName, err, "middleTop", 'error');
 		});
 	}
 };
 UIAction.clearSummaryConversation = async () => {
 	if (runningAI) {
-		Notification.show(messages.cypriteName, messages.mentions.clearConversationWhileRunning, 'middleTop', 'warn', 2 * 1000);
+		Notification.show(messages.cypriteName, messages.mentions.clearConversationWhileRunning, 'middleTop', 'warn');
 		return;
 	}
 	askSWandWait('ClearSummaryConversation', location.href).catch((err) => {
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 	});
 	UIList.HistoryList.innerHTML = '';
 };
@@ -470,7 +470,7 @@ UIAction.copyReplyContent = async () => {
 	}
 	await navigator.clipboard.writeText(content);
 	var messages = I18NMessages[myLang] || I18NMessages.en;
-	Notification.show(messages.cypriteName, messages.mentions.contentCopied, 'middleTop', 'success', 2 * 1000);
+	Notification.show(messages.cypriteName, messages.mentions.contentCopied, 'middleTop', 'success');
 };
 UIAction.onEditContentTitle = async (evt) => {
 	if (evt.key !== 'Enter') return;
@@ -482,12 +482,12 @@ UIAction.onEditContentTitle = async (evt) => {
 	pageInfo.title = content;
 	try {
 		await askSWandWait('ChangePageTitle', {url: location.href, title: content});
-		Notification.show('', messages.fileManager.msgModifyingFileTitle, 'middleTop', 'success', 2 * 1000);
+		Notification.show('', messages.fileManager.msgModifyingFileTitle, 'middleTop', 'success');
 	}
 	catch (err) {
 		logger.error('EditContentTitle', err);
 		err = err.message || err.msg || err.data || err.toString();
-		Notification.show(messages.cypriteName, err, 'middleTop', 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, 'middleTop', 'error');
 	}
 };
 
@@ -560,7 +560,7 @@ const onCopyContent = async target => {
 	if (!content) content = getPageContent(target, true);
 	await navigator.clipboard.writeText(content);
 	var messages = I18NMessages[myLang] || I18NMessages.en;
-	Notification.show(messages.cypriteName, messages.mentions.contentCopied, 'middleTop', 'success', 2 * 1000);
+	Notification.show(messages.cypriteName, messages.mentions.contentCopied, 'middleTop', 'success');
 	UIList.Asker.focus();
 };
 const restoreHistory = conversation => {
@@ -585,7 +585,7 @@ const restoreConversation = async () => {
 		conversation = null;
 		logger.error('RestoreConversation', err);
 		err = err.message || err.msg || err.data || err.toString();
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 	}
 	return conversation;
 };
@@ -614,7 +614,7 @@ const normalVector = vectors => {
 const findRelativeArticles = async (messages) => {
 	if (!pageInfo) return [];
 
-	const notify = Notification.show('', messages.crossPageConv.statusFindingSimilarFiles, 'middleTop', 'message', 24 * 3600 * 1000);
+	const notify = Notification.show('', messages.crossPageConv.statusFindingSimilarFiles, 'middleTop', 'message', DurationForever);
 
 	// Get similar articles
 	var related, time = Date.now();
@@ -625,7 +625,7 @@ const findRelativeArticles = async (messages) => {
 		notify._hide();
 		logger.error('FindRelativeArticles', err);
 		err = err.message || err.msg || err.data || err.toString();
-		Notification.show(messages.cypriteName, err, "middleTop", 'error', 5 * 1000);
+		Notification.show(messages.cypriteName, err, "middleTop", 'error');
 		return [];
 	}
 	if (!!related.usage) showTokenUsage(related.usage);

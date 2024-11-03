@@ -158,7 +158,7 @@ const onChooseModel = async ({target}) => {
 	updateModelList(model);
 
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	Notification.show('', messages.mentions.changeModelSuccess, 'middleTop', 'success', 2 * 1000);
+	Notification.show('', messages.mentions.changeModelSuccess, 'middleTop', 'success');
 };
 const onInputFinish = (inputter, sender, frame) => {
 	var box = inputter.getBoundingClientRect();
@@ -475,7 +475,7 @@ const downloadConversation = async () => {
 		},
 	});
 	if (saved) {
-		Notification.show('', messages.crossPageConv.hintConversationDownloaded, 'middleTop', 'success', 2 * 1000);
+		Notification.show('', messages.crossPageConv.hintConversationDownloaded, 'middleTop', 'success');
 	}
 };
 const resizeCurrentInputter = () => {
@@ -600,10 +600,10 @@ const prepareXPageConv = async (request) => {
 	var needUpdateSP = false;
 	var articles = [...document.body.querySelectorAll('.panel_article_list .panel_article_list_item[selected]')];
 	// If the user has already selected some articles
-	if (articles.length > 0 && conversation.length > 0) {
+	if (articles.length > 0) {
 		articles = articles.map(item => item.url);
 		articles.sort((a, b) => a === b ? 0 : (a > b ? 1 : -1));
-		if (!compareTwoArrays(CurrentArticleList, articles)) {
+		if (conversation.length === 0 || !compareTwoArrays(CurrentArticleList, articles)) {
 			needUpdateSP = true;
 			CurrentArticleList.splice(0);
 			CurrentArticleList.push(...articles);
@@ -619,7 +619,7 @@ const prepareXPageConv = async (request) => {
 				items = [];
 				logger.error('GetArticleInfo', err);
 				err = err.message || err.msg || err.data || err.toString();
-				Notification.show('', err, "middleTop", 'error', 5 * 1000);
+				Notification.show('', err, "middleTop", 'error');
 			}
 			articles = items.map(item => {
 				return {
@@ -634,7 +634,7 @@ const prepareXPageConv = async (request) => {
 	else {
 		needUpdateSP = true;
 		// Search relative articles based on current topic
-		let notify = Notification.show('', messages.crossPageConv.statusFindingSimilarFiles, 'middleTop', 'message', 24 * 3600 * 1000);
+		let notify = Notification.show('', messages.crossPageConv.statusFindingSimilarFiles, 'middleTop', 'message', DurationForever);
 		try {
 			articles = await askAIandWait('selectArticlesAboutConversation', request);
 			updateUsage(usage, articles.usage);
@@ -660,7 +660,7 @@ const prepareXPageConv = async (request) => {
 			articles = [];
 			logger.error('SelectArticles', err);
 			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+			Notification.show('', err, "middleTop", 'error');
 		}
 		notify._hide();
 		let list = articles.map(item => item.url);
@@ -695,40 +695,61 @@ const prepareXPageConv = async (request) => {
 
 	return {conversation, usage};
 };
-const getDialogPair = (button) => {
-	var container = button.parentNode.parentNode, cid = container.getAttribute('chatID'), group = [], ids = [];
-	if (!cid) return;
-	if (container.classList.contains('human')) {
-		group.push(container);
-		ids.push(cid);
-		let ele = container.nextElementSibling;
-		if (!ele) return;
-		let id = ele.getAttribute('chatID');
-		if (!id) return;
-		group.push(ele);
-		ids.push(id);
-	}
-	else {
-		let ele = container.previousElementSibling;
-		if (!ele) return;
-		let id = ele.getAttribute('chatID');
-		if (!id) return;
-		group.push(ele);
-		ids.push(id);
-		group.push(container);
-		ids.push(cid);
-	}
+const getDialogPair = (button, conversation) => {
+	const container = button.parentNode.parentNode;
+	if (!container) return [[], []];
+	const cid = container.getAttribute('chatID');
+	if (!cid) return [[], []];
 
-	return [group, ids, container, cid];
+	var uis = [], ids = [];
+	conversation.some((item, i) => {
+		if (item[2] !== cid) return;
+
+		if (item[0] === 'human') {
+			ids.push(cid);
+			const next = conversation[i + 1];
+			if (!!next && next[0] === 'ai') {
+				let nid = next[2];
+				if (!nid) {
+					nid = newID();
+					next[2] = nid;
+				}
+				ids.push(nid);
+			}
+		}
+		else if (item[0] === 'ai') {
+			const prev = conversation[i - 1];
+			if (!!prev && prev[0] === 'human') {
+				let pid = prev[2];
+				if (!pid) {
+					pid = newID();
+					prev[2] = pid;
+				}
+				ids.push(pid);
+			}
+			ids.push(cid);
+		}
+		else {
+			return;
+		}
+
+		return true;
+	});
+	if (ids.length === 0) return [[], []];
+
+	uis = ids.map(id => container.parentNode.querySelector('.chat_item[chatid="' + id + '"]'));
+	if (ids.length !== uis.length) return [[], []];
+	return [ids, uis];
 };
 ActionCenter.downloadConversation = () => {
 	if (currentMode === 'crossPageConversation') {
 		downloadConversation();
 	}
-	else if (currentMode === 'intelligentSearch') {
-		if (!!searchRecord) {
-			dowloadAISearchRecord();
-		}
+	else if (currentMode === 'intelligentSearch' && !!searchRecord) {
+		dowloadAISearchRecord();
+	}
+	else if (currentMode === 'freelyConversation') {
+		downloadFreeConversation();
 	}
 };
 ActionCenter.saveConversation = () => {
@@ -748,11 +769,162 @@ ActionCenter.copyConversation = () => {
 EventHandler.updateCurrentStatus = (msg) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	if (!!curerntStatusMention) curerntStatusMention._hide();
-	if (!!msg) curerntStatusMention = Notification.show('', msg, 'middleTop', 'mention', 24 * 3600 * 1000);
+	if (!!msg) curerntStatusMention = Notification.show('', msg, 'middleTop', 'mention', DurationForever);
 	else curerntStatusMention = null;
 };
 EventHandler.finishFirstTranslation = (content) => {
 	addChatItem('instantTranslation', content, 'cyprite', null, true);
+};
+ActionCenter.deleteConversation = async (target, ui) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	if (running) {
+		Notification.show('', messages.mentions.actionWhileRunning, 'middleTop', 'warn');
+		return;
+	}
+
+	const mode = ui.frame.parentNode.getAttribute('group');
+	const conversationTag = (mode === 'crossPageConversation') ? (currentTabId + ':crosspageConv') : '';
+	if (!conversationTag) return;
+
+	const conversation = ((await chrome.storage.session.get(conversationTag)) || {})[conversationTag] || [];
+	if (!conversation.length) return;
+
+	const [cids, eles] = getDialogPair(target, conversation);
+	if (!cids.length) return;
+
+	eles.forEach(btn => btn.parentNode.removeChild(btn));
+
+	conversation = conversation.filter(item => !cids.includes(item[2]));
+	const data = {};
+	data[conversationTag] = conversation;
+	await chrome.storage.session.set(data);
+
+	Notification.show('', messages.crossPageConv.hintConversationDeleted, 'middleTop', 'success');
+};
+ActionCenter.reAnswerRequest = async (target, ui) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	if (running) {
+		Notification.show('', messages.mentions.actionWhileRunning, 'middleTop', 'warn');
+		return;
+	}
+
+	const mode = ui.frame.parentNode.getAttribute('group');
+	const conversationTag = (mode === 'crossPageConversation') ? (currentTabId + ':crosspageConv') : '';
+	if (!conversationTag) return;
+
+	const conversation = ((await chrome.storage.session.get(conversationTag)) || {})[conversationTag] || [];
+	if (!conversation.length) return;
+
+	const [cids, eles] = getDialogPair(target, conversation);
+	if (!cids.length || cids.length !== 2) return;
+
+	const tempConversation = [], usage = {};
+	conversation.some(item => {
+		tempConversation.push(item);
+		if (cids.includes(item[2])) {
+			return true;
+		}
+	});
+
+	running = true;
+	var result, notify;
+	notify = Notification.show('', messages.conversation.waitForAI, 'middleTop', 'message', DurationForever);
+	try {
+		result = await askAIandWait('directSendToAI', tempConversation);
+		updateUsage(usage, result.usage);
+		result = result.reply;
+	}
+	catch (err) {
+		result = null;
+		logger.error('CrossPageConversation', err);
+		err = err.message || err.msg || err.data || err.toString();
+		Notification.show('', err, "middleTop", 'error');
+	}
+	tempConversation.splice(0);
+	notify._hide();
+
+	if (!result) {
+		Notification.show('', messages.crossPageConv.hintRefreshFailed, 'middleTop', 'error');
+	}
+	else {
+		const contentPad = eles[1].querySelector('.chat_content');
+		const json = parseReplyAsXMLToJSON(result);
+		const reply = json.reply?._origin || json.reply || result;
+		parseMarkdownWithOutwardHyperlinks(contentPad, reply, messages.conversation.AIFailed);
+		contentPad._data = reply;
+
+		conversation.some(item => {
+			if (item[2] !== cids[1]) return;
+			item[1] = result;
+			return true;
+		});
+
+		const data = {};
+		data[conversationTag] = conversation;
+		await chrome.storage.session.set(data);
+		Notification.show('', messages.crossPageConv.hintRefreshSuccess, 'middleTop', 'success');
+	}
+	showTokenUsage(usage);
+	running = false;
+};
+ActionCenter.changeRequest = async (target, ui) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	if (running) {
+		Notification.show('', messages.mentions.actionWhileRunning, 'middleTop', 'warn');
+		return;
+	}
+
+	var container = target.parentNode.parentNode, cid = container.getAttribute('chatID');
+	var mode = ui.frame.parentNode.getAttribute('group');
+	if (mode === 'crossPageConversation') {
+		let gid = currentTabId + ':crosspageConv';
+		let conversation = await chrome.storage.session.get(gid);
+		conversation = (conversation || {})[gid];
+		if (!conversation) return;
+		let curr;
+		conversation.some(item => {
+			curr = item;
+			return item[2] === cid;
+		});
+
+		let editEvent = evt => {
+			var leave = false;
+			if (evt.key === 'Escape') {
+				contentPad.innerHTML = originContent;
+				leave = true;
+			}
+			else if (evt.key === 'Enter' && evt.ctrlKey) {
+				let content = getPageContent(contentPad);
+				if (!content) {
+					contentPad.innerHTML = originContent;
+				}
+				else {
+					parseMarkdownWithOutwardHyperlinks(contentPad, content);
+					contentPad._data = content;
+					curr[1] = content;
+					let item = {};
+					item[gid] = conversation;
+					chrome.storage.session.set(item).then(() => {
+						Notification.show('', messages.crossPageConv.hintChangeDialogSuccess, 'middleTop', 'success');
+					});
+				}
+				leave = true;
+			}
+			if (leave) {
+				contentPad.contentEditable = false;
+				contentPad.removeEventListener('keyup', editEvent);
+				notify._hide();
+			}
+		};
+		let contentPad = container.querySelector('.chat_content');
+		let originContent = contentPad.innerHTML;
+		contentPad.addEventListener('keyup', editEvent);
+		contentPad.innerText = contentPad._data;
+		contentPad.contentEditable = true;
+
+		let notify = Notification.show('', messages.crossPageConv.hintModifyContent, 'middleTop', 'mention', DurationForever);
+		contentPad.focus();
+	}
 };
 
 /* Free Cyprite */
@@ -782,6 +954,44 @@ const switchToFreeCyprite = async () => {
 		addChatItem('freelyConversation', content, type, item[2]);
 	});
 };
+const downloadFreeConversation = async () => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	const conversation = ((await chrome.storage.session.get(TagFreeCypriteConversation)) || {})[TagFreeCypriteConversation] || [];
+	if (conversation.length === 0) return;
+
+	const name = messages.newTab.crossPageConversation;
+	const model = myInfo.model;
+
+	var markdown = ["#\t" + name];
+	markdown.push('> AI: ' + model);
+	markdown.push('\n-----\n');
+
+	conversation.forEach(item => {
+		if (item[0] === 'human') {
+			markdown.push('##\t' + myInfo.name);
+		}
+		else if (item[0] === 'ai') {
+			markdown.push('##\t' + messages.cypriteName);
+		}
+		else {
+			return;
+		}
+		markdown.push(item[1]);
+		markdown.push('-----');
+	});
+	markdown = markdown.join('\n\n');
+
+	const saved = await saveContentToLocalFile(markdown, 'cyprite.md', {
+		description: 'Markdown',
+		accept: {
+			'text/markdown': ['.md'],
+		},
+	});
+	if (saved) {
+		Notification.show('', messages.crossPageConv.hintConversationDownloaded, 'middleTop', 'success');
+	}
+};
 
 /* AISearch */
 
@@ -789,7 +999,7 @@ var isAISearching = false;
 const WebpageReadLock = new PoolWaitLock(MaximumConcurrentWebpageReading);
 const searchWebPage = async (keywords, mention, logName) => {
 	logger.info('Search: ' + logName, keywords.join('; '));
-	var notify = Notification.show('', mention, 'middleTop', 'mention', 24 * 3600 * 1000);
+	var notify = Notification.show('', mention, 'middleTop', 'mention', DurationForever);
 
 	var results = {};
 	await Promise.all(keywords.map(async keyword => {
@@ -808,7 +1018,7 @@ const searchWebPage = async (keywords, mention, logName) => {
 				result = [];
 				logger.error('Search: ' + logName, err);
 				err = err.message || err.msg || err.data || err.toString();
-				Notification.show('', err, "middleTop", 'error', 5 * 1000);
+				Notification.show('', err, "middleTop", 'error');
 			}
 		}
 		else {
@@ -844,7 +1054,7 @@ const searchWebPage = async (keywords, mention, logName) => {
 	return final;
 };
 const searchByLLM = async (messages, quest) => {
-	var notify = Notification.show('', messages.aiSearch.hintCallingOtherLLMToSearch, 'middleTop', 'mention', 24 * 3600 * 1000);
+	var notify = Notification.show('', messages.aiSearch.hintCallingOtherLLMToSearch, 'middleTop', 'mention', DurationForever);
 	var timeused = Date.now();
 
 	var result = await getCachedInformation('LLMSearch', quest), usage = {};
@@ -880,7 +1090,7 @@ const searchByLLM = async (messages, quest) => {
 	return {result, usage};
 };
 const filterAndShowSearchRsult = async (resultSearch, searchResults, extraList, keywords, request, shouldFold=false, isFullAnalyze=false, messages) => {
-	var notify = Notification.show('', messages.aiSearch.msgFilteringWebPagesTask, 'middleTop', 'mention', 24 * 3600 * 1000), usage = {};
+	var notify = Notification.show('', messages.aiSearch.msgFilteringWebPagesTask, 'middleTop', 'mention', DurationForever), usage = {};
 
 	// Don't read file in front end
 	var readables = Object.values(searchResults).filter(item => {
@@ -917,7 +1127,7 @@ const filterAndShowSearchRsult = async (resultSearch, searchResults, extraList, 
 	return {webPages, usage};
 };
 const listAndReadArxivResult = async (frame, arxivResults, keywords, request, shouldFold=false, isFullAnalyze=false, messages) => {
-	var notify = Notification.show('', messages.aiSearch.msgReadingArxivSummary, 'middleTop', 'mention', 24 * 3600 * 1000), usage = {};
+	var notify = Notification.show('', messages.aiSearch.msgReadingArxivSummary, 'middleTop', 'mention', DurationForever), usage = {};
 
 	var webPages = Object.values(arxivResults);
 	if (webPages.length === 0) {
@@ -942,7 +1152,7 @@ const listAndReadArxivResult = async (frame, arxivResults, keywords, request, sh
 	return {webPages, usage};
 };
 const filterAndReadWikipediaResult = async (frame, wikipediaResults, keywords, request, shouldFold=false, isFullAnalyze=false, messages) => {
-	var notify = Notification.show('', messages.aiSearch.msgReadingWikipediaEntries, 'middleTop', 'mention', 24 * 3600 * 1000), usage = {};
+	var notify = Notification.show('', messages.aiSearch.msgReadingWikipediaEntries, 'middleTop', 'mention', DurationForever), usage = {};
 
 	// Filter Webpages
 	var webPages = await filterSearchResult(wikipediaResults, request, 10, messages);
@@ -1155,13 +1365,13 @@ const filterSearchResult = async (webPageList, request, limit, messages) => {
 		results = [];
 		logger.error('FindRelativePage', err);
 		err = err.message || err.msg || err.data || err.toString();
-		Notification.show('', err, "middleTop", 'error', 5 * 1000);
+		Notification.show('', err, "middleTop", 'error');
 	}
 
 	return {webPages: results, usage};
 };
 const readAndReplyWebpages = async (webPages, request, messages) => {
-	var notify = Notification.show('', messages.aiSearch.msgReadingWebPage, 'middleTop', 'mention', 24 * 3600 * 1000), usage = {};
+	var notify = Notification.show('', messages.aiSearch.msgReadingWebPage, 'middleTop', 'mention', DurationForever), usage = {};
 
 	await Promise.all(webPages.map(async (item, idx) => {
 		if (!item.url) return;
@@ -1220,7 +1430,7 @@ const readAndReplyWebpages = async (webPages, request, messages) => {
 				data = '';
 				logger.error('ReadWebPage', err);
 				err = err.message || err.msg || err.data || err.toString();
-				Notification.show('', err, "middleTop", 'error', 5 * 1000);
+				Notification.show('', err, "middleTop", 'error');
 			}
 			if (!!data) {
 				if (item.url.match(/arxiv\.org/i)) {
@@ -1268,7 +1478,7 @@ const readAndReplyWebpages = async (webPages, request, messages) => {
 };
 const replyOnWebpage = async (title, content, request) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	var notify = Notification.show('', messages.aiSearch.msgReadingArticle + title, 'middleTop', 'mention', 24 * 3600 * 1000);
+	var notify = Notification.show('', messages.aiSearch.msgReadingArticle + title, 'middleTop', 'mention', DurationForever);
 	var reply, usage = {};
 	try {
 		reply = await askAIandWait('raedAndReply', {content, request});
@@ -1281,7 +1491,7 @@ const replyOnWebpage = async (title, content, request) => {
 		reply = '';
 		logger.error('ReadPage&Reply', err);
 		err = err.message || err.msg || err.data || err.toString();
-		Notification.show('', err, "middleTop", 'error', 5 * 1000);
+		Notification.show('', err, "middleTop", 'error');
 	}
 	notify._hide();
 
@@ -1295,7 +1505,7 @@ const getSearchRequestList = async () => {
 	return history;
 };
 const analyzeSearchKeywords = async (messages, quest) => {
-	var notify = Notification.show('', messages.aiSearch.msgAnaylzeSearchTask, 'middleTop', 'mention', 24 * 3600 * 1000), usage = {};
+	var notify = Notification.show('', messages.aiSearch.msgAnaylzeSearchTask, 'middleTop', 'mention', DurationForever), usage = {};
 	var timeused = Date.now();
 
 	var result;
@@ -1412,7 +1622,7 @@ const searchWebpageFromInternet = async (messages, quest) => {
 	return [searchInfo, searchResult, usage];
 };
 const searchDocumentLocally = async (messages, quest) => {
-	var notify = Notification.show('', messages.aiSearch.msgSearchingLocalArticle, 'middleTop', 'mention', 24 * 3600 * 1000);
+	var notify = Notification.show('', messages.aiSearch.msgSearchingLocalArticle, 'middleTop', 'mention', DurationForever);
 	var articles, usage = {};
 	try {
 		articles = await askAIandWait('selectArticlesAboutConversation', quest);
@@ -1432,7 +1642,7 @@ const searchDocumentLocally = async (messages, quest) => {
 	return {articles, usage};
 };
 const searchInformationByKeywrods = async (messages, quest, shouldFold=false, isFull=false) => {
-	var notify = Notification.show('', messages.aiSearch.msgSearchingWebPagesTask, 'middleTop', 'mention', 24 * 3600 * 1000);
+	var notify = Notification.show('', messages.aiSearch.msgSearchingWebPagesTask, 'middleTop', 'mention', DurationForever);
 	var timeused = Date.now();
 
 	var usage = {}; // Token Usage
@@ -1587,7 +1797,7 @@ const replyQuestBySearchResult = async (messages, quest) => {
 	var readList = [...search, ...arxiv, ...wikipedia];
 	readList = readList.filter(item => !!item.summary);
 
-	var notify = Notification.show('', messages.aiSearch.msgAnswering, 'middleTop', 'mention', 24 * 3600 * 1000), answer, moreList;
+	var notify = Notification.show('', messages.aiSearch.msgAnswering, 'middleTop', 'mention', DurationForever), answer, moreList;
 	try {
 		answer = await askAIandWait('replyBasedOnSearch', {
 			request: quest,
@@ -1765,11 +1975,11 @@ const saveAISearchRecord = async () => {
 	try {
 		await askSWandWait('SaveAISearchRecord', {quest: searchRecord.quest, record: data});
 		logger.log('SaveSearchRecord', 'Quest Saved:', searchRecord.quest);
-		Notification.show('', messages.newTab.hintSaveSearchRecordSuccess, 'middleTop', 'success', 5 * 1000);
+		Notification.show('', messages.newTab.hintSaveSearchRecordSuccess, 'middleTop', 'success');
 	}
 	catch (err) {
 		logger.error('SaveSearchRecord', err);
-		Notification.show('', messages.newTab.hintSaveSearchRecordFailed, 'middleTop', 'error', 5 * 1000);
+		Notification.show('', messages.newTab.hintSaveSearchRecordFailed, 'middleTop', 'error');
 	}
 };
 const dowloadAISearchRecord = async () => {
@@ -1781,13 +1991,13 @@ const dowloadAISearchRecord = async () => {
 	});
 	if (saved) {
 		const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-		Notification.show('', messages.aiSearch.hintSearchRecordDownloaded, 'middleTop', 'success', 2 * 1000);
+		Notification.show('', messages.aiSearch.hintSearchRecordDownloaded, 'middleTop', 'success');
 	}
 };
 const copyAISearchRecord = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	await navigator.clipboard.writeText(generateSearchResultContent());
-	Notification.show('', messages.mentions.contentCopied, 'middleTop', 'success', 2 * 1000);
+	Notification.show('', messages.mentions.contentCopied, 'middleTop', 'success');
 };
 const hideAISearchPanel = () => {
 	[...document.body.querySelectorAll('[group="intelligentSearch"] .chat_item')].forEach(item => {
@@ -1816,7 +2026,7 @@ ActionCenter.startAISearch = async () => {
 
 	var content = getPageContent(aiSearchInputter, true);
 	if (!content) {
-		Notification.show('', messages.aiSearch.msgEmptyRequest, 'middleTop', 'warn', 5 * 1000);
+		Notification.show('', messages.aiSearch.msgEmptyRequest, 'middleTop', 'warn');
 		isAISearching = false;
 		return;
 	}
@@ -1906,11 +2116,11 @@ ActionCenter.loadSearchRecord = async (host, data, evt) => {
 		try {
 			await askSWandWait('DeleteAISearchRecord', quest);
 			ele.parentNode.removeChild(ele);
-			Notification.show('', messages.newTab.hintDeleteSearchRecordSuccess, 'middleTop', 'success', 5 * 1000);
+			Notification.show('', messages.newTab.hintDeleteSearchRecordSuccess, 'middleTop', 'success');
 		}
 		catch (err) {
 			logger.error('LoadSearchRecord', err);
-			Notification.show('', messages.newTab.hintDeleteSearchRecordFailed, 'middleTop', 'error', 5 * 1000);
+			Notification.show('', messages.newTab.hintDeleteSearchRecordFailed, 'middleTop', 'error');
 		}
 	}
 	// Load Record
@@ -1924,7 +2134,7 @@ ActionCenter.loadSearchRecord = async (host, data, evt) => {
 		}
 		catch (err) {
 			logger.error('LoadAISearchRecord', err);
-			Notification.show('', messages.newTab.hintLoadSearchRecordFailed, 'middleTop', 'error', 5 * 1000);
+			Notification.show('', messages.newTab.hintLoadSearchRecordFailed, 'middleTop', 'error');
 			return;
 		}
 		searchRecord = info;
@@ -1987,7 +2197,7 @@ ActionCenter.loadSearchRecord = async (host, data, evt) => {
 EventHandler.updateDeepThinkingStatus = (msg) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	if (!!ntfDeepThinking) ntfDeepThinking._hide();
-	ntfDeepThinking = Notification.show('', msg, 'middleTop', 'mention', 24 * 3600 * 1000);
+	ntfDeepThinking = Notification.show('', msg, 'middleTop', 'mention', DurationForever);
 };
 ActionCenter.switchFold = (host, data, evt) => {
 	if (!evt) return;
@@ -2246,7 +2456,7 @@ const getArticleList = async (onlyCached, isLastVisit, filterCondition) => {
 			cachedArticleList = [];
 			logger.error('GetArticleList', err);
 			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+			Notification.show('', err, "middleTop", 'error');
 		}
 	}
 
@@ -2264,7 +2474,7 @@ const loadFileList = async (filterCondition) => {
 	var container = document.body.querySelector('.articleManagerFileList');
 	container.innerHTML = '';
 
-	var notify = Notification.show('', messages.fileManager.loadingList, 'middleTop', 'message', 24 * 3600 * 1000);
+	var notify = Notification.show('', messages.fileManager.loadingList, 'middleTop', 'message', DurationForever);
 	var list = await getArticleList(false, orderType === 'lastVisit', filterCondition);
 	list.forEach(item => {
 		var li = newEle('li', 'file_item');
@@ -2324,7 +2534,7 @@ const onClickFileItemOperator = async ({target}) => {
 		catch (err) {
 			logger.error('RemovePageInfo', err);
 			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+			Notification.show('', err, "middleTop", 'error');
 		}
 		container.parentNode.removeChild(container);
 	}
@@ -2345,14 +2555,14 @@ const onClickFileItemOperator = async ({target}) => {
 				let title = link.textContent.trim();
 				link.innerText = title;
 				let messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-				let notify = Notification.show('', messages.fileManager.msgModifyingFileTitle, 'middleTop', 'message', 24 * 3600 * 1000);
+				let notify = Notification.show('', messages.fileManager.msgModifyingFileTitle, 'middleTop', 'message', DurationForever);
 				try {
 					await askSWandWait('ChangePageTitle', {url, title});
 				}
 				catch (err) {
 					logger.error('ChangePageTitle', err);
 					err = err.message || err.msg || err.data || err.toString();
-					Notification.show('', err, "middleTop", 'error', 5 * 1000);
+					Notification.show('', err, "middleTop", 'error');
 				}
 				link.innerText = title;
 				notify._hide();
@@ -2389,14 +2599,14 @@ ActionCenter.refreshFileList = async () => {
 };
 ActionCenter.removeUncached = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	var notify = Notification.show('', messages.fileManager.loadingList, 'middleTop', 'message', 24 * 3600 * 1000);
+	var notify = Notification.show('', messages.fileManager.loadingList, 'middleTop', 'message', DurationForever);
 	try {
 		await askSWandWait('RemovePageInfos');
 	}
 	catch (err) {
 		logger.error('RemoveUncached', err);
 		err = err.message || err.msg || err.data || err.toString();
-		Notification.show('', err, "middleTop", 'error', 5 * 1000);
+		Notification.show('', err, "middleTop", 'error');
 	}
 	notify._hide();
 	await loadFileList();
@@ -2428,7 +2638,7 @@ ActionCenter.gotoConfig = () => {
 ActionCenter.clearConversation = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	if (running) {
-		Notification.show('', messages.mentions.clearConversationWhileRunning, 'middleTop', 'warn', 2 * 1000);
+		Notification.show('', messages.mentions.clearConversationWhileRunning, 'middleTop', 'warn');
 		return;
 	}
 
@@ -2528,7 +2738,7 @@ ActionCenter.sendMessage = async (button) => {
 			result = null;
 			logger.error('CrossPageConversation', err);
 			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+			Notification.show('', err, "middleTop", 'error');
 		}
 		conversation.pop();
 		if (!!result) {
@@ -2561,7 +2771,7 @@ ActionCenter.sendMessage = async (button) => {
 			result = null;
 			logger.error('InstantTranslate', err);
 			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+			Notification.show('', err, "middleTop", 'error');
 		}
 	}
 	else if (target === 'intelligentSearch') {
@@ -2582,7 +2792,7 @@ ActionCenter.sendMessage = async (button) => {
 			result = null;
 			logger.error("IntelligentSearch", err);
 			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+			Notification.show('', err, "middleTop", 'error');
 		}
 		console.log('AISEARCH GOT REPLY:', result);
 		conversation.pop();
@@ -2611,7 +2821,7 @@ ActionCenter.sendMessage = async (button) => {
 			result = null;
 			logger.error('FreeCyprite', err);
 			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
+			Notification.show('', err, "middleTop", 'error');
 		}
 		if (!!result) {
 			conversation.push(['ai', result]);
@@ -2651,142 +2861,8 @@ ActionCenter.copyContent = async (target, ui) => {
 	if (!content) content = getPageContent(target, true);
 	await navigator.clipboard.writeText(content);
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	Notification.show('', messages.mentions.contentCopied, 'middleTop', 'success', 2 * 1000);
+	Notification.show('', messages.mentions.contentCopied, 'middleTop', 'success');
 	ui.inputter.focus();
-};
-ActionCenter.deleteConversation = async (target, ui) => {
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	if (running) {
-		Notification.show('', messages.mentions.actionWhileRunning, 'middleTop', 'warn', 2 * 1000);
-		return;
-	}
-
-	var [group, ids] = getDialogPair(target);
-	var mode = ui.frame.parentNode.getAttribute('group');
-	if (mode === 'crossPageConversation') {
-		let gid = currentTabId + ':crosspageConv';
-		let conversation = await chrome.storage.session.get(gid);
-		conversation = (conversation || {})[gid];
-		if (!conversation) return;
-		conversation = conversation.filter(item => !ids.includes(item[2]));
-		group.forEach(item => item.parentNode.removeChild(item));
-		let item = {};
-		item[gid] = conversation;
-		await chrome.storage.session.set(item);
-		Notification.show('', messages.crossPageConv.hintConversationDeleted, 'middleTop', 'success', 2 * 1000);
-	}
-};
-ActionCenter.reAnswerRequest = async (target, ui) => {
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	if (running) {
-		Notification.show('', messages.mentions.actionWhileRunning, 'middleTop', 'warn', 2 * 1000);
-		return;
-	}
-
-	var [group, ids] = getDialogPair(target);
-	var mode = ui.frame.parentNode.getAttribute('group'), usage = {};
-	if (mode === 'crossPageConversation') {
-		let gid = currentTabId + ':crosspageConv';
-		let conversation = await chrome.storage.session.get(gid);
-		conversation = (conversation || {})[gid];
-		if (!conversation) return;
-		let temp = [], next;
-		conversation.some((item, i) => {
-			temp.push(item);
-			next = conversation[i + 1];
-			return ids.includes(item[2]);
-		});
-		if (!next) return;
-		running = true;
-		let result, notify;
-		notify = Notification.show('', messages.conversation.waitForAI, 'middleTop', 'message', 24 * 3600 * 1000);
-		try {
-			result = await askAIandWait('directSendToAI', temp);
-			updateUsage(usage, result.usage);
-			result = result.reply;
-		}
-		catch (err) {
-			result = null;
-			logger.error('CrossPageConversation', err);
-			err = err.message || err.msg || err.data || err.toString();
-			Notification.show('', err, "middleTop", 'error', 5 * 1000);
-		}
-		notify._hide();
-		if (!result) {
-			Notification.show('', messages.crossPageConv.hintRefreshFailed, 'middleTop', 'error', 2 * 1000);
-		}
-		else {
-			next[1] = result;
-			let contentPad = group[1].querySelector('.chat_content');
-			parseMarkdownWithOutwardHyperlinks(contentPad, result, messages.conversation.AIFailed);
-			contentPad._data = result;
-			let item = {};
-			item[gid] = conversation;
-			await chrome.storage.session.set(item);
-			Notification.show('', messages.crossPageConv.hintRefreshSuccess, 'middleTop', 'success', 2 * 1000);
-		}
-		running = false;
-	}
-	showTokenUsage(usage);
-};
-ActionCenter.changeRequest = async (target, ui) => {
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
-	if (running) {
-		Notification.show('', messages.mentions.actionWhileRunning, 'middleTop', 'warn', 2 * 1000);
-		return;
-	}
-
-	var container = target.parentNode.parentNode, cid = container.getAttribute('chatID');
-	var mode = ui.frame.parentNode.getAttribute('group');
-	if (mode === 'crossPageConversation') {
-		let gid = currentTabId + ':crosspageConv';
-		let conversation = await chrome.storage.session.get(gid);
-		conversation = (conversation || {})[gid];
-		if (!conversation) return;
-		let curr;
-		conversation.some(item => {
-			curr = item;
-			return item[2] === cid;
-		});
-
-		let editEvent = evt => {
-			var leave = false;
-			if (evt.key === 'Escape') {
-				contentPad.innerHTML = originContent;
-				leave = true;
-			}
-			else if (evt.key === 'Enter' && evt.ctrlKey) {
-				let content = getPageContent(contentPad);
-				if (!content) {
-					contentPad.innerHTML = originContent;
-				}
-				else {
-					parseMarkdownWithOutwardHyperlinks(contentPad, content);
-					contentPad._data = content;
-					curr[1] = content;
-					let item = {};
-					item[gid] = conversation;
-					chrome.storage.session.set(item).then(() => {
-						Notification.show('', messages.crossPageConv.hintChangeDialogSuccess, 'middleTop', 'success', 2 * 1000);
-					});
-				}
-				leave = true;
-			}
-			if (leave) {
-				contentPad.contentEditable = false;
-				contentPad.removeEventListener('keyup', editEvent);
-				notify._hide();
-			}
-		};
-		let contentPad = container.querySelector('.chat_content');
-		let originContent = contentPad.innerHTML;
-		contentPad.addEventListener('keyup', editEvent);
-		contentPad.innerText = contentPad._data;
-		contentPad.contentEditable = true;
-
-		let notify = Notification.show('', messages.crossPageConv.hintModifyContent, 'middleTop', 'mention', 24 * 3600 * 1000);
-		contentPad.focus();
-	}
 };
 ActionCenter.onOperateSearchResult = async (target, ui, evt) => {
 	if (!evt) return;

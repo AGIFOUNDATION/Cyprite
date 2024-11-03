@@ -1375,6 +1375,7 @@ const fileterArticleByCategoryAndKeyword = (allArticles, category, keywords, key
 const searchRelativeArticles = async (options, prompt, related) => {
 	const usage = {}
 	options.articles = [];
+	related = related || [];
 
 	// Assemble article list
 	const articleMap = {};

@@ -9,6 +9,9 @@
 <link rel="stylesheet" href="../components/notification.css">
 <link rel="stylesheet" href="../style/newtab.css">
 <script src="../components/marked.min.js"></script>
+<script src="../components/MathJax2.5/MathJax.js?config=TeX-AMS_HTML&delayStartupUntil=configured"></script>
+<script src="../components/MathJax2.5/extensions/TeX/noErrors.js"></script>
+<script src="../components/MathJax2.5/extensions/TeX/noUndefined.js"></script>
 <script src="../script/i18n.js"></script>
 <script src="../script/ai/config.js"></script>
 <script src="../script/common.js"></script>
@@ -31,13 +34,13 @@
 			<div class="panel_tab" titlePath="newTab.articleManager" showGroup="articleManager"></div>
 			<div class="panel_tab" titlePath="newTab.intelligentSearch" showGroup="intelligentSearch"></div>
 			<div class="panel_tab" titlePath="newTab.crossPageConversation" showGroup="crossPageConversation"></div>
-			<div class="panel_tab" titlePath="newTab.freelyConversation" showGroup="freelyConversation" needFullVersion="true" versionAction="invalid"></div>
+			<div class="panel_tab" titlePath="newTab.freelyConversation" showGroup="freelyConversation"></div>
 			<div class="panel_tab" titlePath="newTab.instantTranslation" showGroup="instantTranslation"></div>
 
 			<div class="panel_button" hintPath="newTab.cleanConversation" group="crossPageConversation|freelyConversation|instantTranslation|intelligentSearch" action="clearConversation">
 				<img src="../images/eraser.svg">
 			</div>
-			<div class="panel_button" hintPath="newTab.downloadConversation" group="crossPageConversation|intelligentSearch" action="downloadConversation">
+			<div class="panel_button" hintPath="newTab.downloadConversation" group="crossPageConversation|intelligentSearch|freelyConversation" action="downloadConversation">
 				<img src="../images/download.svg">
 			</div>
 			<div class="panel_button" hintPath="newTab.saveConversation" group="intelligentSearch" action="saveConversation">
