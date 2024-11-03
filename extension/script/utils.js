@@ -1,5 +1,5 @@
 const i18nList = ['en', 'zh', 'fr', 'de', 'jp', 'it'];
-const myInfo = {};
+globalThis.myInfo = {};
 
 const ActionCenter = {};
 const EventHandler = {};

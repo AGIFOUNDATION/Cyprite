@@ -392,12 +392,21 @@ const savePageActivities = async (url, duration, title, closed) => {
 /* Infos */
 
 const convertPageInfoToRecord = (info, old) => {
+	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+	console.log(info, old);
 	old = old || {};
 	var item = old;
 	item.title = info.title || old.title;
 	item.url = info.url || old.url;
 	item.isLocal = !!info.isLocal;
-	item.isCached = !!info.url && (!!info.isLocal || (!!info.content && !!info.hash && !!info.embedding));
+	item.isCached = !!info.url && (!!info.isLocal || !!info.content);
+	console.log(!!info.content, info.hash, info.embedding, item.isCached);
 	item.duration = info.totalDuration || old.totalDuration || 0;
 	if (!info.timestamp) {
 		item.lastVisit = Date.now();
@@ -422,28 +431,35 @@ const getPageInfo = async url => {
 	}
 
 	url = parseURL(url);
-	var info = TabInfo[url];
+	if (!DBs.pageInfo) await initDB();
+	var info = await DBs.pageInfo.get('pageInfo', url);
+	logger.log('DB[PageInfo]', 'Get Page Info: ' + url);
 	if (!info) {
-		if (!DBs.pageInfo) await initDB();
-		info = await DBs.pageInfo.get('pageInfo', url);
-		logger.log('DB[PageInfo]', 'Get Page Info: ' + url);
-		if (!info) {
-			info = {
-				totalDuration: 0,
-				viewed: 0,
-			};
-		}
+		info = {
+			totalDuration: 0,
+			viewed: 0,
+		};
 	}
 	return info;
 };
 const setPageInfo = async (url, info, immediately=false) => {
 	if (url.match(/^chrome/i)) return;
-
-	info.url = url;
-	var key = parseURL(url);
 	if (!!DBs.tmrPageInfos) {
 		clearTimeout(DBs.tmrPageInfos);
 	}
+
+	info.url = url;
+	var key = parseURL(url);
+	if (!DBs.pageInfo) await initDB();
+	var data = await DBs.pageInfo.get('pageInfo', key);
+	if (!data) data = {};
+	for (let key in info) {
+		let value = info[key];
+		if (value === null || value === undefined) continue;
+		data[key] = value;
+	}
+	info = data;
+
 	if (immediately) {
 		delete DBs.tmrPageInfos;
 		if (!DBs.pageInfo) await initDB();
@@ -906,6 +922,12 @@ EventHandler.SavePageSummary = async (data, source, sid) => {
 	pageInfo.embedding = data.embedding || pageInfo.embedding;
 	pageInfo.category = data.category || [];
 	pageInfo.keywords = data.keywords || [];
+	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+	console.log(pageInfo);
 
 	await Promise.all([
 		setTabInfo(sid, tabInfo),
@@ -1366,7 +1388,7 @@ const fileterArticleByCategoryAndKeyword = (allArticles, category, keywords, key
 			related.push(item);
 		}
 	});
-	if (!related || !related.length) return {list: [], usage: {}};
+	if (!related || !related.length) return [];
 	related.sort((a, b) => b.score - a.score);
 	if (related.length > RelatedLimit) related.splice(RelatedLimit);
 
@@ -1375,7 +1397,7 @@ const fileterArticleByCategoryAndKeyword = (allArticles, category, keywords, key
 const searchRelativeArticles = async (options, prompt, related) => {
 	const usage = {}
 	options.articles = [];
-	related = related || [];
+	related = isArray(related) ? related : [];
 
 	// Assemble article list
 	const articleMap = {};
@@ -1422,6 +1444,11 @@ EventHandler.SearchSimilarArticleForCurrentPage = async (url) => {
 		DBs.pageInfo.get('pageInfo', key),
 		chrome.storage.local.get(TagArticleList),
 	]);
+	if (!articleInfo) {
+		articleInfo = {
+			content: "(No Content)",
+		};
+	}
 	articleInfo.keywords = articleInfo.keywords || [];
 	articleInfo.category = articleInfo.category || [];
 	allArticles = (allArticles || {})[TagArticleList];

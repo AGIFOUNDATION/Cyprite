@@ -72,6 +72,25 @@ const generateAIPanel = async (messages) => {
 	mountPage(messages);
 	UIList.TranslationLanguage.value = LangName[myLang] || myLang;
 	generateTranslationExtraRequirementPanel();
+	[...document.body.querySelectorAll('.panel_title_editor')].forEach(ele => {
+		ele.addEventListener('paste', evt => {
+			evt.preventDefault();
+
+			var html = evt.clipboardData.getData('text/html');
+			var text = evt.clipboardData.getData('text/plain') || evt.clipboardData.getData('text');
+		
+			var content;
+			if (!!html) {
+				content = getPageContent(html, true);
+			}
+			else {
+				content = text;
+			}
+			if (!content) return;
+		
+			document.execCommand('insertText', false, content);
+		});
+	});
 
 	document.body.appendChild(UIList.Container);
 };

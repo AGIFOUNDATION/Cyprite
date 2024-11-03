@@ -225,14 +225,8 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 };
 
 const showTokenUsage = (usage, isLeft=false) => {
-	try {
-		if (!myInfo) return;
-		if (!myInfo.showTokenUsage) return;
-	}
-	catch (err) {
-		logger.error('ShowTokenUsage', err);
-		return;
-	}
+	if (!globalThis.myInfo) return;
+	if (!myInfo.showTokenUsage) return;
 	var html = '', count = 0;
 	for (let key in usage) {
 		count ++;
