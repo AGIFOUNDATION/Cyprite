@@ -392,21 +392,12 @@ const savePageActivities = async (url, duration, title, closed) => {
 /* Infos */
 
 const convertPageInfoToRecord = (info, old) => {
-	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
-	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
-	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
-	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
-	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
-	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
-	console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
-	console.log(info, old);
 	old = old || {};
 	var item = old;
 	item.title = info.title || old.title;
 	item.url = info.url || old.url;
 	item.isLocal = !!info.isLocal;
 	item.isCached = !!info.url && (!!info.isLocal || !!info.content);
-	console.log(!!info.content, info.hash, info.embedding, item.isCached);
 	item.duration = info.totalDuration || old.totalDuration || 0;
 	if (!info.timestamp) {
 		item.lastVisit = Date.now();
@@ -922,12 +913,6 @@ EventHandler.SavePageSummary = async (data, source, sid) => {
 	pageInfo.embedding = data.embedding || pageInfo.embedding;
 	pageInfo.category = data.category || [];
 	pageInfo.keywords = data.keywords || [];
-	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-	console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-	console.log(pageInfo);
 
 	await Promise.all([
 		setTabInfo(sid, tabInfo),
@@ -1303,7 +1288,6 @@ EventHandler.RemovePageInfos = async () => {
 		chrome.storage.local.get(TagArticleList),
 	]);
 	cache = (cache || {})[TagArticleList] || [];
-	console.log(list, cache);
 	var targets = [];
 	for (let key in list) {
 		let item = list[key];
@@ -1315,7 +1299,6 @@ EventHandler.RemovePageInfos = async () => {
 		if (item.isCached) return;
 		if (!targets.includes(item.url)) targets.push(item.url);
 	});
-	console.log(targets);
 	await delPageInfo(targets, true);
 };
 EventHandler.ChangePageTitle = async (data) => {

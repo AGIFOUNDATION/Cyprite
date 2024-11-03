@@ -5,6 +5,7 @@ import "./ai/claude.js";
 import "./ai/groq.js";
 
 const ResMap = new Map();
+const EnableEmbedding = false;
 const EmbeddingLimit = 2024;
 const embedAIModel = ForceServer ? () => {} : AI.Gemini.embed;
 
@@ -337,6 +338,11 @@ EdgedAI.summarizeArticle = async (tid, article) => {
 	callEdgeAI(tid, [['human', prompt]]);
 };
 EdgedAI.embeddingArticle = async (tid, data) => {
+	if (!EnableEmbedding) {
+		replyRequest(tid, []);
+		return;
+	}
+
 	var batch = [];
 	var content = data.article || data.summary;
 	if (content.length > EmbeddingLimit) {
