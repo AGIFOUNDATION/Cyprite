@@ -185,6 +185,35 @@ const onContentPaste = evt => {
 
 	document.execCommand('insertText', false, content);
 };
+const switchAIMode = (isNext) => {
+	var idx = -1;
+	const allTabs = [...document.body.querySelectorAll('.panel_tab[showGroup]')].filter(tab => !tab.classList.contains('invalid') && !!tab.getAttribute('showGroup'));
+	allTabs.some((tab, i) => {
+		const tabName = tab.getAttribute('showGroup');
+		if (tabName !== currentMode) return;
+		idx = i;
+		tab.classList.remove('active');
+		if (tabName === 'crossPageConversation') {
+			const container = document.body.querySelector('.panel_container');
+			if (!!container) {
+				container.removeAttribute('showMask');
+				container.removeAttribute('showArticleList');
+			}
+		}
+		return true;
+	});
+	if (idx < 0) return false;
+	if (isNext) {
+		idx ++;
+		if (idx >= allTabs.length) idx = 0;
+	}
+	else {
+		idx --;
+		if (idx < 0) idx = allTabs.length - 1;
+	}
+	changeTab(allTabs[idx].getAttribute('showGroup'));
+	return true;
+};
 const onSelectReference = ({target}) => {
 	if (target.tagName !== 'LI') return;
 	if (!target.classList.contains('reference_item')) return;
@@ -2041,6 +2070,40 @@ const hideAISearchPanel = () => {
 	document.body.querySelector('.search_history').style.display = 'none';
 	document.body.querySelector('.search_records').style.display = 'none';
 };
+const switchSearchMode = (isNext) => {
+	var idx = SearchModeOrderList.indexOf(myInfo.searchMode);
+	if (idx < 0) return false;
+
+	aiSearchInputter.parentNode.querySelector('.mode_chooser > li[checked="true"]').removeAttribute('checked');
+	if (isNext) {
+		idx ++;
+		if (idx >= SearchModeOrderList.length) idx = 0;
+	}
+	else {
+		idx --;
+		if (idx < 0) idx = SearchModeOrderList.length - 1;
+	}
+	while (true) {
+		let mode = SearchModeOrderList[idx];
+		ele = aiSearchInputter.parentNode.querySelector('.mode_chooser > li[mode="' + mode + '"]:not([disabled="true"])');
+		if (!!ele) {
+			myInfo.searchMode = mode;
+			chrome.storage.local.set({searchMode: mode});
+			ele.setAttribute('checked', 'true');
+			break;
+		}
+		if (isNext) {
+			idx ++;
+			if (idx >= SearchModeOrderList.length) idx = 0;
+		}
+		else {
+			idx --;
+			if (idx < 0) idx = SearchModeOrderList.length - 1;
+		}
+	}
+
+	return true;
+};
 ActionCenter.changeMode = async (button) => {
 	var mode = isString(button) ? button : button.getAttribute('mode');
 	var ele = aiSearchInputter.parentNode.querySelector('.mode_chooser > li[checked]');
@@ -3057,43 +3120,12 @@ const init = async () => {
 			} catch {}
 		}
 		else if (evt.altKey) {
-			if (evt.key === 'ArrowLeft') {
-				let idx = SearchModeOrderList.indexOf(myInfo.searchMode);
-				if (idx < 0) return;
-				handled = true;
-				aiSearchInputter.parentNode.querySelector('.mode_chooser > li[checked="true"]').removeAttribute('checked');
-				idx ++;
-				while (true) {
-					let mode = SearchModeOrderList[idx];
-					ele = aiSearchInputter.parentNode.querySelector('.mode_chooser > li[mode="' + mode + '"]:not([disabled="true"])');
-					if (!!ele) {
-						myInfo.searchMode = mode;
-						chrome.storage.local.set({searchMode: mode});
-						ele.setAttribute('checked', 'true');
-						break;
-					}
-					idx ++;
-					if (idx >= SearchModeOrderList.length) idx = 0;
+			if (!evt.ctrlKey) {
+				if (evt.key === 'ArrowLeft') {
+					handled = switchSearchMode(true);
 				}
-			}
-			else if (evt.key === 'ArrowRight') {
-				let idx = SearchModeOrderList.indexOf(myInfo.searchMode);
-				if (idx < 0) return;
-				handled = true;
-				aiSearchInputter.parentNode.querySelector('.mode_chooser > li[checked="true"]').removeAttribute('checked');
-				idx --;
-				if (idx < 0) idx = SearchModeOrderList.length - 1;
-				while (true) {
-					let mode = SearchModeOrderList[idx];
-					ele = aiSearchInputter.parentNode.querySelector('.mode_chooser > li[mode="' + mode + '"]:not([disabled="true"])');
-					if (!!ele) {
-						myInfo.searchMode = mode;
-						chrome.storage.local.set({searchMode: mode});
-						ele.setAttribute('checked', 'true');
-						break;
-					}
-					idx --;
-					if (idx < 0) idx = SearchModeOrderList.length - 1;
+				else if (evt.key === 'ArrowRight') {
+					handled = switchSearchMode(false);
 				}
 			}
 		}
@@ -3104,9 +3136,25 @@ const init = async () => {
 		}
 	});
 	document.body.querySelector('.articleManagerFileList').addEventListener('click', onClickFileItemOperator);
-	document.body.addEventListener('keyup', evt => {
-		if (evt.key !== 'Escape') return;
-		ActionCenter.closeReference();
+	document.addEventListener('keyup', evt => {
+		var handled = false;
+		if (evt.key === 'Escape') {
+			ActionCenter.closeReference();
+			handled = true;
+		}
+		else if (evt.ctrlKey && evt.altKey) {
+			if (evt.key === 'ArrowLeft') {
+				handled = switchAIMode(false);
+			}
+			else if (evt.key === 'ArrowRight') {
+				handled = switchAIMode(true);
+			}
+		}
+		if (handled) {
+			evt.preventDefault();
+			evt.stopPropagation();
+			evt.cancelBubble = true;
+		}
 	});
 
 
@@ -3129,9 +3177,7 @@ const init = async () => {
 
 	var tab = await chrome.tabs.getCurrent();
 	currentTabId = tab.id;
-	var mode = await chrome.storage.session.get(currentTabId + ':mode');
-	mode = mode[currentTabId + ':mode'] || DefaultPanel;
-	changeTab(mode);
+	changeTab(DefaultPanel);
 	if (DefaultPanel === 'intelligentSearch') {
 		await wait(500);
 		aiSearchInputter.focus();

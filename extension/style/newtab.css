@@ -685,8 +685,8 @@ body {
 .panel_container nav.nav_menu_panel {
 	display: none;
 	position: fixed;
-	top: 100px;
-	right: -5px;
+	top: 105px;
+	right: calc(50% - 750px);
 	z-index: 1;
 	box-sizing: border-box;
 	padding: 8px;
@@ -694,6 +694,11 @@ body {
 	background-color: rgba(20, 20, 25, 0.8);
 	backdrop-filter: blur(2px);
 	box-shadow: 2px 2px 5px rgba(23, 23, 23, 0.6), inset 0px 0px 2px white;
+}
+@media (max-width: 1578px) {
+	.panel_container nav.nav_menu_panel {
+		right: 2.5%;
+	}
 }
 .panel_container nav.nav_menu_panel a {
 	display: block;
