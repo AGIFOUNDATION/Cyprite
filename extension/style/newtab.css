@@ -682,6 +682,23 @@ body {
 .panel_container ul.reference_area li.reference_item .reference_float .reference_float_title {
 	font-weight: bolder;
 }
+.panel_container nav.nav_menu_panel {
+	display: none;
+	position: fixed;
+	top: 100px;
+	right: -5px;
+	z-index: 1;
+	box-sizing: border-box;
+	padding: 8px;
+	border-radius: 5px 0px 0px 5px;
+	background-color: rgba(20, 20, 25, 0.8);
+	backdrop-filter: blur(2px);
+	box-shadow: 2px 2px 5px rgba(23, 23, 23, 0.6), inset 0px 0px 2px white;
+}
+.panel_container nav.nav_menu_panel a {
+	display: block;
+	margin: 5px;
+}
 span.MathJax {
 	margin-left: 0.3em;
 	margin-right: 0.3em;

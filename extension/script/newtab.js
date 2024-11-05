@@ -185,16 +185,6 @@ const onContentPaste = evt => {
 
 	document.execCommand('insertText', false, content);
 };
-const onSelectArticleItem = ({target}) => {
-	if (!target.classList.contains('panel_article_list_item')) return;
-	var selected = target.getAttribute('selected');
-	if (!!selected) {
-		target.removeAttribute('selected');
-	}
-	else {
-		target.setAttribute('selected', 'true');
-	}
-};
 const onSelectReference = ({target}) => {
 	if (target.tagName !== 'LI') return;
 	if (!target.classList.contains('reference_item')) return;
@@ -539,6 +529,9 @@ const refreshFileListInConversation = async (condition) => {
 			var title = newEle('span');
 			title.innerText = item.title;
 			li.appendChild(title);
+			if (CurrentArticleList.includes(item.url)) {
+				li.setAttribute('selected', 'true');
+			}
 			container.appendChild(li);
 		});
 	}
@@ -546,6 +539,7 @@ const refreshFileListInConversation = async (condition) => {
 		let messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 		container.innerHTML = messages.crossPageConv.noArticle;
 	}
+	// 
 };
 ActionCenter.searchArticleInConversation = async (ele, data, evt) => {
 	if (evt.key !== 'Enter') return;
@@ -924,6 +918,22 @@ ActionCenter.changeRequest = async (target, ui) => {
 
 		let notify = Notification.show('', messages.crossPageConv.hintModifyContent, 'middleTop', 'mention', DurationForever);
 		contentPad.focus();
+	}
+};
+ActionCenter.showArticleChooser = () => {
+	var container = document.body.querySelector('.panel_container');
+	if (!container) return;
+	container.setAttribute('showMask', "showArticleList");
+	container.setAttribute('showArticleList', "true");
+};
+const onSelectArticleItem = ({target}) => {
+	if (!target.classList.contains('panel_article_list_item')) return;
+	var selected = target.getAttribute('selected');
+	if (!!selected) {
+		target.removeAttribute('selected');
+	}
+	else {
+		target.setAttribute('selected', 'true');
 	}
 };
 
@@ -1860,6 +1870,30 @@ const replyQuestBySearchResult = async (messages, quest) => {
 		aiSearchInputter.answerPanel.scrollIntoViewIfNeeded();
 	});
 };
+const generateNaviMenu = () => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	aiSearchInputter.navMenuPanel.innerHTML = '';
+
+	var idx = 1;
+	[...aiSearchInputter.answerPanel.querySelectorAll('h1')].forEach(item => {
+		if (item.innerText === messages.aiSearch.hintMyPreliminaryThinking || item.innerText === messages.aiSearch.hintLearnFromInternet || item.innerText === messages.aiSearch.hintMyResponseAfterReflection) {
+			const tag = 'header' + idx;
+			idx ++;
+			const anchor = newEle('a');
+			anchor.innerText = item.innerText;
+			anchor.name = tag;
+			item.innerHTML = '';
+			item.appendChild(anchor);
+			const link = newEle('a');
+			link.innerText = anchor.innerText;
+			link.href = "#" + tag;
+			aiSearchInputter.navMenuPanel.appendChild(link);
+		}
+	});
+
+	aiSearchInputter.navMenuPanel.style.display = 'block';
+};
 const showMoreQuestions = (moreList) => {
 	if (!moreList || !moreList.length) return;
 
@@ -2040,6 +2074,8 @@ ActionCenter.startAISearch = async () => {
 	aiSearchInputter.answerPanelHint.innerHTML = '';
 	aiSearchInputter.referencePanel.innerHTML = '';
 	aiSearchInputter.morequestionPanel.innerHTML = '';
+	aiSearchInputter.navMenuPanel.innerHTML = '';
+	aiSearchInputter.navMenuPanel.style.display = 'none';
 	aiSearchInputter.removeAttribute('contentEditable');
 	if (!!ntfDeepThinking) {
 		ntfDeepThinking._hide();
@@ -2161,6 +2197,7 @@ ActionCenter.loadSearchRecord = async (host, data, evt) => {
 		aiSearchInputter.answerPanelHint.innerText = messages.aiSearch.hintAnswering;
 		aiSearchInputter.answerPanelHint.innerHTML = aiSearchInputter.answerPanelHint.innerHTML + searchResultButtons();
 		parseMarkdownWithOutwardHyperlinks(aiSearchInputter.answerPanel, info.answer, messages.aiSearch.msgEmptyAnswer);
+		generateNaviMenu();
 		if (info.more) {
 			showMoreQuestions(info.more);
 		}
@@ -2674,12 +2711,6 @@ ActionCenter.clearConversation = async () => {
 		await chrome.storage.session.remove(TagFreeCypriteConversation);
 	}
 };
-ActionCenter.showArticleChooser = () => {
-	var container = document.body.querySelector('.panel_container');
-	if (!container) return;
-	container.setAttribute('showMask', "showArticleList");
-	container.setAttribute('showArticleList', "true");
-};
 ActionCenter.hideFloatWindow = () => {
 	var container = document.body.querySelector('.panel_container');
 	if (!container) return;
@@ -2973,6 +3004,7 @@ const init = async () => {
 	aiSearchInputter.answerPanelHint = resultPanel.querySelector('.answer_panel_hint');
 	aiSearchInputter.referencePanel = resultPanel.querySelector('.reference_panel');
 	aiSearchInputter.morequestionPanel = resultPanel.querySelector('.morequestion_panel');
+	aiSearchInputter.navMenuPanel = resultPanel.querySelector('.nav_menu_panel');
 
 	await generateModelList('');
 	document.body.querySelector('input[name="translation_language"]').value = LangName[myInfo.lang];

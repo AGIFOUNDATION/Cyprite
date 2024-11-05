@@ -396,8 +396,9 @@ const convertPageInfoToRecord = (info, old) => {
 	var item = old;
 	item.title = info.title || old.title;
 	item.url = info.url || old.url;
+	item.hasContent = !!info.content || !!info.hasContent || !!item.content || !!item.hasContent;
 	item.isLocal = !!info.isLocal;
-	item.isCached = !!info.url && (!!info.isLocal || !!info.content);
+	item.isCached = !!info.url && (!!info.isLocal || !!item.hasContent);
 	item.duration = info.totalDuration || old.totalDuration || 0;
 	if (!info.timestamp) {
 		item.lastVisit = Date.now();
@@ -442,62 +443,59 @@ const setPageInfo = async (url, info, immediately=false) => {
 	info.url = url;
 	var key = parseURL(url);
 	if (!DBs.pageInfo) await initDB();
-	var data = await DBs.pageInfo.get('pageInfo', key);
-	if (!data) data = {};
+	var dbData = await DBs.pageInfo.get('pageInfo', key);
+	if (!dbData) dbData = {};
 	for (let key in info) {
 		let value = info[key];
 		if (value === null || value === undefined) continue;
-		data[key] = value;
+		dbData[key] = value;
 	}
-	info = data;
+	info = Object.assign({}, dbData);
 
+	// Update Article List Cache
+	var list = await chrome.storage.local.get(TagArticleList);
+	list = (list || {})[TagArticleList] || [];
+	var notHas = true;
+	list.some(item => {
+		if (parseURL(item.url) !== key) return;
+		convertPageInfoToRecord(info, item);
+		if (!!dbData.content) item.isCached = true;
+		notHas = false;
+		return true;
+	});
+	if (notHas) {
+		let item = convertPageInfoToRecord(info);
+		if (!!dbData.content) item.isCached = true;
+		list.push(item);
+	}
+	var record = {};
+	record[TagArticleList] = list;
+	await chrome.storage.local.set(record);
+
+	// Update DB
 	if (immediately) {
 		delete DBs.tmrPageInfos;
 		if (!DBs.pageInfo) await initDB();
-		let tasks = [];
-		tasks.push((async () => {
-			var list = await chrome.storage.local.get(TagArticleList);
-			list = (list || {})[TagArticleList] || [];
-			var notHas = true;
-			list.some(item => {
-				if (parseURL(item.url) !== key) return;
-				convertPageInfoToRecord(info, item);
-				notHas = false;
-				return true;
-			});
-			if (notHas) {
-				list.push(convertPageInfoToRecord(info));
-			}
-			var data = {};
-			data[TagArticleList] = list;
-			await chrome.storage.local.set(data);
-		}) ());
-		tasks.push(DBs.pageInfo.set('pageInfo', key, info));
-		await Promise.all(tasks);
+		await DBs.pageInfo.set('pageInfo', key, dbData);
 		logger.log('DB[PageInfo]', 'Set Page Info: ' + url);
 	}
 	else {
 		DBs.tmrPageInfos = setTimeout(async () => {
 			delete DBs.tmrPageInfos;
 			if (!DBs.pageInfo) await initDB();
-			await DBs.pageInfo.set('pageInfo', key, info);
+
+			if (!DBs.pageInfo) await initDB();
+			var dbData = await DBs.pageInfo.get('pageInfo', key);
+			if (!dbData) dbData = {};
+			for (let key in info) {
+				let value = info[key];
+				if (value === null || value === undefined) continue;
+				dbData[key] = value;
+			}
+
+			await DBs.pageInfo.set('pageInfo', key, dbData);
 			logger.log('DB[PageInfo]', 'Set Page Info: ' + url);
 		}, 200);
-		let list = await chrome.storage.local.get(TagArticleList);
-		list = (list || {})[TagArticleList] || [];
-		let notHas = true;
-		list.some(item => {
-			if (parseURL(item.url) !== key) return;
-			convertPageInfoToRecord(info, item);
-			notHas = false;
-			return true;
-		});
-		if (notHas) {
-			list.push(convertPageInfoToRecord(info));
-		}
-		let data = {};
-		data[TagArticleList] = list;
-		await chrome.storage.local.set(data);
 	}
 };
 const delPageInfo = async (urlList, immediately=false) => {
@@ -916,7 +914,7 @@ EventHandler.SavePageSummary = async (data, source, sid) => {
 
 	await Promise.all([
 		setTabInfo(sid, tabInfo),
-		setPageInfo(tabInfo.url, pageInfo),
+		setPageInfo(tabInfo.url, pageInfo, true),
 	]);
 };
 EventHandler.GotoConversationPage = async () => {
@@ -1291,8 +1289,8 @@ EventHandler.RemovePageInfos = async () => {
 	var targets = [];
 	for (let key in list) {
 		let item = list[key];
-		let isCached = !!item.url && (!!item.isLocal || (!!item.content && !!item.hash && !!item.embedding));
-		if (isCached) continue;
+		let data = convertPageInfoToRecord(item);
+		if (data.isCached) continue;
 		if (!targets.includes(item.url)) targets.push(item.url);
 	}
 	cache.forEach(item => {
@@ -1455,6 +1453,9 @@ EventHandler.SearchSimilarArticleForCurrentPage = async (url) => {
 		let reply = await callLLMOneByOne(modelList, conversation, true, 'AnalyzeKeywordCategory');
 		updateUsage(usage, reply.usage);
 		reply = reply.reply;
+		// Refresh article info
+		articleInfo = await DBs.pageInfo.get('pageInfo', key);
+		// Update article info
 		articleInfo.category = parseArray(reply.category);
 		articleInfo.keywords = parseArray(reply.keywords);
 		await DBs.pageInfo.set('pageInfo', key, articleInfo);

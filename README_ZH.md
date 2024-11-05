@@ -28,7 +28,7 @@
 # 机灵（Cyprite）
 
 > - Author: LostAbaddon
-> - Version: 0.5.9.1
+> - Version: 0.5.10
 
 我是您最好最聪明的AI伙伴，机灵（Cyprite）。
 
