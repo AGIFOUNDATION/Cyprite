@@ -265,10 +265,11 @@ const updateModelList = async (model) => {
 	});
 };
 const addChatItem = (target, content, type, cid, need=false) => {
-	var container = document.body.querySelector('.panel_operation_area[group="' + target + '"] .content_container');
-	var needOperator = need && ['crossPageConversation'].includes(target);
-
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	const container = document.body.querySelector('.panel_operation_area[group="' + target + '"] .content_container');
+	const needOperator = need && ['crossPageConversation', 'freelyConversation'].includes(target);
+
 	var item = newEle('div', 'chat_item'), isOther = false;
 	if (!cid) cid = newID();
 	item.setAttribute('chatID', cid);
@@ -568,7 +569,7 @@ const refreshFileListInConversation = async (condition) => {
 		let messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 		container.innerHTML = messages.crossPageConv.noArticle;
 	}
-	// 
+	//
 };
 ActionCenter.searchArticleInConversation = async (ele, data, evt) => {
 	if (evt.key !== 'Enter') return;
@@ -806,10 +807,10 @@ ActionCenter.deleteConversation = async (target, ui) => {
 	}
 
 	const mode = ui.frame.parentNode.getAttribute('group');
-	const conversationTag = (mode === 'crossPageConversation') ? (currentTabId + ':crosspageConv') : '';
+	const conversationTag = (mode === 'crossPageConversation') ? (currentTabId + ':crosspageConv') : ((mode === 'freelyConversation') ? TagFreeCypriteConversation : '');
 	if (!conversationTag) return;
 
-	const conversation = ((await chrome.storage.session.get(conversationTag)) || {})[conversationTag] || [];
+	var conversation = ((await chrome.storage.session.get(conversationTag)) || {})[conversationTag] || [];
 	if (!conversation.length) return;
 
 	const [cids, eles] = getDialogPair(target, conversation);
@@ -832,7 +833,7 @@ ActionCenter.reAnswerRequest = async (target, ui) => {
 	}
 
 	const mode = ui.frame.parentNode.getAttribute('group');
-	const conversationTag = (mode === 'crossPageConversation') ? (currentTabId + ':crosspageConv') : '';
+	const conversationTag = (mode === 'crossPageConversation') ? (currentTabId + ':crosspageConv') : ((mode === 'freelyConversation') ? TagFreeCypriteConversation : '');
 	if (!conversationTag) return;
 
 	const conversation = ((await chrome.storage.session.get(conversationTag)) || {})[conversationTag] || [];
@@ -897,57 +898,58 @@ ActionCenter.changeRequest = async (target, ui) => {
 		return;
 	}
 
-	var container = target.parentNode.parentNode, cid = container.getAttribute('chatID');
-	var mode = ui.frame.parentNode.getAttribute('group');
-	if (mode === 'crossPageConversation') {
-		let gid = currentTabId + ':crosspageConv';
-		let conversation = await chrome.storage.session.get(gid);
-		conversation = (conversation || {})[gid];
-		if (!conversation) return;
-		let curr;
-		conversation.some(item => {
-			curr = item;
-			return item[2] === cid;
-		});
+	const container = target.parentNode.parentNode, cid = container.getAttribute('chatID');
+	const mode = ui.frame.parentNode.getAttribute('group');
+	const conversationTag = (mode === 'crossPageConversation') ? (currentTabId + ':crosspageConv') : ((mode === 'freelyConversation') ? TagFreeCypriteConversation : '');
+	if (!conversationTag) return;
 
-		let editEvent = evt => {
-			var leave = false;
-			if (evt.key === 'Escape') {
+	const conversation = ((await chrome.storage.session.get(conversationTag)) || {})[conversationTag] || [];
+	if (!conversation.length) return;
+
+	var curr;
+	conversation.some(item => {
+		if (item[2] !== cid) return;
+		curr = item;
+		return true;
+	});
+
+	const editEvent = evt => {
+		var leave = false;
+		if (evt.key === 'Escape') {
+			contentPad.innerHTML = originContent;
+			leave = true;
+		}
+		else if (evt.key === 'Enter' && evt.ctrlKey) {
+			let content = getPageContent(contentPad);
+			if (!content) {
 				contentPad.innerHTML = originContent;
-				leave = true;
 			}
-			else if (evt.key === 'Enter' && evt.ctrlKey) {
-				let content = getPageContent(contentPad);
-				if (!content) {
-					contentPad.innerHTML = originContent;
-				}
-				else {
-					parseMarkdownWithOutwardHyperlinks(contentPad, content);
-					contentPad._data = content;
-					curr[1] = content;
-					let item = {};
-					item[gid] = conversation;
-					chrome.storage.session.set(item).then(() => {
-						Notification.show('', messages.crossPageConv.hintChangeDialogSuccess, 'middleTop', 'success');
-					});
-				}
-				leave = true;
+			else {
+				parseMarkdownWithOutwardHyperlinks(contentPad, content);
+				contentPad._data = content;
+				curr[1] = content;
+				let item = {};
+				item[conversationTag] = conversation;
+				chrome.storage.session.set(item).then(() => {
+					Notification.show('', messages.crossPageConv.hintChangeDialogSuccess, 'middleTop', 'success');
+				});
 			}
-			if (leave) {
-				contentPad.contentEditable = false;
-				contentPad.removeEventListener('keyup', editEvent);
-				notify._hide();
-			}
-		};
-		let contentPad = container.querySelector('.chat_content');
-		let originContent = contentPad.innerHTML;
-		contentPad.addEventListener('keyup', editEvent);
-		contentPad.innerText = contentPad._data;
-		contentPad.contentEditable = true;
+			leave = true;
+		}
+		if (leave) {
+			contentPad.contentEditable = false;
+			contentPad.removeEventListener('keyup', editEvent);
+			notify._hide();
+		}
+	};
+	const contentPad = container.querySelector('.chat_content');
+	const originContent = contentPad.innerHTML;
+	contentPad.addEventListener('keyup', editEvent);
+	contentPad.innerText = contentPad._data;
+	contentPad.contentEditable = true;
 
-		let notify = Notification.show('', messages.crossPageConv.hintModifyContent, 'middleTop', 'mention', DurationForever);
-		contentPad.focus();
-	}
+	var notify = Notification.show('', messages.crossPageConv.hintModifyContent, 'middleTop', 'mention', DurationForever);
+	contentPad.focus();
 };
 ActionCenter.showArticleChooser = () => {
 	var container = document.body.querySelector('.panel_container');
@@ -960,9 +962,16 @@ const onSelectArticleItem = ({target}) => {
 	var selected = target.getAttribute('selected');
 	if (!!selected) {
 		target.removeAttribute('selected');
+		let idx = CurrentArticleList.indexOf(target.url);
+		if (!idx >= 0) {
+			CurrentArticleList.splice(idx, 1);
+		}
 	}
 	else {
 		target.setAttribute('selected', 'true');
+		if (!CurrentArticleList.includes(target.url)) {
+			CurrentArticleList.push(target.url);
+		}
 	}
 };
 
@@ -990,7 +999,7 @@ const switchToFreeCyprite = async () => {
 		else {
 			return;
 		}
-		addChatItem('freelyConversation', content, type, item[2]);
+		addChatItem('freelyConversation', content, type, item[2], true);
 	});
 };
 const downloadFreeConversation = async () => {
