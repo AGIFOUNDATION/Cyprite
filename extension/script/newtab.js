@@ -270,13 +270,15 @@ const addChatItem = (target, content, type, cid, need=false) => {
 	const container = document.body.querySelector('.panel_operation_area[group="' + target + '"] .content_container');
 	const needOperator = need && ['crossPageConversation', 'freelyConversation'].includes(target);
 
-	var item = newEle('div', 'chat_item'), isOther = false;
+	const item = newEle('div', 'chat_item');
+	var isOther = false;
 	if (!cid) cid = newID();
 	item.setAttribute('chatID', cid);
 
-	var titleBar = newEle('div', "chat_title");
-	var buttons = [];
+	const titleBar = newEle('div', "chat_title");
+	const buttons = [];
 	if (type === 'human') {
+		item.classList.add('human');
 		if (!!myInfo.name) {
 			let comma = messages.conversation.yourTalkPrompt.substr(messages.conversation.yourTalkPrompt.length - 1, 1);
 			titleBar.innerText = myInfo.name + comma;
@@ -284,36 +286,54 @@ const addChatItem = (target, content, type, cid, need=false) => {
 		else {
 			titleBar.innerText = messages.conversation.yourTalkPrompt;
 		}
-		item.classList.add('human');
 		if (needOperator) buttons.push('<img button="true" action="changeRequest" src="../images/feather.svg">');
 		buttons.push('<img button="true" action="copyContent" src="../images/copy.svg">');
 		if (needOperator) buttons.push('<img button="true" action="deleteConversation" src="../images/trash-can.svg">');
 	}
 	else if (type === 'cyprite') {
-		titleBar.innerText = messages.cypriteName + ':';
 		item.classList.add('ai');
+		titleBar.innerText = messages.cypriteName + ':';
 		if (needOperator) buttons.push('<img button="true" action="reAnswerRequest" src="../images/rotate.svg">');
 		buttons.push('<img button="true" action="copyContent" src="../images/copy.svg">');
 		if (needOperator) buttons.push('<img button="true" action="deleteConversation" src="../images/trash-can.svg">');
 	}
-	else {
-		isOther = true;
-		titleBar.innerText = type;
+	else if (type === 'hint') {
 		item.classList.add('other');
+		item.setAttribute('toggle', 'toggleChatItem');
+		let imgDown = newEle('img', 'down');
+		imgDown.src = "../images/angles-down.svg";
+		imgDown.setAttribute('button', 'true');
+		titleBar.appendChild(imgDown);
+		let imgUp = newEle('img', 'up');
+		imgUp.src = "../images/angles-up.svg";
+		imgUp.setAttribute('button', 'true');
+		titleBar.appendChild(imgUp);
+		let cap = newEle('span', 'caption');
+		cap.innerText = content[0];
+		titleBar.appendChild(cap);
+		content = content[1];
+		isOther = true;
+	}
+	else {
+		return;
 	}
 	item.appendChild(titleBar);
 
 	if (!!content) {
-		let contentPad = newEle('div', "chat_content");
+		let contentPad = newEle('div', isOther ? "other_content" : 'chat_content');
 		parseMarkdownWithOutwardHyperlinks(contentPad, content, messages.conversation.AIFailed);
 		contentPad._data = content;
-		item.appendChild(contentPad);
-	}
-	else {
-		if (!isOther) return;
+		if (isOther) {
+			let frame = newEle('div', "chat_content");
+			frame.appendChild(contentPad);
+			item.appendChild(frame);
+		}
+		else {
+			item.appendChild(contentPad);
+		}
 	}
 
-	var operatorBar = newEle('div', 'operator_bar');
+	const operatorBar = newEle('div', 'operator_bar');
 	operatorBar.innerHTML = buttons.join('');
 	item.appendChild(operatorBar);
 
@@ -796,9 +816,6 @@ EventHandler.updateCurrentStatus = (msg) => {
 	if (!!msg) curerntStatusMention = Notification.show('', msg, 'middleTop', 'mention', DurationForever);
 	else curerntStatusMention = null;
 };
-EventHandler.finishFirstTranslation = (content) => {
-	addChatItem('instantTranslation', content, 'cyprite', null, true);
-};
 ActionCenter.deleteConversation = async (target, ui) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	if (running) {
@@ -927,7 +944,7 @@ ActionCenter.changeRequest = async (target, ui) => {
 			else {
 				parseMarkdownWithOutwardHyperlinks(contentPad, content);
 				contentPad._data = content;
-				curr[1] = content;
+				curr[1] = content + '\n\n(Time' + timestmp2str("YYYY/MM/DD hh:mm :WDE:") + ')';
 				let item = {};
 				item[conversationTag] = conversation;
 				chrome.storage.session.set(item).then(() => {
@@ -978,6 +995,8 @@ const onSelectArticleItem = ({target}) => {
 /* Free Cyprite */
 
 const switchToFreeCyprite = async () => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
 	const content = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"] .content_container');
 	for (let item of content.querySelectorAll('.chat_item')) {
 		item.parentElement.removeChild(item);
@@ -994,6 +1013,11 @@ const switchToFreeCyprite = async () => {
 		}
 		else if (item[0] === 'ai') {
 			type = 'cyprite';
+			let strategy = content.match(/<strategy>\s*([\w\W]*?)\s*<\/strategy>/i);
+			if (!!strategy) {
+				strategy = parseArray(strategy[1], false).map(line => '- ' + line).join('\n');
+				addChatItem('freelyConversation', [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
+			}
 			content = content.replace(/^[\w\W]*?<reply>\s*|\s*<\/reply>[\w\W]*?$/gi, '');
 		}
 		else {
@@ -1039,6 +1063,29 @@ const downloadFreeConversation = async () => {
 	if (saved) {
 		Notification.show('', messages.crossPageConv.hintConversationDownloaded, 'middleTop', 'success');
 	}
+};
+
+/* Translation */
+
+EventHandler.finishFirstTranslation = (content) => {
+	addChatItem('instantTranslation', content, 'cyprite', null, true);
+};
+EventHandler.translationSuggestion = (content) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	var list = [];
+	if (!!content.deficiencies) {
+		list.push('**' + messages.freeCyprite.hintTranslationDeficiencies + '**');
+		list.push(parseArray(content.deficiencies, false).map(line => '- ' + line).join('\n'));
+	}
+	if (!!content.suggestions) {
+		list.push('**' + messages.freeCyprite.hintTranslationSuggestions + '**');
+		list.push(parseArray(content.suggestions, false).map(line => '- ' + line).join('\n'));
+	}
+	if (list.length === 0) return;
+	list = list.join('\n\n');
+
+	addChatItem('instantTranslation', [messages.freeCyprite.hintTranslationSuggestions, list], 'hint');
 };
 
 /* AISearch */
@@ -2845,10 +2892,12 @@ ActionCenter.sendMessage = async (button) => {
 		}
 		conversation.pop();
 		if (!!result) {
-			let prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
+			prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
 			conversation.push(['human', prompt, cid]);
-			result = parseReplyAsXMLToJSON(result);
-			result = result.reply?._origin || result.reply || result._origin;
+			const json = parseReplyAsXMLToJSON(result);
+			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
+			if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
+			result = json.reply?._origin || json.reply || result;
 			conversation.push(['ai', result]);
 		}
 	}
@@ -2900,10 +2949,12 @@ ActionCenter.sendMessage = async (button) => {
 		console.log('AISEARCH GOT REPLY:', result);
 		conversation.pop();
 		if (!!result) {
-			let prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
-			conversation.push(['human', prompt]);
-			result = parseReplyAsXMLToJSON(result);
-			result = result.reply?._origin || result.reply || result._origin;
+			prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
+			conversation.push(['human', prompt, cid]);
+			const json = parseReplyAsXMLToJSON(result);
+			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
+			if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
+			result = json.reply?._origin || json.reply || result;
 			conversation.push(['ai', result]);
 		}
 	}
@@ -2928,14 +2979,21 @@ ActionCenter.sendMessage = async (button) => {
 		}
 		if (!!result) {
 			conversation.push(['ai', result]);
-			let json = parseReplyAsXMLToJSON(result);
+			const json = parseReplyAsXMLToJSON(result);
+			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
+			if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
 			result = json.reply?._origin || json.reply || result;
 		}
 		else {
 			conversation.pop();
 		}
 	}
-	cid = addChatItem(target, result, 'cyprite', null, true);
+	if (!!result) {
+		cid = addChatItem(target, result, 'cyprite', null, true);
+	}
+	else {
+		cid = 0;
+	}
 	if (!!conversation) {
 		if (target === 'crossPageConversation') {
 			conversation[conversation.length - 1].push(cid);
@@ -3112,10 +3170,27 @@ const init = async () => {
 		inputter.addEventListener('paste', onContentPaste);
 		frame.addEventListener('click', ({target}) => {
 			var action = target.getAttribute('action');
-			if (!action) return;
-			var handler = ActionCenter[action];
-			if (!handler) return;
-			handler(target, {frame, inputter, sender});
+			if (!!action) {
+				let handler = ActionCenter[action];
+				if (!!handler) {
+					handler(target, {frame, inputter, sender});
+				}
+			}
+
+			action = target.getAttribute('toggle');
+			if (!!action) {
+				let toggled = target.classList.contains('toggled');
+				if (!!toggled) {
+					target.classList.remove('toggled');
+				}
+				else {
+					target.classList.add('toggled');
+				}
+				let handler = ActionCenter[action];
+				if (!!handler) {
+					handler(target, {frame, inputter, sender});
+				}
+			}
 		});
 	});
 	document.body.querySelector('.panel_article_list').addEventListener('click', onSelectArticleItem);

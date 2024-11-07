@@ -1307,16 +1307,6 @@ EventHandler.ChangePageTitle = async (data) => {
 
 /* Search Similarity */
 
-const parseArray = array => {
-	if (isArray(array)) return array;
-	if (!isString(array)) return [];
-	return (array || '')
-		.replace(/^\{|\}$/g, '').trim()
-		.split(/\s*[\n\r]+\s*/).filter(line => !!line)
-		.map(line => line.replace(/^\s*(\-|\+|\d+\.)\s*/, '').trim())
-		.join(',').split(/\s*[,;，；]\s*/)
-	;
-};
 const fileterArticleByCategoryAndKeyword = (allArticles, category, keywords, key) => {
 	// Filter articles based on keywords and categories
 	const related = [];
@@ -1869,6 +1859,15 @@ AIHandler.translateContent = async (data, source, sid) => {
 		dispatchEvent({
 			event: "updateCurrentStatus",
 			data: messages.translation.afterReflect,
+			target: source,
+			tid: sid,
+		});
+		dispatchEvent({
+			event: "translationSuggestion",
+			data: {
+				deficiencies: suggestion.deficiencies,
+				suggestions: suggestion.suggestions,
+			},
 			target: source,
 			tid: sid,
 		});

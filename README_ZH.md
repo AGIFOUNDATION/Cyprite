@@ -213,4 +213,4 @@ $$
 - **Email**: [LostAbaddon](mailto:lostabaddon@gmail.com)
 - **插件网站**: [Cyprite](https://agifoundation.github.io/Cyprite/)
 - **REPO**: [Github](https://github.com/AGIFOUNDATION/Cyprite)
-- **浏览器插件商店页**: [](https://chromewebstore.google.com/detail/cyprite-restricted/mkelalclfpkmmfedmfjhdbanjlhfoamg)
+- **浏览器插件商店页**: [Cyprite](https://chromewebstore.google.com/detail/cyprite-restricted/mkelalclfpkmmfedmfjhdbanjlhfoamg)

@@ -214,4 +214,4 @@ Click [here](./CHANGELOG.md) to view.
 - **Email**: [LostAbaddon](mailto:lostabaddon@gmail.com)
 - **Extension Website**: [Cyprite](https://agifoundation.github.io/Cyprite/)
 - **Git Repo**: [Github](https://github.com/AGIFOUNDATION/Cyprite)
-- **Extension Store**: [](https://chromewebstore.google.com/detail/cyprite-restricted/mkelalclfpkmmfedmfjhdbanjlhfoamg)
+- **Extension Store**: [Cyprite](https://chromewebstore.google.com/detail/cyprite-restricted/mkelalclfpkmmfedmfjhdbanjlhfoamg)

@@ -203,6 +203,11 @@ globalThis.I18NMessages = {
 			hintOrderByMost: "最常浏览",
 			hintOrderByLatest: "最近浏览",
 		},
+		freeCyprite: {
+			hintThinkingStrategy: "思路",
+			hintTranslationDeficiencies: "不足之处：",
+			hintTranslationSuggestions: "修改意见：",
+		},
 	},
 	en: {
 		cypriteName: "Cyprite",
@@ -407,6 +412,11 @@ globalThis.I18NMessages = {
 			hintOrderType: "Order By: ",
 			hintOrderByMost: "Most",
 			hintOrderByLatest: "Latest",
+		},
+		freeCyprite: {
+			hintThinkingStrategy: "Thinking Strategy",
+			hintTranslationDeficiencies: "Deficiencies:",
+			hintTranslationSuggestions: "Suggestions:",
 		},
 	},
 	jp: {
@@ -613,6 +623,11 @@ globalThis.I18NMessages = {
 			hintOrderByMost: "閲覧頻度順",
 			hintOrderByLatest: "最近の閲覧順",
 		},
+		freeCyprite: {
+			hintThinkingStrategy: "考え方",
+			hintTranslationDeficiencies: "不十分な点：",
+			hintTranslationSuggestions: "修正意見：",
+		},
 	},
 	fr: {
 		cypriteName: "Cyprite",
@@ -817,6 +832,11 @@ globalThis.I18NMessages = {
 			hintOrderType: "Trier par : ",
 			hintOrderByMost: "Le plus",
 			hintOrderByLatest: "Le plus récent",
+		},
+		freeCyprite: {
+			hintThinkingStrategy: "Stratégie de Réflexion",
+			hintTranslationDeficiencies: "Insuffisances:",
+			hintTranslationSuggestions: "Suggestions de modifications:",
 		},
 	},
 	de: {
@@ -1023,6 +1043,11 @@ globalThis.I18NMessages = {
 			hintOrderByMost: "Meiste",
 			hintOrderByLatest: "Neueste",
 		},
+		freeCyprite: {
+			hintThinkingStrategy: "Denkstrategie",
+			hintTranslationDeficiencies: "Mängel:",
+			hintTranslationSuggestions: "Änderungsvorschläge:",
+		},
 	},
 	it: {
 		cypriteName: "Cyprite",
@@ -1227,6 +1252,11 @@ globalThis.I18NMessages = {
 			hintOrderType: "Ordina Per: ",
 			hintOrderByMost: "Maggiori",
 			hintOrderByLatest: "Più recenti",
+		},
+		freeCyprite: {
+			hintThinkingStrategy: "Strategia di Pensiero",
+			hintTranslationDeficiencies: "Carenze:",
+			hintTranslationSuggestions: "Suggerimenti per le modifiche:",
 		},
 	},
 };

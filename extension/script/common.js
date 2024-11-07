@@ -116,6 +116,18 @@ globalThis.parseURL = url => {
 	}
 	return url;
 };
+globalThis.parseArray = (array, noSub=true) => {
+	if (isArray(array)) return array;
+	if (!isString(array)) return [];
+	array = (array || '')
+		.replace(/^\{|\}$/g, '').trim()
+		.split(/\s*[\n\r]+\s*/).filter(line => !!line)
+		.map(line => line.replace(/^\s*(\-|\+|\d+\.)\s*/, '').trim());
+	if (noSub) {
+		array = array.join(',').split(/\s*[,;，；]\s*/);
+	}
+	return array;
+};
 globalThis.parseReplyAsXMLToJSON = (xml, init=true) => {
 	if (!xml) {
 		if (xml === 0) return 0;
