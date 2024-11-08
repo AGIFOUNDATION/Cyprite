@@ -197,6 +197,11 @@ $$
 
 ![](./assets/readme6.png)
 
+## 快捷键
+
+- 切换搜索模式：在智能搜索输入框内，`Alt + Left/Right`
+- 切换功能页：在对话输入框或智能搜索输入框内，`Ctrl + Alt + Left/Right`
+
 ## 隐私政策
 
 点击[Privacy Policy](./PRIVACY.md)查看。

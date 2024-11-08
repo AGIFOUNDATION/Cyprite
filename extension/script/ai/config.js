@@ -1,17 +1,17 @@
 globalThis.ModelContinueRequestLoopLimit = 10;
 globalThis.ModelList = [];
 globalThis.Model2AI = {
-	"gemini-1.5-flash-exp-0827": "Gemini",
 	"gemini-1.5-pro-exp-0827": "Gemini",
-	"gemini-1.5-flash-002": "Gemini",
+	"gemini-1.5-flash-exp-0827": "Gemini",
 	"gemini-1.5-pro-002": "Gemini",
+	"gemini-1.5-flash-002": "Gemini",
 	"claude-3-5-sonnet-latest": "Claude",
 	"claude-3-opus-20240229": "Claude",
 	"claude-3-haiku-20240307": "Claude",
-	"chatgpt-4o-latest": "OpenAI",
-	"gpt-4o-mini": "OpenAI",
 	"o1-preview": "OpenAI",
 	"o1-mini": "OpenAI",
+	"chatgpt-4o-latest": "OpenAI",
+	"gpt-4o-mini": "OpenAI",
 	"grok-beta": "Grok",
 	"open-mixtral-8x22b": "Mixtral",
 	"open-mistral-7b": "Mixtral",
@@ -25,10 +25,10 @@ globalThis.Model2AI = {
 };
 globalThis.AI2Model = {
 	"gemini": [
-		"gemini-1.5-flash-exp-0827",
 		"gemini-1.5-pro-exp-0827",
-		"gemini-1.5-flash-002",
+		"gemini-1.5-flash-exp-0827",
 		"gemini-1.5-pro-002",
+		"gemini-1.5-flash-002",
 	],
 	"claude": [
 		"claude-3-5-sonnet-latest",
@@ -67,17 +67,17 @@ globalThis.ModelOrder = [
 	"mixtral",
 ];
 globalThis.ModelNameList = {
-	"gemini-1.5-flash-exp-0827": "GeminiFlash",
 	"gemini-1.5-pro-exp-0827": "GeminiPro",
-	// "gemini-1.5-flash-002": "GeminiFlash2",
+	"gemini-1.5-flash-exp-0827": "GeminiFlash",
 	// "gemini-1.5-pro-002": "GeminiPro2",
+	// "gemini-1.5-flash-002": "GeminiFlash2",
 	"claude-3-5-sonnet-latest": "Sonnet3.5",
 	"claude-3-opus-20240229": "Opus3",
 	// "claude-3-haiku-20240307": "Haiku",
-	"chatgpt-4o-latest": "GPT",
-	"gpt-4o-mini": "GPTMini",
 	"o1-preview": "O1",
 	"o1-mini": "O1-Mini",
+	"chatgpt-4o-latest": "GPT",
+	"gpt-4o-mini": "GPTMini",
 	"grok-beta": "GrokBeta",
 	"open-mixtral-8x22b": "OpenMixtral",
 	// "open-mistral-7b": "OpenMistral",
@@ -360,76 +360,4 @@ globalThis.ModelRateLimit= {
 		rpm: 2,
 		tpm: 32000,
 	},
-};
-const OneMinute = 60 * 1000;
-const ModelRequestHistory = {};
-const ModelRequestPending = {};
-const getRateLimitHistory = (model) => {
-	var list = ModelRequestHistory[model];
-	if (!list) {
-		list = {
-			start: [],
-			finish: [],
-		};
-		ModelRequestHistory[model] = list;
-	}
-	return list;
-};
-globalThis.requestRateLimitLock = (model) => new Promise(async res => {
-	var aiName = Model2AI[model] || '';
-	var rpm = (ModelRateLimit[model] || {}).rpm || (ModelRateLimit[aiName] || {}).rpm || 0;
-	if (rpm <= 0) return res();
-
-	var time = Date.now();
-	var rateLimiter = getRateLimitHistory(model);
-	var delayS = 0, delayF = 0;
-	rateLimiter.start = rateLimiter.start.filter(t => time - t <= OneMinute);
-	if (rateLimiter.start.length >= rpm) delayS = OneMinute - time + rateLimiter.start[0];
-	rateLimiter.finish = rateLimiter.finish.filter(t => time - t <= OneMinute);
-	if (rateLimiter.finish.length >= rpm) delayF = OneMinute - time + rateLimiter.finish[0];
-
-	var delay = Math.max(delayS, delayF);
-	logger.strong('RPM', 'RPM ' + model + ' : ' + rpm + ' (' + rateLimiter.start.length + ', ' + rateLimiter.finish.length + ') ' + delay);
-	var pending = ModelRequestPending[model];
-	if (!pending) {
-		pending = [];
-		ModelRequestPending[model] = pending;
-	}
-	pending.push(res);
-	if (delay === 0) {
-		res = pending[0];
-		pending.shift();
-		if (!!res) res();
-		return;
-	}
-
-	logger.strong('RPM', 'RPM Waiting: ' + model);
-	while (delay > 0) {
-		if (delay > 5000) {
-			delay -= 5000;
-			await wait(5000);
-		}
-		else {
-			await wait(delay);
-			delay = 0;
-		}
-	}
-	await requestRateLimitLock(model);
-	logger.strong('RPM', 'RPM Continue: ' + model);
-	res = pending[0];
-	pending.shift();
-	if (!!res) res();
-});
-globalThis.updateRateLimitLock = (model, isStart, input, output) => {
-	var time = Date.now();
-
-	var rateLimiter = getRateLimitHistory(model);
-	if (isStart) {
-		rateLimiter.start.unshift(time);
-	}
-	else {
-		rateLimiter.finish.unshift(time);
-	}
-	rateLimiter.start = rateLimiter.start.filter(t => time - t <= OneMinute);
-	rateLimiter.finish = rateLimiter.finish.filter(t => time - t <= OneMinute);
 };

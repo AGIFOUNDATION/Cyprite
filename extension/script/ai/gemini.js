@@ -1,3 +1,5 @@
+const {sendRequestAndWaitForResponse} = globalThis.AI || {};
+
 globalThis.AI = globalThis.AI || {};
 globalThis.AI.Gemini = {};
 
@@ -131,95 +133,20 @@ AI.Gemini.list = async () => {
 	return response;
 };
 AI.Gemini.chat = async (conversation, model=DefaultChatModel, options={}) => {
-	var request = getRequestPackage(model, 'chat', options);
-	Object.assign(request, assembleConversation(conversation));
+	const request = { method: "POST" };
+	const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ':generateContent?key=' + myInfo.apiKey.gemini;
 
-	var header = getRequestHeader(model);
-	const baseUrl = "https://generativelanguage.googleapis.com/"
-	const url = baseUrl + "v1beta/models/" + model + ':generateContent?key=' + myInfo.apiKey.gemini;
-	var originRequest = request;
-	request = {
-		method: "POST",
-		headers: header,
-		body: JSON.stringify(originRequest),
-	};
+	var originRequest = getRequestPackage(model, 'chat', options);
+	request.header = getRequestHeader(model);
 
-	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
-	while (true) {
-		let response;
-		try {
-			await requestRateLimitLock(model);
-			updateRateLimitLock(model, true);
-			response = await waitUntil(fetchWithCheck(url, request, baseUrl));
-			updateRateLimitLock(model, false);
-		}
-		catch (err) {
-			updateRateLimitLock(model, false);
-			throw err;
-		}
-		response = await response.json();
-		logger.info('Gemini', response);
+	var tag = model.match(/\bpro\b/);
+	if (!!tag) tag = 'gemini-1.5-pro';
+	else tag = 'gemini-1.5-flash';
 
-		let usg = response.usageMetadata;
-		usage.count ++;
-		if (!!usg) {
-			usage.input += usg.promptTokenCount;
-			usage.output += usg.candidatesTokenCount;
-		}
-
-		let candidate = response.candidates, reason = '', reply = '';
-		if (!!candidate) candidate = candidate[0];
-		if (!candidate) {
-			let errMsg = response.error?.message || 'Error Occur!';
-			logger.error('Gemini', errMsg);
-			throw new Error(errMsg);
-		}
-		else {
-			reply = candidate.content?.parts;
-			reason = candidate.finishReason || "";
-			if (!!reply) reply = reply[0];
-			if (!reply) {
-				reply = "";
-				let errMsg = response.error?.message || 'Error Occur!';
-				logger.error('Gemini', errMsg);
-				throw new Error(errMsg);
-			}
-			else {
-				reply = reply.text || "";
-				reply = reply.trim();
-			}
-		}
-		replies.push(reply);
-		if (reason.toLowerCase() !== 'max_tokens') {
-			break;
-		}
-		else {
-			if (isFirst) {
-				conversation.push(['ai', reply]);
-				conversation.push(['human', PromptLib.continueOutput]);
-				isFirst = false;
-			}
-			else {
-				conversation[conversation.length - 2][1] = replies.join(' ');
-			}
-			originRequest.contents = assembleConversation(conversation).contents;
-			request = {
-				method: "POST",
-				headers: header,
-				body: JSON.stringify(originRequest),
-			};
-		}
-
-		loop ++;
-		if (loop >= ModelContinueRequestLoopLimit) break;
-	}
-	time = Date.now() - time;
-	logger.info('Gemini', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
-
-	return {
-		reply: replies.join(' '),
-		usage,
-	};
+	return await sendRequestAndWaitForResponse('Gemini', tag, conversation, url, request, () => {
+		Object.assign(originRequest, assembleConversation(conversation));
+		request.body = JSON.stringify(originRequest);
+	});
 };
 AI.Gemini.embed = async (contents, model=DefaultEmbeddingModel, options={}) => {
 	var header = getRequestHeader(model);

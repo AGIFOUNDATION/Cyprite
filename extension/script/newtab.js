@@ -2904,6 +2904,7 @@ ActionCenter.sendMessage = async (button) => {
 	else if (target === 'instantTranslation') {
 		lastTranslatContent = content;
 		let lang = document.body.querySelector('[name="translation_language"]').value;
+		chrome.storage.local.set({transLang: lang});
 		lang = chooseTargetLanguage(lang);
 		let action = 'translateSentence';
 
@@ -3063,6 +3064,7 @@ const init = async () => {
 		getSearchRequestList(),
 		getConfig(),
 		getAISearchRecordList(),
+		chrome.storage.local.get('transLang'),
 	]);
 	if (isArray(ot[1])) {
 		let ul = document.body.querySelector('.search_history');
@@ -3103,8 +3105,8 @@ const init = async () => {
 			ul.appendChild(li);
 		});
 	}
-	ot = (ot[0] || {}).FilesOrderType;
-	orderType = ot || orderType;
+	document.body.querySelector('[name="translation_language"]').value = (ot[4] || {}).transLang || LangName[myInfo.lang];
+	orderType = (ot[0] || {}).FilesOrderType || orderType;
 	await getConfig();
 	updateAIModelList();
 
@@ -3145,11 +3147,11 @@ const init = async () => {
 	aiSearchInputter.navMenuPanel = resultPanel.querySelector('.nav_menu_panel');
 
 	await generateModelList('');
-	document.body.querySelector('input[name="translation_language"]').value = LangName[myInfo.lang];
 
 	// I18N
 	renderI18N('newTab');
 	document.querySelector('html').setAttribute('lang', myInfo.lang);
+
 	// Group Control
 	setGroupSwitcher();
 	// Events

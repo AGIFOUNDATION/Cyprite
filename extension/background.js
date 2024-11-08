@@ -1,6 +1,7 @@
 import "./components/jsrsasign.all.min.js";
 import "./script/i18n.js";
 import "./script/ai/config.js";
+import "./script/ai/common.js";
 import "./script/common.js";
 import "./script/cachedDB.js";
 import "./script/ai.js";
@@ -2002,7 +2003,6 @@ AIHandler.translateAndInterpretation = async (data, source, sid) => {
 			item.push(entry.join('\n\n'));
 		}
 
-		console.log(item);
 		translation = item.join('\n');
 	}
 	else {

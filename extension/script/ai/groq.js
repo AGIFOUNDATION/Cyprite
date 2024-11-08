@@ -1,3 +1,5 @@
+const {requestRateLimitLock, updateRateLimitLock} = globalThis.AI || {};
+
 globalThis.AI = globalThis.AI || {};
 globalThis.AI.Groq = {};
 

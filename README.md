@@ -198,6 +198,11 @@ Meanwhile, for short texts, "Dictionary Mode" will be automatically enabled, whi
 
 ![](./assets/readme6.png)
 
+## Shortcuts
+
+- Switch search mode: In the smart search input box, `Alt + Left/Right`
+- Switch function pages: In the chat input box or smart search input box, `Ctrl + Alt + Left/Right`
+
 ## Privacy Policy
 
 Click [here](./PRIVACY.md) to view.

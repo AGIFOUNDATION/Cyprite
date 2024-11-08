@@ -1,3 +1,5 @@
+const {requestRateLimitLock, updateRateLimitLock, sendRequestAndWaitForResponse} = globalThis.AI || {};
+
 globalThis.AI = globalThis.AI || {};
 globalThis.AI.OpenAI = {};
 globalThis.AI.Mixtral = {};
@@ -82,104 +84,21 @@ AI.OpenAI.list = async () => {
 	return response;
 };
 AI.OpenAI.chat = async (conversation, model=DefaultOpenAIChatModel, options={}) => {
-	var isO1Preview = model === 'o1-preview' || model === 'o1-mini';
-	var messages = assembleMessages(conversation, true, !isO1Preview);
+	const isO1Preview = model === 'o1-preview' || model === 'o1-mini';
+	const request = { method: "POST" };
+	const url = "https://api.openai.com/v1/chat/completions";
+
 	var [header, data] = assembleDataPack(model, options, myInfo.apiKey.openai);
-	data.messages = messages;
 	if (isO1Preview) {
 		data.max_completion_tokens = data.max_tokens;
 		delete data.max_tokens;
 	}
+	request.headers = header;
 
-	var request = {
-		method: "POST",
-		headers: header,
-		body: JSON.stringify(data),
-	};
-	var url = "https://api.openai.com/v1/chat/completions";
-
-	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
-	while (true) {
-		let response;
-		try {
-			await requestRateLimitLock(model);
-			updateRateLimitLock(model, true);
-			response = await waitUntil(fetchWithCheck(url, request));
-			updateRateLimitLock(model, false);
-		}
-		catch (err) {
-			updateRateLimitLock(model, false);
-			throw err;
-		}
-
-		let text = await response.text();
-		// Occasionally, abnormal JSON structures may appear in OpenAI's returned data, requiring additional processing.
-		try {
-			let inner = text.match(/^\s*b'\{[\w\W]+\}'\s*$/);
-			if (!!inner) {
-				text = text.replace(/^\s*b'|'\s*$/g, '').replace(/\\n/g, '\n');
-			}
-			response = JSON.parse(text);
-		}
-		catch (err) {
-			logger.error('OpenAI', err);
-			response = {};
-		}
-		logger.info('OpenAI', response);
-
-		let error = response.error;
-		if (!!error && !!error.message) throw new Error(error.message);
-
-		let usg = response.usage, reply = response.choices;
-		usage.count ++;
-		if (!!usg) {
-			usage.input += usg.prompt_tokens;
-			usage.output += usg.completion_tokens
-		}
-		if (!!reply) reply = reply[0];
-		let reason = '';
-		if (!!reply) {
-			reason = reply.finish_reason || '';
-			reply = reply.message?.content;
-		}
-		if (!reply) {
-			reply = "";
-			let errMsg = response.error?.message || 'Error Occur!';
-			logger.error('OpenAI', errMsg);
-			throw new Error(errMsg);
-		}
-		else {
-			reply = reply.trim();
-			replies.push(reply);
-		}
-
-		if (reason.toLowerCase() !== 'length') {
-			break;
-		}
-		else {
-			if (isFirst) {
-				conversation.push(['ai', reply]);
-				conversation.push(['human', PromptLib.continueOutput]);
-				isFirst = false;
-			}
-			else {
-				conversation[conversation.length - 2][1] = replies.join(' ');
-			}
-			messages = assembleMessages(conversation, true, !isO1Preview);
-			data.messages = messages;
-			request.body = JSON.stringify(data);
-		}
-
-		loop ++;
-		if (loop >= ModelContinueRequestLoopLimit) break;
-	}
-	time = Date.now() - time;
-	logger.info('OpenAI', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
-
-	return {
-		reply: replies.join(' '),
-		usage,
-	};
+	return await sendRequestAndWaitForResponse('OpenAI', model, conversation, url, request, () => {
+		data.messages = assembleMessages(conversation, true, !isO1Preview);
+		request.body = JSON.stringify(data);
+	});
 };
 AI.OpenAI.draw = async (prompt, model=DefaultOpenAIDrawModel, options={}) => {
 	var data = {
@@ -223,86 +142,16 @@ AI.OpenAI.draw = async (prompt, model=DefaultOpenAIDrawModel, options={}) => {
 };
 
 AI.Mixtral.chat = async (conversation, model=DefaultMixtralChatModel, options={}) => {
-	var messages = assembleMessages(conversation, false);
+	const request = { method: "POST" };
+	const url = 'https://api.mistral.ai/v1/chat/completions';
+
 	var [header, data] = assembleDataPack(model, options, myInfo.apiKey.mixtral);
-	data.messages = messages;
+	request.headers = header;
 
-	var request = {
-		method: "POST",
-		headers: header,
-		body: JSON.stringify(data),
-	};
-	var url = 'https://api.mistral.ai/v1/chat/completions';
-
-	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
-	while (true) {
-		let response;
-		try {
-			await requestRateLimitLock(model);
-			updateRateLimitLock(model, true);
-			response = await waitUntil(fetchWithCheck(url, request));
-			updateRateLimitLock(model, false);
-		}
-		catch (err) {
-			updateRateLimitLock(model, false);
-			throw err;
-		}
-		response = await response.json();
-		logger.info('Mixtral', response);
-
-		let error = response.detail;
-		if (!!error && !!error[0] && !!error[0].msg) throw new Error(error[0].msg);
-
-		let usg = response.usage, reply = response.choices;
-		usage.count ++;
-		if (!!usg) {
-			usage.input += usg.prompt_tokens;
-			usage.output += usg.completion_tokens;
-		}
-		if (!!reply) reply = reply[0];
-		let reason = '';
-		if (!!reply) {
-			reply = reply.message?.content;
-			reason = reply.finish_reason || '';
-		}
-		if (!reply) {
-			reply = "";
-			let errMsg = error || 'Error Occur!';
-			logger.error('Mixtral', errMsg);
-			throw new Error(errMsg);
-		}
-		else {
-			reply = reply.trim();
-			replies.push(reply);
-		}
-
-		if (reason.toLowerCase() !== 'length') {
-			break;
-		}
-		else {
-			if (isFirst) {
-				conversation.push(['ai', reply]);
-				conversation.push(['human', PromptLib.continueOutput]);
-				isFirst = false;
-			}
-			else {
-				conversation[conversation.length - 2][1] = replies.join(' ');
-			}
-			messages = assembleMessages(conversation, false);
-			data.messages = messages;
-			request.body = JSON.stringify(data);
-		}
-
-		loop ++;
-		if (loop >= ModelContinueRequestLoopLimit) break;
-	}
-	time = Date.now() - time;
-	logger.info('Mixtral', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
-
-	return {
-		reply: replies.join(' '),
-		usage,
-	};
+	return await sendRequestAndWaitForResponse('Mixtral', model, conversation, url, request, () => {
+		data.messages = assembleMessages(conversation, false);
+		request.body = JSON.stringify(data);
+	});
 };
 
 AI.Grok.list = async () => {
@@ -330,81 +179,14 @@ AI.Grok.list = async () => {
 	return response;
 };
 AI.Grok.chat = async (conversation, model=DefaultGrokChatModel, options={}) => {
-	var messages = assembleMessages(conversation, false);
+	const request = { method: "POST" };
+	const url = "https://api.x.ai/v1/chat/completions";
+
 	var [header, data] = assembleDataPack(model, options, myInfo.apiKey.grok);
-	data.messages = messages;
+	request.headers = header;
 
-	var request = {
-		method: "POST",
-		headers: header,
-		body: JSON.stringify(data),
-	};
-	var url = "https://api.x.ai/v1/chat/completions";
-
-	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
-	while (true) {
-		let response;
-		try {
-			await requestRateLimitLock(model);
-			updateRateLimitLock(model, true);
-			response = await waitUntil(fetchWithCheck(url, request));
-			updateRateLimitLock(model, false);
-		}
-		catch (err) {
-			updateRateLimitLock(model, false);
-			throw err;
-		}
-		response = await response.json();
-		logger.info('Grok', response);
-
-		let error = response.error;
-		if (!!error && !!error.message) throw new Error(error.message);
-
-		let usg = response.usage, reply = response.choices;
-		usage.count ++;
-		if (!!usg) {
-			usage.input += usg.prompt_tokens;
-			usage.output += usg.completion_tokens
-		}
-		if (!!reply) reply = reply[0];
-		let reason = reply.finish_reason || '';
-		if (!!reply) reply = reply.message?.content;
-		if (!reply) {
-			reply = "";
-			let errMsg = response.error?.message || 'Error Occur!';
-			logger.error('Grok', errMsg);
-			throw new Error(errMsg);
-		}
-		else {
-			reply = reply.trim();
-			replies.push(reply);
-		}
-
-		if (reason.toLowerCase() !== 'length') {
-			break;
-		}
-		else {
-			if (isFirst) {
-				conversation.push(['ai', reply]);
-				conversation.push(['human', PromptLib.continueOutput]);
-				isFirst = false;
-			}
-			else {
-				conversation[conversation.length - 2][1] = replies.join(' ');
-			}
-			messages = assembleMessages(conversation, false);
-			data.messages = messages;
-			request.body = JSON.stringify(data);
-		}
-
-		loop ++;
-		if (loop >= ModelContinueRequestLoopLimit) break;
-	}
-	time = Date.now() - time;
-	logger.info('Grok', 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
-
-	return {
-		reply: replies.join(' '),
-		usage,
-	};
+	return await sendRequestAndWaitForResponse('Grok', model, conversation, url, request, () => {
+		data.messages = assembleMessages(conversation, false);
+		request.body = JSON.stringify(data);
+	});
 };
