@@ -43,7 +43,7 @@ AI.Claude.chat = async (conversation, model=DefaultChatModel, options={}) => {
 	var data = Object.assign({}, ModelDefaultConfig.Claude.chat, (ModelDefaultConfig[model] || {}).chat || {}, options);
 	data.model = model;
 
-	return await sendRequestAndWaitForResponse('MiniMax', model, conversation, url, request, () => {
+	return await sendRequestAndWaitForResponse('Claude', model, conversation, url, request, () => {
 		Object.assign(data, assembleConversation(conversation));
 		request.body = JSON.stringify(data);
 	});

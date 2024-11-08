@@ -2149,7 +2149,7 @@ AIHandler.preliminaryThinking = async (data, source, sid) => {
 
 /* Utils */
 
-const Tab2Article = {}, RelativeHandler = {};
+const Tab2Article = {};
 const WaitDuration = 5 * 1000;
 const RelativeArticleRange = 40;
 globalThis.waitUntil = fun => new Promise((res, rej) => {

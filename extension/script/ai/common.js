@@ -158,7 +158,7 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 		}
 		logger.info(tag, response);
 
-		let error = response.error || response.error_msg;
+		let error = response.error || response.error_msg || response.error?.message;
 		if (!!error && !!error.message) throw new Error(error.message);
 
 		let usg = response.usage || response.usageMetadata;

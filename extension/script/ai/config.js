@@ -228,6 +228,16 @@ globalThis.ModelDefaultConfig = {
 	},
 };
 globalThis.SearchAIModel = ['GLM', 'MoonShot'];
+globalThis.PaCableModels = [
+	"gemini-1.5-pro-exp-0827",
+	"gemini-1.5-flash-exp-0827",
+	"gemini-1.5-pro-002",
+	"gemini-1.5-flash-002",
+	"claude-3-5-sonnet-latest",
+	"claude-3-opus-20240229",
+	"o1-preview",
+	"deepseek-chat",
+];
 
 /* Long Context Control */
 
