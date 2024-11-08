@@ -1,4 +1,7 @@
 const HTMLTags = ('a|b|i|strong|em|u|del|img|div|span|p|input|textarea|button|br|hr|h1|h2|h3|h4|h5|h6|ul|ol|li|blockquote').split('|').map(tag => tag.toLowerCase());
+const RegUnlatin = /(\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|\p{Script=Thai}|\p{Script=Arabic})/gu;
+const RegLatin = /(\p{L}+)/ug;
+const RegPunctuation = /[\p{P}．，、。？！；：‘’“”"'\(\)\[\]\{\}《》〈〉<>«»“„\-_=\+~`\/\\\|@#\$%\^&\*…—·～¡¿・ー;\u00A1-\u00BF\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF]/gu;
 
 globalThis.TagSearchRecord = 'CACHE_SEARCH_RECORDS';
 globalThis.TagArticleList = 'CACHE_ARTICLE_LIST';
@@ -122,7 +125,7 @@ globalThis.parseArray = (array, noSub=true) => {
 	array = (array || '')
 		.replace(/^\{|\}$/g, '').trim()
 		.split(/\s*[\n\r]+\s*/).filter(line => !!line)
-		.map(line => line.replace(/^\s*(\-|\+|\d+\.)\s*/, '').trim());
+		.map(line => line.replace(/^(\s*(\-|\+|\*|\d+\.)\s+)+/, '').trim());
 	if (noSub) {
 		array = array.join(',').split(/\s*[,;，；]\s*/);
 	}
@@ -195,6 +198,7 @@ globalThis.parseReplyAsXMLToJSON = (xml, init=true) => {
 
 	xml.replace(reg, (m, end, tag, pos) => {
 		tag = tag.toLowerCase();
+		if (!tag.match(/[a-z]/i)) return;
 		if (HTMLTags.includes(tag)) return;
 		end = !!end;
 		if (end) {
@@ -256,19 +260,20 @@ globalThis.calculateHash = async (content, algorithm='SHA-256') => {
 globalThis.calculateWordCount = (text) => {
 	var match = text.match(/(\p{L}+)/ug);
 	if (!match) return 0;
-	var countLatin = 0, countUnlatin = 0;
+	var countLatin = 0, countUnlatin = 0, countPunctuation = (text.match(RegPunctuation) || []).length;
 	match.forEach(part => {
-		part = part.replace(/(\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|\p{Script=Thai}|\p{Script=Arabic})/gu, (m) => {
+		part = part.replace(RegUnlatin, (m) => {
 			countUnlatin += m.length;
 			return ' ';
 		});
-		var match = part.match(/(\p{L}+)/ug) || [];
+		match = part.match(RegLatin) || [];
 		countLatin += match.length;
 	});
 	return {
 		total: countLatin + countUnlatin,
 		latin: countLatin,
-		unlatin: countUnlatin
+		unlatin: countUnlatin,
+		punctuation: countPunctuation,
 	};
 };
 globalThis.calculateByteSize = (obj) => {

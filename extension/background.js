@@ -1938,6 +1938,79 @@ AIHandler.translateSentence = async (data, source, sid) => {
 
 	return {translation, usage};
 };
+const convertListToTable = (list, caption, table) => {
+	if (!list) return;
+
+	parseArray(list, false).forEach((line, i) => {
+		if (i === 0) {
+			table.push('| **' + caption + '** | ' + line + ' |');
+		}
+		else {
+			table.push('| | ' + line + ' |');
+		}
+	});
+};
+AIHandler.translateAndInterpretation = async (data, source, sid) => {
+	var available = await checkAvailability();
+	if (!available) return;
+
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	data.myLang = LangName[myInfo.lang] || myInfo.lang;
+	var conversation = PromptLib.assemble(PromptLib.translateAndInterpretation, data);
+	conversation = [['human', conversation]];
+
+	var translation = await callAIandWait('directAskAI', conversation), usage = {};
+	if (!!translation) {
+		updateUsage(usage, translation.usage);
+	}
+	var json = parseReplyAsXMLToJSON(translation.reply);
+	logger.log('Translate', json);
+
+	if (!!json.originentry) {
+		let entry = json.originentry;
+		let item = [];
+		item.push('#### ' + messages.dictionary.hintInterpretation + '\n');
+		item.push('|　|　|');
+		item.push('|-|-|');
+		convertListToTable(entry.category, messages.dictionary.hintItemCategory, item);
+		convertListToTable(entry.explanation, messages.dictionary.hintItemInterpretation, item);
+		convertListToTable(entry.pronunciation, messages.dictionary.hintItemPronunciation, item);
+		convertListToTable(entry.partofspeech, messages.dictionary.hintItemPartOfSpeech, item);
+		convertListToTable(entry.usage, messages.dictionary.hintItemUsage, item);
+		convertListToTable(entry.examples, messages.dictionary.hintItemExample, item);
+		convertListToTable(entry.synonyms, messages.dictionary.hintItemSynonyms, item);
+		convertListToTable(entry.antonyms, messages.dictionary.hintItemAntonyms, item);
+		
+		let list = json.translationentries;
+		if (!!list) {
+			entry = [];
+			entry.push('#### ' + messages.dictionary.hintTranslation + '\n');
+			list._origin.replace(/<entry>\s*([\w\W]+?)\s*<\/entry>/gi, (m, ctx) => {
+				var json = parseReplyAsXMLToJSON(ctx);
+				let item = [];
+				item.push('|　|　|');
+				item.push('|-|-|');
+				convertListToTable(json.partofspeech, messages.dictionary.hintItemPartOfSpeech, item);
+				convertListToTable(json.translation, messages.dictionary.hintItemTranslation, item);
+				convertListToTable(json.pronunciation, messages.dictionary.hintItemPronunciation, item);
+				convertListToTable(json.usage, messages.dictionary.hintItemUsage, item);
+				convertListToTable(json.examples, messages.dictionary.hintItemExample, item);
+				entry.push(item.join('\n'));
+			});
+			item.push('');
+			item.push(entry.join('\n\n'));
+		}
+
+		console.log(item);
+		translation = item.join('\n');
+	}
+	else {
+		translation = translation.reply;
+	}
+
+	return {translation, usage};
+};
 AIHandler.directSendToAI = async (conversation) => {
 	return await callAIandWait('directAskAI', conversation);
 };

@@ -2906,14 +2906,22 @@ ActionCenter.sendMessage = async (button) => {
 		let lang = document.body.querySelector('[name="translation_language"]').value;
 		lang = chooseTargetLanguage(lang);
 		let action = 'translateSentence';
+
 		let wordCount = calculateWordCount(content);
-		wordCount = wordCount.unlatin + wordCount.latin * 2;
+		let punctuationCount = wordCount.punctuation;
 		let lineCount = content.replace(/\w+(\.\w+)+/g, 'w').split(/[\.\!\?。！？\n\r]/).map(line => line.trim()).filter(line => !!line).length;
-		if (lineCount > 10 || wordCount > 200) {
+		wordCount = wordCount.unlatin + wordCount.latin * 2;
+
+		if (punctuationCount < 3 && wordCount < 10) {
+			action = "translateAndInterpretation";
+		}
+		else if (lineCount > 10 || wordCount > 200) {
 			action = 'translateContent';
 		}
+
 		try {
 			result = await askAIandWait(action, { lang, content });
+			console.log(result);
 			if (!!result && !!result.usage) {
 				updateUsage(usage, result.usage);
 			}

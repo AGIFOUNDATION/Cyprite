@@ -194,6 +194,10 @@ Here, Cyprite will perform "reflective translation" on long texts, which involve
 
 When you have provided APIKeys for more than one AI, the second step of reflection will try to choose a model different from the one you currently selected to ensure reflection from as many different perspectives as possible.
 
+Meanwhile, for short texts, "Dictionary Mode" will be automatically enabled, which provides explanations for given words, along with pronunciation, synonyms, antonyms, and example sentences among other dictionary information, making it convenient for you to learn various languages.
+
+![](./assets/readme6.png)
+
 ## Privacy Policy
 
 Click [here](./PRIVACY.md) to view.

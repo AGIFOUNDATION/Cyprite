@@ -463,6 +463,40 @@ PromptLib.sayHello = `You are the user's personal assistant, your name is "Cypri
 - The content of the greeting should match the current time (no neccessary to tell user the current time) and your identity as an assistant.`;
 
 
+/* Dictionary */
+
+PromptLib.translateAndInterpretation = `Please write the dictionary entry for "{{content}}" according to the format required by \`Output Format\` and the specific requirements in \`Requirement\`.
+
+# Requirement
+
+- The terms to be explained and translated may have multiple parts of speech, such as being used as both a noun and an adjective. You need to carefully analyze and list all possible parts of speech usages.
+- If the term to be explained and translated has multiple parts of speech, then in the translation section, each part of speech needs to be translated and explained separately.
+- The content in the \'originEntry\' section pertains to the term that needs to be explained and translated, and should be written in the same language as the term itself.
+- The content in the \`translationEntries\` section should be "{{lang}}".
+
+# Output Format
+
+<originEntry>
+<category>{word, phrase, idiom, colloquialism, proverb, etc, don't forget to translate into the required language}</category>
+<explanation>{entry's explanation, maybe multiple different interpretations, in Markdown unordered list format}</explanation>
+<pronunciation>{marked with standard phonetic symbols, and in some languages, a word or phrase may have more than one pronunciation, so if there are indeed multiple pronunciations in the current language, you should list them all}</pronunciation>
+<partOfSpeech>{nouns, verbs, adjectives, adverbs, etc, don't forget to translate into the required language}</partOfSpeech>
+<usage>{how to use the entry}</usage>
+<examples>{Example Sentences, 1 to 2 sentences, in Markdown unordered list format}</examples>
+<synonyms>{0 to 3 synonyms for the entry}</synonyms>
+<antonyms>{0 to 3 antonyms for the entry}</antonyms>
+</originEntry>
+<translationEntries>
+<entry>
+<translation>{translation of entry}</translation>
+<pronunciation>{marked with standard phonetic symbols, and in some languages, a word or phrase may have more than one pronunciation, so if there are indeed multiple pronunciations in the current language, you should list them all}</pronunciation>
+<partOfSpeech>{nouns, verbs, adjectives, adverbs, etc}</partOfSpeech>
+<usage>{how to use the entry}</usage>
+<examples>{Example Sentences, 0 to 1 sentences, in Markdown unordered list format}</examples>
+</entry>
+...
+</translationEntries>`;
+
 /* Cyprite */
 
 PromptLib.freeCyprite = `# Prompt Program

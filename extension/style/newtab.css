@@ -222,6 +222,10 @@ body {
 	border-radius: 5px;
 	background-color: black;
 }
+.panel_operation_area .chat_item .chat_content pre {
+	background-color: rgba(35, 35, 35, 0.8);
+    box-shadow: inset 0px 1px 3px black;
+}
 .panel_article_list {
 	display: none;
 	position: absolute;
@@ -752,6 +756,59 @@ body {
 .panel_container nav.nav_menu_panel a {
 	display: block;
 	margin: 5px;
+}
+body > div.router {
+	position: fixed;
+	bottom: 18px;
+	left: 0px;
+	z-index: 1;
+	display: block;
+	border: 5px solid black;
+	border-left: none;
+	border-radius: 0px 10px 10px 0px;
+	background-color: rgba(35, 35, 35, 0.6);
+	cursor: pointer;
+}
+body > div.router .logo {
+	display: block;
+	padding: 5px;
+}
+body > div.router .logo img {
+	width: 35px;
+	height: 35px;
+}
+body > div.router ul {
+	display: none;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	padding-left: 25px;
+	padding-right: 10px;
+}
+body > div.router ul li a {
+	color: var(--front-color);
+}
+body > div.router:hover .logo {
+	display: none;
+}
+body > div.router:hover ul {
+	display: block;
+}
+@media (max-width: 1600px) {
+	body > div.router .logo img {
+		width: 30px;
+		height: 30px;
+	}
+}
+@media (max-width: 1580px) {
+	body > div.router .logo img {
+		width: 25px;
+		height: 25px;
+	}
+}
+@media (max-width: 1550px) {
+	body > div.router {
+		display: none;
+	}
 }
 span.MathJax {
 	margin-left: 0.3em;
