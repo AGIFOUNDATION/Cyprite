@@ -1630,6 +1630,8 @@ EventHandler.DeleteAISearchRecord = async (quest) => {
 
 const CacheLimit = 1000 * 60 * 60 * 12;
 const removeAIChatHistory = async (tid) => {
+	chrome.storage.session.remove(tid + ':crosspageConv');
+
 	var list, tasks = [];
 
 	if (!!tid) {
@@ -1982,7 +1984,7 @@ AIHandler.translateAndInterpretation = async (data, source, sid) => {
 		convertListToTable(entry.examples, messages.dictionary.hintItemExample, item);
 		convertListToTable(entry.synonyms, messages.dictionary.hintItemSynonyms, item);
 		convertListToTable(entry.antonyms, messages.dictionary.hintItemAntonyms, item);
-		
+
 		let list = json.translationentries;
 		if (!!list) {
 			entry = [];
@@ -2127,8 +2129,16 @@ AIHandler.preliminaryThinking = async (data, source, sid) => {
 		time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")
 	};
 
-	var prompt = PromptLib.assemble(PromptLib.preliminaryThinking, options);
-	var conversation = [['human', prompt]];
+	var prompt, conversation = [];
+	if (!!PromptLib.preliminaryThinkingUltra && PaCableModels.includes(myInfo.model)) {
+		prompt = PromptLib.assemble(PromptLib.preliminaryThinkingUltra, options);
+		conversation.push(['system', prompt]);
+		prompt = data.request + '\n\n(Time: ' + options.time + ')';
+	}
+	else {
+		prompt = PromptLib.assemble(PromptLib.preliminaryThinking, options);
+	}
+	conversation.push(['human', prompt]);
 	logger.info('PreliminaryThinking', 'Prompt Assembled', [...conversation]);
 	var result, usage = {};
 	try {
@@ -2136,6 +2146,8 @@ AIHandler.preliminaryThinking = async (data, source, sid) => {
 		if (!!result) {
 			updateUsage(usage, result.usage);
 			result = result.reply || result;
+			let json = parseReplyAsXMLToJSON(result);
+			result = json.reply?._origin || json.reply || result;
 		}
 		logger.info('PreliminaryThinking', 'Got Reply:\n', result);
 	}

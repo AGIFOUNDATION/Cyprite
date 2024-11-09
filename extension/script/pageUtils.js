@@ -171,7 +171,17 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 		const url = FONTAWESOMEROOT + type + '/' + icon + '.svg';
 		return '<img class="fontawesome" src="' + url + '">'
 	});
-	content = content.replace(/<i class=('|")fa([rsb]) fa-([\w\-]+)\1\s*(><\/i>|\/>)/gi, (m, _, type, icon) => {
+	content = content.replace(/<i class=('|")fa([rsb])( fa\-([\w\-]+))+\1\s*(><\/i>|\/>)/gi, (m, _, type) => {
+		var icon = '';
+		var icons = m.match(/fa-([\w\-]+)/gi);
+		icons.forEach(item => {
+			item = item.replace(/^fa\-/i, '');
+			if (!item) return;
+			if (['solid', 'regular', 'brands'].includes(item.toLowerCase())) return;
+			if (item.length > icon.length) icon = item;
+		});
+		if (!icon) return m;
+
 		type = (type || '').toLowerCase();
 		if (type === 'r') {
 			type = 'regular';
@@ -185,7 +195,17 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 		const url = FONTAWESOMEROOT + type + '/' + icon + '.svg';
 		return '<img class="fontawesome" src="' + url + '">'
 	});
-	content = content.replace(/<i class=('|")fa-(solid|regular|brands) fa-([\w\-]+)\1\s*(><\/i>|\/>)/gi, (m, _, type, icon) => {
+	content = content.replace(/<i class=('|")fa-(solid|regular|brands)( fa-([\w\-]+))+\1\s*(><\/i>|\/>)/gi, (m, _, type, icons) => {
+		var icon = '';
+		var icons = m.match(/fa-([\w\-]+)/gi);
+		icons.forEach(item => {
+			item = item.replace(/^fa\-/i, '');
+			if (!item) return;
+			if (['solid', 'regular', 'brands'].includes(item.toLowerCase())) return;
+			if (item.length > icon.length) icon = item;
+		});
+		if (!icon) return m;
+
 		type = (type || '').toLowerCase();
 		const url = FONTAWESOMEROOT + type + '/' + icon + '.svg';
 		return '<img class="fontawesome" src="' + url + '">'

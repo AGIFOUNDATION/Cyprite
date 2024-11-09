@@ -518,6 +518,30 @@ const downloadConversation = async () => {
 		Notification.show('', messages.crossPageConv.hintConversationDownloaded, 'middleTop', 'success');
 	}
 };
+const restoreConversation = (conversation, mode, start=0) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	conversation.forEach((item, i) => {
+		if (i < start) return;
+		var content = item[1] || '', type = item[0];
+		if (item[0] === 'human') {
+			content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
+		}
+		else if (item[0] === 'ai') {
+			type = 'cyprite';
+			let strategy = content.match(/<strategy>\s*([\w\W]*?)\s*<\/strategy>/i);
+			if (!!strategy) {
+				strategy = parseArray(strategy[1], false).map(line => '- ' + line).join('\n');
+				addChatItem(mode, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
+			}
+			content = content.replace(/^[\w\W]*?<reply>\s*|\s*<\/reply>[\w\W]*?$/gi, '');
+		}
+		else {
+			return;
+		}
+		addChatItem(mode, content, type, item[2], true);
+	});
+};
 const resizeCurrentInputter = () => {
 	var container = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"]');
 	var inputter = container.querySelector('.input_container');
@@ -550,11 +574,7 @@ const switchToXPageConv = async () => {
 		let conversation = await chrome.storage.session.get(currentTabId + ':crosspageConv');
 		conversation = (conversation || {})[currentTabId + ':crosspageConv'];
 		if (!!conversation && !!conversation.length) {
-			conversation.forEach(item => {
-				if (item[0] === 'system') return;
-				needShowArticleList = false;
-				addChatItem('crossPageConversation', item[1], item[0] === 'ai' ? 'cyprite' : item[0], item[2], true);
-			});
+			restoreConversation(conversation, 'crossPageConversation');
 		}
 	}
 	else {
@@ -1006,25 +1026,7 @@ const switchToFreeCyprite = async () => {
 	conversation = (conversation || {})[TagFreeCypriteConversation] || [];
 	if (conversation.length === 0) return;
 
-	conversation.forEach(item => {
-		var content = item[1] || '', type = item[0];
-		if (item[0] === 'human') {
-			content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
-		}
-		else if (item[0] === 'ai') {
-			type = 'cyprite';
-			let strategy = content.match(/<strategy>\s*([\w\W]*?)\s*<\/strategy>/i);
-			if (!!strategy) {
-				strategy = parseArray(strategy[1], false).map(line => '- ' + line).join('\n');
-				addChatItem('freelyConversation', [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
-			}
-			content = content.replace(/^[\w\W]*?<reply>\s*|\s*<\/reply>[\w\W]*?$/gi, '');
-		}
-		else {
-			return;
-		}
-		addChatItem('freelyConversation', content, type, item[2], true);
-	});
+	restoreConversation(conversation, 'freelyConversation');
 };
 const downloadFreeConversation = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
@@ -2329,21 +2331,7 @@ ActionCenter.loadSearchRecord = async (host, data, evt) => {
 			document.body.querySelector('.furthure_dialog').style.display = 'block';
 			let limit = info.mode === 'fullAnalyze' ? 7 : 3;
 			if (info.conversation.length > limit) {
-				for (let i = limit; i < info.conversation.length; i ++) {
-					let item = info.conversation[i];
-					let content = item[1], name = item[0];
-					if (name === 'human') {
-						content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
-					}
-					else if (name === 'ai') {
-						name = 'cyprite';
-						content = content.replace(/^[\w\W]*?<reply>\s*|\s*<\/reply>[\w\W]*?$/gi, '');
-					}
-					else {
-						continue;
-					}
-					addChatItem('intelligentSearch', content, name, null, true);
-				}
+				restoreConversation(info.conversation, 'intelligentSearch', limit);
 			}
 			advSearchConversation = info.conversation;
 			resizeCurrentInputter();
@@ -2970,8 +2958,12 @@ ActionCenter.sendMessage = async (button) => {
 	else if (target === 'freelyConversation') {
 		conversation = await chrome.storage.session.get(TagFreeCypriteConversation);
 		conversation = (conversation || {})[TagFreeCypriteConversation] || [];
+		let prompt = PromptLib.assemble(PromptLib.freeCyprite, { lang: LangName[myInfo.lang] });
 		if (conversation.length === 0) {
-			conversation.push(['system', PromptLib.assemble(PromptLib.freeCyprite, { lang: LangName[myInfo.lang] })]);
+			conversation.push(['system', prompt]);
+		}
+		else {
+			conversation[0][1] = prompt;
 		}
 		conversation.push(['human', content + '\n\n(Time: ' + timestmp2str("YYYY/MM/DD hh:mm :WDE:") + ')', cid]);
 		try {
@@ -3052,8 +3044,8 @@ ActionCenter.onOperateSearchResult = async (target, ui, evt) => {
 	}
 };
 
-window.addEventListener('beforeunload', () => {
-	chrome.storage.session.remove(currentTabId + ':crosspageConv');
+window.addEventListener('unload', () => {
+	// chrome.storage.session.remove(currentTabId + ':crosspageConv');
 });
 window.addEventListener('resize', resizeCurrentInputter);
 

@@ -824,5 +824,7 @@ div.MathJax_Display span.MathJax {
 }
 img.fontawesome {
 	height: 1em;
+	margin-left: 2px;
+	margin-right: 2px;
 	filter: invert(0.6) sepia(1.0) hue-rotate(60deg) brightness(1.5);
 }
