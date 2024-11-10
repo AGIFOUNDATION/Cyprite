@@ -437,6 +437,7 @@ const getPageInfo = async url => {
 };
 const setPageInfo = async (url, info, immediately=false) => {
 	if (url.match(/^chrome/i)) return;
+
 	if (!!DBs.tmrPageInfos) {
 		clearTimeout(DBs.tmrPageInfos);
 	}
@@ -446,16 +447,44 @@ const setPageInfo = async (url, info, immediately=false) => {
 	if (!DBs.pageInfo) await initDB();
 	var dbData = await DBs.pageInfo.get('pageInfo', key);
 	if (!dbData) dbData = {};
+	const keywords = {add: [], remove: []};
+	const category = {add: [], remove: []};
 	for (let key in info) {
 		let value = info[key];
 		if (value === null || value === undefined) continue;
+		if (key === 'keywords') {
+			if (!isArray(value)) continue;
+			let latest = (dbData.keywords || []);
+			value.forEach(item => {
+				if (latest.includes(item)) return;
+				keywords.add.push(item);
+			});
+			latest.forEach(item => {
+				if (value.includes(item)) return;
+				keywords.remove.push(item);
+			});
+		}
+		if (key === 'category') {
+			if (!isArray(value)) continue;
+			let latest = (dbData.category || []);
+			value.forEach(item => {
+				if (latest.includes(item)) return;
+				category.add.push(item);
+			});
+			latest.forEach(item => {
+				if (value.includes(item)) return;
+				category.remove.push(item);
+			});
+		}
 		dbData[key] = value;
 	}
 	info = Object.assign({}, dbData);
 
+	const data = (await chrome.storage.local.get([TagArticleList, TagKeywordList, TagCategoryList])) || {};
+	const record = {};
+
 	// Update Article List Cache
-	var list = await chrome.storage.local.get(TagArticleList);
-	list = (list || {})[TagArticleList] || [];
+	var list = data[TagArticleList] || [];
 	var notHas = true;
 	list.some(item => {
 		if (parseURL(item.url) !== key) return;
@@ -469,18 +498,42 @@ const setPageInfo = async (url, info, immediately=false) => {
 		if (!!dbData.content) item.isCached = true;
 		list.push(item);
 	}
-	var record = {};
 	record[TagArticleList] = list;
-	await chrome.storage.local.set(record);
+
+	// Update Keywords and Category
+	if (keywords.add.length + keywords.remove.length) {
+		list = data[TagKeywordList] || {};
+		keywords.add.forEach(item => {
+			list[item] ++;
+		});
+		keywords.remove.forEach(item => {
+			list[item] --;
+		});
+		record[TagKeywordList] = list;
+	}
+	if (category.add.length + category.remove.length) {
+		list = data[TagCategoryList] || {};
+		category.add.forEach(item => {
+			list[item] ++;
+		});
+		category.remove.forEach(item => {
+			list[item] --;
+		});
+		record[TagCategoryList] = list;
+	}
 
 	// Update DB
 	if (immediately) {
+		chrome.storage.local.set(record);
+
 		delete DBs.tmrPageInfos;
 		if (!DBs.pageInfo) await initDB();
 		await DBs.pageInfo.set('pageInfo', key, dbData);
 		logger.log('DB[PageInfo]', 'Set Page Info: ' + url);
 	}
 	else {
+		await chrome.storage.local.set(record);
+
 		DBs.tmrPageInfos = setTimeout(async () => {
 			delete DBs.tmrPageInfos;
 			if (!DBs.pageInfo) await initDB();
@@ -503,13 +556,61 @@ const delPageInfo = async (urlList, immediately=false) => {
 	if (isString(urlList)) urlList = [urlList];
 	else if (!isArray(urlList)) return;
 
-	var keyList = urlList.map(url => parseURL(url));
-
 	if (!!DBs.tmrPageInfos) {
 		clearTimeout(DBs.tmrPageInfos);
 	}
 
+	if (!DBs.pageInfo) await initDB();
+	const keyList = urlList.map(url => parseURL(url));
+	const keywords = [];
+	const category = [];
+	const tasks = [];
+	tasks.push(chrome.storage.local.get([TagArticleList, TagKeywordList, TagCategoryList]));
+	tasks.push(...(keyList.map(async url => {
+		var item = await DBs.pageInfo.get('pageInfo', url);
+		if (!item) return;
+		if (isArray(item.keywords)) {
+			keywords.push(...item.keywords);
+		}
+		if (isArray(item.category)) {
+			category.push(...item.category);
+		}
+	})));
+	const data = (await Promise.all(tasks))[0] || {};
+	const record = {};
+
+	// Update Article List Cache
+	var list = data[TagArticleList] || [];
+	var has = false;
+	list = list.filter(item => {
+		if (!!item.url && !keyList.includes(parseURL(item.url))) return true;
+		has = true;
+		return false;
+	});
+	if (has) {
+		record[TagArticleList] = list;
+	}
+
+	// Update Keywords and Category
+	if (keywords.length) {
+		list = data[TagKeywordList] || {};
+		keywords.forEach(item => {
+			list[item] --;
+		});
+		record[TagKeywordList] = list;
+	}
+	if (category.length) {
+		list = data[TagCategoryList] || {};
+		category.forEach(item => {
+			list[item] --;
+		});
+		record[TagCategoryList] = list;
+	}
+
+	// Update DB
 	if (immediately) {
+		chrome.storage.local.set(record);
+
 		delete DBs.tmrPageInfos;
 		if (!DBs.pageInfo) await initDB();
 
@@ -539,6 +640,8 @@ const delPageInfo = async (urlList, immediately=false) => {
 		logger.log('DB[PageInfo]', 'Del Page Info: ' + urlList.join(', '));
 	}
 	else {
+		await chrome.storage.local.set(record);
+
 		DBs.tmrPageInfos = setTimeout(async () => {
 			delete DBs.tmrPageInfos;
 			if (!DBs.pageInfo) await initDB();
@@ -553,19 +656,6 @@ const delPageInfo = async (urlList, immediately=false) => {
 			await Promise.all(tasks);
 			logger.log('DB[PageInfo]', 'Del Page Info: ' + urlList.join(', '));
 		}, 200);
-		let list = await chrome.storage.local.get(TagArticleList);
-		list = (list || {})[TagArticleList] || [];
-		let has = false;
-		list = list.filter(item => {
-			if (!!item.url && !keyList.includes(parseURL(item.url))) return true;
-			has = true;
-			return false;
-		});
-		if (has) {
-			let data = {};
-			data[TagArticleList] = list;
-			await chrome.storage.local.set(data);
-		}
 	}
 };
 const getTabInfo = async tid => {
@@ -978,6 +1068,46 @@ EventHandler.ClearSummaryConversation = async (url) => {
 		return false;
 	}
 };
+const RefreshKeywordsCategoryCache = async (articles) => {
+	if (!articles) {
+		if (!DBs.pageInfo) await initDB();
+		articles = await DBs.pageInfo.all('pageInfo');
+		articles = Object.keys(articles).map(id => articles[id]);
+	}
+
+	var keywords = {}, category = {};
+	articles.forEach(item => {
+		if (!!item.keywords) {
+			item.keywords.forEach(kw => {
+				if (!kw) return;
+				if (!keywords[kw]) {
+					keywords[kw] = 1;
+				}
+				else {
+					keywords[kw] ++;
+				}
+			});
+		}
+		if (!!item.category) {
+			item.category.forEach(ct => {
+				if (!ct) return;
+				if (!category[ct]) {
+					category[ct] = 1;
+				}
+				else {
+					category[ct] ++;
+				}
+			});
+		}
+	});
+
+	const storage = {};
+	storage[TagKeywordList] = keywords;
+	storage[TagCategoryList] = category;
+	await chrome.storage.local.set(storage);
+
+	return { keywords, category };
+};
 EventHandler.GetArticleList = async (options) => {
 	if (!DBs.pageInfo) await initDB();
 
@@ -989,7 +1119,10 @@ EventHandler.GetArticleList = async (options) => {
 	storage[TagArticleList] = list.map(item => {
 		return convertPageInfoToRecord(item);
 	});
-	await chrome.storage.local.set(storage);
+	await Promise.all([
+		RefreshKeywordsCategoryCache(list),
+		chrome.storage.local.set(storage),
+	]);
 
 	// Parse options
 	var onlyCached = true, isLastVisit = true;
@@ -1479,7 +1612,7 @@ const getCategoryKeywordsForConversation = async (dialog) => {
 	const usage = {};
 
 	// Analyze the categories and keywords of current topic
-	var conversation = [];
+	const conversation = [];
 	conversation.push(['human', PromptLib.assemble(PromptLib.analyzeKeywordsAndCategoryOfConversation, {
 		lang: LangName[myInfo.lang],
 		conversation: dialog,
@@ -1494,14 +1627,65 @@ const getCategoryKeywordsForConversation = async (dialog) => {
 		keywords: parseArray(reply.keywords),
 	};
 };
+const filterCategoryKeywordsForConversation = async (dialog) => {
+	if (!PromptLib.filterKeywordsAndCategoryOfConversation) {
+		return {
+			usage: {},
+			category: [],
+			keywords: [],
+		};
+	}
+
+	var data = (await chrome.storage.local.get([TagKeywordList, TagCategoryList])) || {};
+	if (!data[TagKeywordList] || !data[TagCategoryList]) {
+		data = await RefreshKeywordsCategoryCache();
+	}
+	else {
+		data = {
+			keywords: data[TagKeywordList],
+			category: data[TagCategoryList],
+		};
+	}
+	data.keywords = Object.keys(data.keywords).map(key => [key, data.keywords[key]]);
+	data.keywords.sort((a, b) => b[1] - a[1]);
+	data.keywords.splice(100);
+	data.keywords = data.keywords.map(item => item[0]);
+	data.category = Object.keys(data.category).map(key => [key, data.category[key]]);
+	data.category.sort((a, b) => b[1] - a[1]);
+	data.category.splice(100);
+	data.category = data.category.map(item => item[0]);
+
+	const usage = {};
+	// Analyze the categories and keywords of current topic
+	const conversation = [];
+	conversation.push(['human', PromptLib.assemble(PromptLib.filterKeywordsAndCategoryOfConversation, {
+		lang: LangName[myInfo.lang],
+		conversation: dialog,
+		keywords: data.keywords.join(', '),
+		category: data.category.join(', '),
+	})]);
+	console.log(conversation);
+
+	var reply = await callLLMOneByOne(getFunctionalModelList('filterKeywordCategory'), conversation, true, 'FilterKeywordCategory');
+	updateUsage(usage, reply.usage);
+	reply = reply.reply;
+
+	return {
+		usage,
+		category: parseArray(reply.category),
+		keywords: parseArray(reply.keywords),
+	};
+};
 AIHandler.selectArticlesAboutConversation = async (dialog, source, sid) => {
 	const usage = {};
 
-	var [ctAndKw, allArticles] = await Promise.all([
+	var [ctAndKw, ctkwList, allArticles] = await Promise.all([
 		getCategoryKeywordsForConversation(dialog), // Analyze the categories and keywords of current dialog
+		filterCategoryKeywordsForConversation(dialog),
 		chrome.storage.local.get(TagArticleList),
 	]);
 	updateUsage(usage, ctAndKw.usage);
+	updateUsage(usage, ctkwList.usage);
 	allArticles = (allArticles || {})[TagArticleList] || [];
 	if (!allArticles.length) {
 		allArticles = await EventHandler.GetArticleList({
@@ -1509,6 +1693,16 @@ AIHandler.selectArticlesAboutConversation = async (dialog, source, sid) => {
 			isLastVisit: true,
 		});
 	}
+
+	// Combine keywords and categories
+	ctkwList.category.forEach(item => {
+		if (ctAndKw.category.includes(item)) return;
+		ctAndKw.category.push(item);
+	});
+	ctkwList.keywords.forEach(item => {
+		if (ctAndKw.keywords.includes(item)) return;
+		ctAndKw.keywords.push(item);
+	});
 
 	// Filter articles by Category and Keyword
 	const related = fileterArticleByCategoryAndKeyword(allArticles, ctAndKw.category, ctAndKw.keywords);

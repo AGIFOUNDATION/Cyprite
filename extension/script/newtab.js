@@ -3044,9 +3044,6 @@ ActionCenter.onOperateSearchResult = async (target, ui, evt) => {
 	}
 };
 
-window.addEventListener('unload', () => {
-	// chrome.storage.session.remove(currentTabId + ':crosspageConv');
-});
 window.addEventListener('resize', resizeCurrentInputter);
 
 const init = async () => {
@@ -3242,7 +3239,6 @@ const init = async () => {
 			evt.cancelBubble = true;
 		}
 	});
-
 
 	// Init
 	addChatItem('crossPageConversation', messages.newTab.crossPageConversationHint, 'cyprite');

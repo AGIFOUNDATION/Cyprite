@@ -5,6 +5,8 @@ const RegPunctuation = /[\p{P}．，、。？！；：‘’“”"'\(\)\[\]\{\}
 
 globalThis.TagSearchRecord = 'CACHE_SEARCH_RECORDS';
 globalThis.TagArticleList = 'CACHE_ARTICLE_LIST';
+globalThis.TagKeywordList = 'CACHE_KEYWORD_LIST';
+globalThis.TagCategoryList = 'CACHE_CATEGORY_LIST';
 globalThis.TagFreeCypriteConversation = "FREECYPRITECONVERSATION"
 
 globalThis.ForceServer = false;
@@ -127,7 +129,7 @@ globalThis.parseArray = (array, noSub=true) => {
 		.split(/\s*[\n\r]+\s*/).filter(line => !!line)
 		.map(line => line.replace(/^(\s*(\-|\+|\*|\d+\.)\s+)+/, '').trim());
 	if (noSub) {
-		array = array.join(',').split(/\s*[,;，；]\s*/);
+		array = array.join(',').split(/\s*[,，;；、]\s*/);
 	}
 	return array;
 };
