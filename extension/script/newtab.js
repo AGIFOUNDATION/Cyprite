@@ -1027,55 +1027,6 @@ const switchToFreeCyprite = async () => {
 	if (conversation.length === 0) return;
 
 	restoreConversation(conversation, 'freelyConversation');
-
-	
-	setTimeout(() => {
-		var test = `我是精通《古诗十九首》的汉魏乐府诗人。让我来将这首现代诗转换为古诗风格。
-	
-分析：这首诗讲述了一个现代爱情故事，充满了幽默感和讽刺意味。核心是表达了恋人之间想给对方惊喜的真挚情感，以及在科技时代的无奈与温馨。我们可以将其转化为一首富有古典韵味的五言诗。
-
-创作思路：
-1. 保留"惊喜"与"相知"的核心意旨
-2. 运用古典意象表达现代科技
-3. 以含蓄手法展现情感
-4. 最终回归真挚的爱情本质
-
-让我来创作并生成展示卡片：
-
-\`\`\`svg
-<svg width="480" height="760" xmlns="http://www.w3.org/2000/svg">
-	<rect width="478" height="758" x="1" y="1" fill="#FFFFFF" stroke="#8B4513" stroke-width="1"/>
-	
-	<!-- 标题区 -->
-	<text x="240" y="80" fill="#4A3C39" font-family="Ma Shan Zheng, FangSong" font-size="36" text-anchor="middle" letter-spacing="8">乐府诗人</text>
-	
-	<!-- 分隔线 -->
-	<line x1="60" y1="130" x2="420" y2="130" stroke="#8B4513" stroke-width="0.8"/>
-	<line x1="60" y1="350" x2="420" y2="350" stroke="#8B4513" stroke-width="0.8"/>
-	<line x1="60" y1="660" x2="420" y2="660" stroke="#8B4513" stroke-width="0.8"/>
-	
-	<!-- 原文区 -->
-	<text x="240" y="170" fill="#4A3C39" font-family="Noto Serif SC, STFangsong" font-size="18" text-anchor="middle" font-weight="bold">《惊喜浪漫》</text>
-	<text x="240" y="210" fill="#333333" font-family="Noto Serif SC, STFangsong" font-size="16" text-anchor="middle">情人节到了。你说我之前给你的礼物太平凡了，</text>
-	<text x="240" y="240" fill="#333333" font-family="Noto Serif SC, STFangsong" font-size="16" text-anchor="middle">很容易猜到，一点惊喜都没有...</text>
-	
-	<!-- 诗歌区 -->
-	<text x="240" y="390" fill="#4A3C39" font-family="Ma Shan Zheng, KaiTi" font-size="20" text-anchor="middle" font-weight="bold">《春夜赠衣》</text>
-	<text x="240" y="440" fill="#333333" font-family="Ma Shan Zheng, KaiTi" font-size="22" text-anchor="middle">欲寄心中意，</text>
-	<text x="240" y="480" fill="#333333" font-family="Ma Shan Zheng, KaiTi" font-size="22" text-anchor="middle">求谋智者言。</text>
-	<text x="240" y="520" fill="#333333" font-family="Ma Shan Zheng, KaiTi" font-size="22" text-anchor="middle">知君亦求计，</text>
-	<text x="240" y="560" fill="#333333" font-family="Ma Shan Zheng, KaiTi" font-size="22" text-anchor="middle">相视一笑欢。</text>
-	<text x="240" y="600" fill="#333333" font-family="Ma Shan Zheng, KaiTi" font-size="22" text-anchor="middle">良宵共徘徊，</text>
-	<text x="240" y="640" fill="#333333" font-family="Ma Shan Zheng, KaiTi" font-size="22" text-anchor="middle">此情胜千钱。</text>
-	
-	<!-- 署名区 -->
-	<text x="240" y="700" fill="#666666" font-family="Ma Shan Zheng, KaiTi" font-size="16" text-anchor="middle">LostAbaddon 的 Agent</text>
-</svg>
-\`\`\`
-
-这首诗采用六句五言诗的形式，将现代科技与传统爱情意象相结合。"智者言"暗指AI，"求计"对应查询，"千钱"暗指付费会员，最终以二人相视一笑、共享良宵作结，点明真情难得。整首诗保持了《古诗十九首》的含蓄风格，又巧妙传达了原文的幽默感与真挚情感。`;
-		addChatItem('freelyConversation', test, 'human');
-	}, 3000);
 };
 const downloadFreeConversation = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
