@@ -119,6 +119,7 @@ const getPageContent = (container, keepLink=false) => {
 };
 const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 	const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v6.6.0/svgs/";
+	// const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v5.15.4/svgs/";
 
 	// MathJax
 	var mathList = [];
@@ -240,6 +241,70 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 	if (!!globalThis.MathJax && mathList.length > 0) {
 		MathJax.Hub.Queue(["Typeset", MathJax.Hub, container]);
 	}
+
+	// Colorize code block
+	[...container.querySelectorAll('pre > code')].forEach(block => {
+		const content = block.innerText;
+		const lang = (block.className.match(/language-([\w\-\+_]+)/) || [])[1];
+		var isSVG = (lang || '').trim().match(/^svg/i);
+		if (!isSVG) {
+			if (!!content.match(('\n' + content).match(/\n\s*(<\?xml[^\n\r]*>\s*\n\s*)?<svg/i))) {
+				isSVG = true;
+			}
+		}
+
+
+		block = block.parentNode;
+
+		const titleBar = newEle('div', 'code_title_bar');
+		const caption = newEle('span', 'code_caption');
+		caption.innerText = lang;
+		titleBar.appendChild(caption);
+		const copyBtn = newEle('img');
+		copyBtn.src = "../images/copy.svg";
+		titleBar.appendChild(copyBtn);
+
+		if (isSVG) {
+			const SVG = newEle('div', 'svg');
+			SVG.innerHTML = content;
+			const bar = newEle('div', 'svg_bar');
+			let convertBtn = newEle('img');
+			convertBtn.src = "../images/retweet.svg";
+			bar.appendChild(convertBtn);
+			SVG.insertBefore(bar, SVG.children[0]);
+
+			convertBtn = newEle('img');
+			convertBtn.src = "../images/retweet.svg";
+			convertBtn.isRetweet = true;
+			titleBar.appendChild(convertBtn);
+			block.parentNode.insertBefore(SVG, block);
+			block.style.display = 'none';
+
+			bar.addEventListener('click', () => {
+				SVG.style.display = 'none';
+				block.style.display = 'block';
+			});
+			titleBar.addEventListener('click', async ({target}) => {
+				if (target.isRetweet) {
+					SVG.style.display = 'block';
+					block.style.display = 'none';
+				}
+				else {
+					const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+					await navigator.clipboard.writeText(content);
+					Notification.show('', messages.mentions.contentCopied, 'middleTop', 'success');
+				}
+			});
+		}
+		else {
+			titleBar.addEventListener('click', async ({target}) => {
+				const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+				await navigator.clipboard.writeText(content);
+				Notification.show('', messages.mentions.contentCopied, 'middleTop', 'success');
+			});
+		}
+		block.insertBefore(titleBar, block.children[0]);
+	});
 
 	return content;
 };

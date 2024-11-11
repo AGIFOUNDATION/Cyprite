@@ -160,16 +160,12 @@ if (!globalThis.sendMessage) globalThis.sendMessage = DefaultSendMessage;
 /* Management */
 
 const gotoUniquePage = async (url) => {
-	console.log('>>>>>>>>>>>>>>>>    1', url);
 	var tab = await chrome.tabs.query({url});
 	if (!!tab) tab = tab[0];
-	console.log('>>>>>>>>>>>>>>>>    2', tab);
 	if (!tab) {
-		console.log('>>>>>>>>>>>>>>>>    3');
 		tab = await chrome.tabs.create({url});
 	}
 	else {
-		console.log('>>>>>>>>>>>>>>>>    4');
 		await chrome.tabs.update(tab.id, {active: true, highlighted: true});
 	}
 	return tab;
@@ -385,7 +381,7 @@ const savePageActivities = async (url, duration, title, closed) => {
 	info.totalDuration += duration;
 	info.currentDuration = duration;
 	info.timestamp = timestmp2str("YYYY/MM/DD hh:mm:ss :WDE:");
-	console.log(info);
+	logger.log('SavePageActivities', info);
 
 	await setPageInfo(url, info);
 };
@@ -1664,7 +1660,6 @@ const filterCategoryKeywordsForConversation = async (dialog) => {
 		keywords: data.keywords.join(', '),
 		category: data.category.join(', '),
 	})]);
-	console.log(conversation);
 
 	var reply = await callLLMOneByOne(getFunctionalModelList('filterKeywordCategory'), conversation, true, 'FilterKeywordCategory');
 	updateUsage(usage, reply.usage);

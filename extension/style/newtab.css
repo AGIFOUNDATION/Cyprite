@@ -222,9 +222,62 @@ body {
 	border-radius: 5px;
 	background-color: black;
 }
+.panel_container .content_container pre,
 .panel_operation_area .chat_item .chat_content pre {
 	background-color: rgba(35, 35, 35, 0.8);
     box-shadow: inset 0px 1px 3px black;
+	border-radius: 0px !important;
+	outline: none;
+}
+.panel_container .content_container pre .code_title_bar,
+.panel_operation_area .chat_item .chat_content pre .code_title_bar {
+	margin: -5px -8px 5px -8px;
+	padding: 0px 8px;
+	background-color: rgba(125, 125, 125, 0.2);
+	border-bottom: 1px solid black;
+	font-size: 12px;
+	color: rgb(205, 225, 225);
+	cursor: pointer;
+}
+.panel_container .content_container pre .code_title_bar img,
+.panel_operation_area .chat_item .chat_content pre .code_title_bar img {
+	float: right;
+	height: 16px;
+	margin-left: 5px;
+	padding: 2px;
+	filter: invert(0.6) sepia(1.0) hue-rotate(160deg) brightness(1.9);
+}
+.panel_container .content_container div.svg,
+.panel_operation_area .chat_item .chat_content div.svg {
+	position: relative;
+	display: block;
+	text-align: center;
+}
+.panel_container .content_container div.svg .svg_bar,
+.panel_operation_area .chat_item .chat_content div.svg .svg_bar {
+	position: absolute;
+	top: 0px;
+	left: -8px;
+	right: -8px;
+	display: none;
+	margin: 0px;
+	padding: 5px 8px;
+	background-color: rgba(125, 125, 125, 0.2);
+	border-bottom: 1px solid black;
+	font-size: 12px;
+	color: rgb(205, 225, 225);
+	cursor: pointer;
+}
+.panel_container .content_container div.svg:hover .svg_bar,
+.panel_operation_area .chat_item .chat_content div.svg:hover .svg_bar {
+	display: block;
+}
+.panel_container .content_container div.svg .svg_bar img,
+.panel_operation_area .chat_item .chat_content div.svg .svg_bar img {
+	float: right;
+	height: 16px;
+	padding: 2px;
+	filter: invert(0.6) sepia(1.0) hue-rotate(160deg) brightness(1.9);
 }
 .panel_article_list {
 	display: none;
