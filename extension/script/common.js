@@ -294,7 +294,7 @@ globalThis.updateUsage = (totalUsage, newUsage) => {
 	for (let key in newUsage) {
 		let usg = newUsage[key];
 		let item = totalUsage[key] || {count: 0, input: 0, output: 0};
-		item.count += usg.count || 0;
+		item.count += usg.count || 1;
 		item.input += usg.input || 0;
 		item.output += usg.output || 0;
 		totalUsage[key] = item;

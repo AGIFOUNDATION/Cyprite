@@ -16,6 +16,7 @@ const SearchModeOrderList = [
 const UseSearch = true;
 const CurrentArticleList = [];
 const CacheExpire = 1000 * 3600;
+const TaskCategory = new Map();
 
 var AIModelList = null;
 var currentTabId = 0;
@@ -299,6 +300,7 @@ const addChatItem = (target, content, type, cid, need=false) => {
 	}
 	else if (type === 'hint') {
 		item.classList.add('other');
+		item.classList.add('information');
 		item.setAttribute('toggle', 'toggleChatItem');
 		let imgDown = newEle('img', 'down');
 		imgDown.src = "../images/angles-down.svg";
@@ -312,6 +314,19 @@ const addChatItem = (target, content, type, cid, need=false) => {
 		cap.innerText = content[0];
 		titleBar.appendChild(cap);
 		content = content[1];
+		isOther = true;
+	}
+	else if (type === 'process') {
+		item.classList.add('other');
+		item.classList.add('process');
+		let cap = newEle('span', 'caption');
+		cap.innerText = content;
+		titleBar.appendChild(cap);
+		let imgDown = newEle('img', 'rotate');
+		imgDown.src = "../images/rotate.svg";
+		imgDown.setAttribute('button', 'true');
+		titleBar.appendChild(imgDown);
+		content = '';
 		isOther = true;
 	}
 	else {
@@ -333,9 +348,11 @@ const addChatItem = (target, content, type, cid, need=false) => {
 		}
 	}
 
-	const operatorBar = newEle('div', 'operator_bar');
-	operatorBar.innerHTML = buttons.join('');
-	item.appendChild(operatorBar);
+	if (buttons.length > 0) {
+		const operatorBar = newEle('div', 'operator_bar');
+		operatorBar.innerHTML = buttons.join('');
+		item.appendChild(operatorBar);
+	}
 
 	container.appendChild(item);
 	wait(60).then(() => {
@@ -524,17 +541,17 @@ const restoreConversation = (conversation, mode, start=0) => {
 	conversation.forEach((item, i) => {
 		if (i < start) return;
 		var content = item[1] || '', type = item[0];
-		if (item[0] === 'human') {
+		if (type === 'human') {
 			content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
 		}
-		else if (item[0] === 'ai') {
+		else if (type === 'ai') {
 			type = 'cyprite';
-			let strategy = content.match(/<strategy>\s*([\w\W]*?)\s*<\/strategy>/i);
+			const json = parseReplyAsXMLToJSON(content);
+			const strategy = json.strategy;
 			if (!!strategy) {
-				strategy = parseArray(strategy[1], false).map(line => '- ' + line).join('\n');
 				addChatItem(mode, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
 			}
-			content = content.replace(/^[\w\W]*?<reply>\s*|\s*<\/reply>[\w\W]*?$/gi, '');
+			content = json.reply || content;
 		}
 		else {
 			return;
@@ -628,8 +645,8 @@ const compareTwoArrays = (arr1, arr2) => {
 	}
 	return true;
 };
-const assembleXPageConvSystemPrompt = (articles) => {
-	var config = { lang: LangName[myInfo.lang], related: '(No Reference Material)' };
+const assembleXPageConvSystemPrompt = async (articles) => {
+	const config = { lang: LangName[myInfo.lang], related: '(No Reference Material)' };
 	if (articles.length > 0) {
 		let list = articles.map(item => {
 			var data = {
@@ -737,24 +754,28 @@ const prepareXPageConv = async (request) => {
 		items.forEach(li => {
 			li.removeAttribute('selected');
 		});
-		let hint = ['**' + messages.crossPageConv.hintFoundArticles + '**\n'];
-		articles.forEach(item => {
-			hint.push('-\t[' + item.title + '](' + item.url + ')');
-			items.some(li => {
-				if (li.url !== item.url) return;
-				li.setAttribute('selected', 'true');
-				return true;
+		if (articles.length > 0) {
+			let hint = ['**' + messages.crossPageConv.hintFoundArticles + '**\n'];
+			articles.forEach(item => {
+				hint.push('-\t[' + item.title + '](' + item.url + ')');
+				items.some(li => {
+					if (li.url !== item.url) return;
+					li.setAttribute('selected', 'true');
+					return true;
+				});
 			});
-		});
-		addChatItem('crossPageConversation', hint.join('\n'), 'cyprite');
+			addChatItem('crossPageConversation', hint.join('\n'), 'cyprite');
+		}
 	}
 
 	// Processing dialogue history
 	if (conversation.length === 0) {
-		conversation.push(['system', assembleXPageConvSystemPrompt(articles)]);
+		const sp = await assembleXPageConvSystemPrompt(articles);
+		conversation.push(['system', sp]);
 	}
 	else if (needUpdateSP) {
-		conversation[0][1] = assembleXPageConvSystemPrompt(articles);
+		const sp = await assembleXPageConvSystemPrompt(articles);
+		conversation[0][1] = sp;
 	}
 
 	return {conversation, usage};
@@ -1009,6 +1030,25 @@ const onSelectArticleItem = ({target}) => {
 		if (!CurrentArticleList.includes(target.url)) {
 			CurrentArticleList.push(target.url);
 		}
+	}
+};
+EventHandler.appendAction = (data) => {
+	if (data.running) {
+		const type = TaskCategory.get(data.task);
+		if (!type) return
+		addChatItem(type, data.hint, 'process', data.task);
+	}
+	else {
+		const ele = document.querySelector('.chat_item[chatid="' + data.task + '"]');
+		if (!ele) return;
+		if (!!data.hint) {
+			const titlebar = ele.querySelector('.chat_title .caption');
+			titlebar.innerText = data.hint;
+		}
+		const img = ele.querySelector('.chat_title img');
+		img.src = '../images/check.svg';
+		img.classList.remove('rotate');
+		img.classList.add('done');
 	}
 };
 
@@ -2861,14 +2901,26 @@ ActionCenter.sendMessage = async (button) => {
 		conversation = await prepareXPageConv(content);
 		updateUsage(usage, conversation.usage);
 		conversation = conversation.conversation;
-		let option = {
+		const option = {
 			request: content,
 			time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")
 		};
 		let prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationTemplate, option);
 		conversation.push(['human', prompt, cid]);
+		const taskID = newID();
+		TaskCategory.set(taskID, 'crossPageConversation');
+		const request = {
+			taskID,
+			conversation,
+			model: myInfo.model,
+			tools: ['collectInformation'],
+		};
+		const tokens = estimateTokenCount(request.conversation);
+		if (tokens > AILongContextLimit) {
+			request.model = PickLongContextModel();
+		}
 		try {
-			result = await askAIandWait('directSendToAI', conversation);
+			result = await askAIandWait('directSendToAI', request);
 			updateUsage(usage, result.usage);
 			result = result.reply;
 		}
@@ -2878,15 +2930,16 @@ ActionCenter.sendMessage = async (button) => {
 			err = err.message || err.msg || err.data || err.toString();
 			Notification.show('', err, "middleTop", 'error');
 		}
+		TaskCategory.delete(taskID);
 		conversation.pop();
 		if (!!result) {
 			prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
 			conversation.push(['human', prompt, cid]);
+			conversation.push(['ai', result]);
 			const json = parseReplyAsXMLToJSON(result);
 			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
 			if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
 			result = json.reply?._origin || json.reply || result;
-			conversation.push(['ai', result]);
 		}
 	}
 	else if (target === 'instantTranslation') {
@@ -2926,14 +2979,26 @@ ActionCenter.sendMessage = async (button) => {
 	else if (target === 'intelligentSearch') {
 		if (!advSearchConversation) advSearchConversation = [];
 		conversation = advSearchConversation;
-		let option = {
+		const option = {
 			request: content,
 			time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")
 		};
 		let prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationTemplate, option);
 		conversation.push(['human', prompt]);
+		const taskID = newID();
+		TaskCategory.set(taskID, 'intelligentSearch');
+		const request = {
+			taskID,
+			conversation,
+			model: myInfo.model,
+			tools: ['collectInformation'],
+		};
+		const tokens = estimateTokenCount(request.conversation);
+		if (tokens > AILongContextLimit) {
+			request.model = PickLongContextModel();
+		}
 		try {
-			result = await askAIandWait('directSendToAI', conversation);
+			result = await askAIandWait('directSendToAI', request);
 			updateUsage(usage, result.usage);
 			result = result.reply;
 		}
@@ -2944,15 +3009,16 @@ ActionCenter.sendMessage = async (button) => {
 			Notification.show('', err, "middleTop", 'error');
 		}
 		console.log('AISEARCH GOT REPLY:', result);
+		TaskCategory.delete(taskID);
 		conversation.pop();
 		if (!!result) {
 			prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
 			conversation.push(['human', prompt, cid]);
+			conversation.push(['ai', result]);
 			const json = parseReplyAsXMLToJSON(result);
 			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
 			if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
 			result = json.reply?._origin || json.reply || result;
-			conversation.push(['ai', result]);
 		}
 	}
 	else if (target === 'freelyConversation') {
@@ -3045,6 +3111,11 @@ ActionCenter.onOperateSearchResult = async (target, ui, evt) => {
 };
 
 window.addEventListener('resize', resizeCurrentInputter);
+chrome.storage.local.onChanged.addListener(evt => {
+	if (!!evt.AImodel?.newValue) {
+		myInfo.model = evt.AImodel.newValue;
+	}
+});
 
 const init = async () => {
 	// Init

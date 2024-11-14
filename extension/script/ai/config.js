@@ -7,7 +7,7 @@ globalThis.Model2AI = {
 	"gemini-1.5-flash-002": "Gemini",
 	"claude-3-5-sonnet-latest": "Claude",
 	"claude-3-opus-20240229": "Claude",
-	"claude-3-haiku-20240307": "Claude",
+	"claude-3-5-haiku-latest": "Claude",
 	"o1-preview": "OpenAI",
 	"o1-mini": "OpenAI",
 	"chatgpt-4o-latest": "OpenAI",
@@ -19,9 +19,9 @@ globalThis.Model2AI = {
 	"open-codestral-mamba": "Mixtral",
 	"pixtral-12b-latest": "Mixtral",
 	"gemma2-9b-it": "Groq",
+	"llama3-groq-70b-8192-tool-use-preview": "Groq",
 	"llama-3.1-70b-versatile": "Groq",
-	"llama-3.2-11b-vision-preview": "Groq",
-	"llama-3.2-90b-text-preview": "Groq",
+	"llama-3.2-90b-vision-preview": "Groq",
 };
 globalThis.AI2Model = {
 	"gemini": [
@@ -33,7 +33,7 @@ globalThis.AI2Model = {
 	"claude": [
 		"claude-3-5-sonnet-latest",
 		"claude-3-opus-20240229",
-		"claude-3-haiku-20240307",
+		"claude-3-5-haiku-latest",
 	],
 	"openai": [
 		"chatgpt-4o-latest",
@@ -53,9 +53,9 @@ globalThis.AI2Model = {
 	],
 	"groq": [
 		"gemma2-9b-it",
+		"llama3-groq-70b-8192-tool-use-preview",
 		"llama-3.1-70b-versatile",
-		"llama-3.2-11b-vision-preview",
-		"llama-3.2-90b-text-preview",
+		"llama-3.2-90b-vision-preview",
 	],
 };
 globalThis.ModelOrder = [
@@ -73,7 +73,7 @@ globalThis.ModelNameList = {
 	// "gemini-1.5-flash-002": "GeminiFlash2",
 	"claude-3-5-sonnet-latest": "Sonnet3.5",
 	"claude-3-opus-20240229": "Opus3",
-	// "claude-3-haiku-20240307": "Haiku",
+	"claude-3-5-haiku-latest": "Haiku3.5",
 	"o1-preview": "O1",
 	"o1-mini": "O1-Mini",
 	"chatgpt-4o-latest": "GPT",
@@ -85,8 +85,9 @@ globalThis.ModelNameList = {
 	// "open-codestral-mamba": "CodestralMamba",
 	"pixtral-12b-latest": "Pixtral",
 	"gemma2-9b-it": "Gemma2",
+	"llama3-groq-70b-8192-tool-use-preview": "LLaMaGroq",
 	"llama-3.1-70b-versatile": "LLaMa3.1",
-	"llama-3.2-90b-text-preview": "LLaMa3.2",
+	"llama-3.2-90b-vision-preview": "LLaMa3.2",
 };
 globalThis.ModelDefaultConfig = {
 	Gemini: {
@@ -255,14 +256,14 @@ globalThis.PickLongContextModel = () => {
 
 const FunctionalModel = {
 	analyzeKeywordCategory: [
-		'claude-3-haiku-20240307',
+		'claude-3-5-haiku-latest',
 		'grok-beta',
 		'glm-4-flash',
 		'moonshot-v1-auto',
 		'gemini-1.5-flash-exp-0827',
 	],
 	filterKeywordCategory: [
-		'claude-3-haiku-20240307',
+		'claude-3-5-haiku-latest',
 		'gemini-1.5-flash-002',
 		'glm-4-flash',
 		'gemini-1.5-flash-exp-0827',
@@ -300,7 +301,7 @@ const FunctionalModel = {
 	analyzeSearchKeywords: [
 		'gemini-1.5-flash-exp-0827',
 		"gemini-1.5-flash-002",
-		'claude-3-haiku-20240307',
+		'claude-3-5-haiku-latest',
 		'glm-4-long',
 	],
 	firstTranslation: [

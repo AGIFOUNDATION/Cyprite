@@ -481,7 +481,7 @@ PromptLib.translateAndInterpretation = `Please write the dictionary entry for "{
 <explanation>{entry's explanation, maybe multiple different interpretations, in Markdown unordered list format}</explanation>
 <pronunciation>{marked with standard phonetic symbols, and in some languages, a word or phrase may have more than one pronunciation, so if there are indeed multiple pronunciations in the current language, you should list them all}</pronunciation>
 <partOfSpeech>{nouns, verbs, adjectives, adverbs, etc, don't forget to translate into the required language}</partOfSpeech>
-<usage>{how to use the entry}</usage>
+<usage>{how should this term be used, in what scenarios should it be used, and what issues need to be considered when using it, in Markdown unordered list format}</usage>
 <examples>{Example Sentences, 1 to 2 sentences, in Markdown unordered list format}</examples>
 <synonyms>{0 to 3 synonyms for the entry}</synonyms>
 <antonyms>{0 to 3 antonyms for the entry}</antonyms>
@@ -491,7 +491,7 @@ PromptLib.translateAndInterpretation = `Please write the dictionary entry for "{
 <translation>{translation of entry}</translation>
 <pronunciation>{marked with standard phonetic symbols, and in some languages, a word or phrase may have more than one pronunciation, so if there are indeed multiple pronunciations in the current language, you should list them all}</pronunciation>
 <partOfSpeech>{nouns, verbs, adjectives, adverbs, etc}</partOfSpeech>
-<usage>{how to use the entry}</usage>
+<usage>{how should this term be used, in what scenarios should it be used, and what issues need to be considered when using it, in Markdown unordered list format}</usage>
 <examples>{Example Sentences, 0 to 1 sentences, in Markdown unordered list format}</examples>
 </entry>
 ...

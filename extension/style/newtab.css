@@ -1,3 +1,8 @@
+@keyframes rotate {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
 body {
 	background-color: rgba(47, 47, 53, 1.0);
 }
@@ -101,6 +106,7 @@ body {
 .panel_operation_area .content_container .chat_item {
 	position: relative;
 	padding: 5px 0px;
+	margin-top: 5px;
 	margin-bottom: 10px;
 	border-radius: 8px;
 	border: 1px solid rgba(23, 23, 23, 1.0);
@@ -119,11 +125,13 @@ body {
 }
 .panel_operation_area .content_container .chat_item.other {
 	padding: 5px 0px;
-	margin-bottom: 10px;
+	margin-bottom: 5px;
 	border-radius: 0px;
 	border: none;
 	box-shadow: none;
 	user-select: none;
+}
+.panel_operation_area .content_container .chat_item.information {
 	cursor: pointer;
 }
 .panel_operation_area .content_container .chat_item.other * {
@@ -133,9 +141,27 @@ body {
 	margin-top: 0px;
 	margin-bottom: 0px;
 	padding: 0px 5px;
-	color: var(--front-color) !important;
 	font-weight: bolder;
+}
+.panel_operation_area .content_container .chat_item.information .chat_title {
+	color: var(--front-color) !important;
 	cursor: pointer;
+}
+.panel_operation_area .content_container .chat_item.process .chat_title {
+	color: rgb(125, 125, 125) !important;
+	font-weight: lighter;
+}
+.panel_operation_area .content_container .chat_item.process .chat_title .caption {
+	margin-left: 15px;
+}
+.panel_operation_area .content_container .chat_item.process .chat_title img {
+	margin-left: 0px;
+}
+.panel_operation_area .content_container .chat_item.process .chat_title img.rotate {
+	animation: rotate 1.5s cubic-bezier(0.5, 0.1, 0.3, 1) infinite;
+}
+.panel_operation_area .content_container .chat_item.process .chat_title img.done {
+	filter: invert(0.6) sepia(1.0) hue-rotate(120deg) brightness(1.0);
 }
 .panel_operation_area .content_container .chat_item .chat_content {
 	margin-top: 0px;

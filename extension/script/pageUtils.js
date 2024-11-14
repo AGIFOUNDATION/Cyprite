@@ -248,7 +248,7 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 		const lang = (block.className.match(/language-([\w\-\+_]+)/) || [])[1];
 		var isSVG = (lang || '').trim().match(/^svg/i);
 		if (!isSVG) {
-			if (!!content.match(('\n' + content).match(/\n\s*(<\?xml[^\n\r]*>\s*\n\s*)?<svg/i))) {
+			if (!!('\n' + content).match(/\n\s*(<\?xml[^\n\r]*>\s*\n\s*)?<svg/i)) {
 				isSVG = true;
 			}
 		}

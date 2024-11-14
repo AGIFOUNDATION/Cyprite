@@ -83,7 +83,7 @@ globalThis.getWSConfig = async () => {
 
 	return localInfo.wsHost;
 };
-const callLLMOneByOne = async (modelList, conversation, needParse=true, tag="CallAI") => {
+const callLLMOneByOne = async (modelList, conversation, tools, needParse=true, tag="CallAI") => {
 	var reply, usage = {};
 
 	for (let model of modelList) {
@@ -92,6 +92,7 @@ const callLLMOneByOne = async (modelList, conversation, needParse=true, tag="Cal
 			reply = await callAIandWait('directAskAI', {
 				conversation,
 				model,
+				tools,
 			});
 			if (!!reply) {
 				usage = reply.usage || {};
@@ -718,6 +719,7 @@ chrome.tabs.onRemoved.addListener(tabId => {
 	if (LastActiveTab === tabId) LastActiveTab = null;
 	onPageActivityChanged(tabId, "close");
 	removeAIChatHistory(tabId);
+	UtilityLib.removeMessageSenderByTabID(tabId);
 	chrome.storage.session.remove(tabId + ':mode');
 });
 chrome.idle.onStateChanged.addListener((state) => {
@@ -798,7 +800,7 @@ chrome.contextMenus.onClicked.addListener((evt, tab) => {
 /* EventHandler */
 
 var lastRequest = [];
-const EventHandler = {};
+globalThis.EventHandler = {};
 globalThis.AIHandler = {};
 globalThis.dispatchEvent = async (msg) => {
 	msg.sender = msg.sender || 'BackEnd';
@@ -1149,7 +1151,7 @@ EventHandler.GetArticleInfo = async (options) => {
 		var item = await DBs.pageInfo.get('pageInfo', parseURL(url));
 		if (!item) return null;
 		if (!item.title || !item.url || !item.content) return null; // Need change for local file.
-		if (!!item.timestamp) {
+		if (!item.timestamp) {
 			item.lastVisit = Date.now();
 		}
 		else {
@@ -1186,7 +1188,7 @@ AIHandler.getSearchKeyWord = async (request) => {
 	conversation.push(['human', PromptLib.assemble(PromptLib.analyzeSearchKeyWords, {tasks: request, time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")})]);
 
 	var modelList = getFunctionalModelList('analyzeSearchKeywords');
-	var keywords = (await callLLMOneByOne(modelList, conversation, true, 'SearchKeywords'));
+	var keywords = (await callLLMOneByOne(modelList, conversation, null, true, 'SearchKeywords'));
 	updateUsage(usage, keywords.usage);
 	keywords = keywords.reply || {};
 	['search', 'arxiv', 'wikipedia'].forEach(tag => {
@@ -1521,7 +1523,7 @@ const searchRelativeArticles = async (options, prompt, related) => {
 	const conversation = [['human', prompt]];
 
 	// Call AI
-	var articleList = await callLLMOneByOne(getFunctionalModelList('findArticlesFromList'), conversation, true, 'FindArticlesFromList');
+	var articleList = await callLLMOneByOne(getFunctionalModelList('findArticlesFromList'), conversation, null, true, 'FindArticlesFromList');
 	updateUsage(usage, articleList.usage);
 
 	articleList = articleList.reply._origin.split(/[\n\r]+/).map(line => {
@@ -1570,7 +1572,7 @@ EventHandler.SearchSimilarArticleForCurrentPage = async (url) => {
 			content: articleInfo.content,
 		})]);
 		let modelList = getFunctionalModelList('analyzeKeywordCategory');
-		let reply = await callLLMOneByOne(modelList, conversation, true, 'AnalyzeKeywordCategory');
+		let reply = await callLLMOneByOne(modelList, conversation, null, true, 'AnalyzeKeywordCategory');
 		updateUsage(usage, reply.usage);
 		reply = reply.reply;
 		// Refresh article info
@@ -1613,7 +1615,7 @@ const getCategoryKeywordsForConversation = async (dialog) => {
 		lang: LangName[myInfo.lang],
 		conversation: dialog,
 	})]);
-	var reply = await callLLMOneByOne(getFunctionalModelList('analyzeKeywordCategory'), conversation, true, 'AnalyzeKeywordCategory');
+	var reply = await callLLMOneByOne(getFunctionalModelList('analyzeKeywordCategory'), conversation, null, true, 'AnalyzeKeywordCategory');
 	updateUsage(usage, reply.usage);
 	reply = reply.reply;
 
@@ -1661,7 +1663,7 @@ const filterCategoryKeywordsForConversation = async (dialog) => {
 		category: data.category.join(', '),
 	})]);
 
-	var reply = await callLLMOneByOne(getFunctionalModelList('filterKeywordCategory'), conversation, true, 'FilterKeywordCategory');
+	var reply = await callLLMOneByOne(getFunctionalModelList('filterKeywordCategory'), conversation, null, true, 'FilterKeywordCategory');
 	updateUsage(usage, reply.usage);
 	reply = reply.reply;
 
@@ -1819,11 +1821,11 @@ EventHandler.DeleteAISearchRecord = async (quest) => {
 
 const CacheLimit = 1000 * 60 * 60 * 12;
 const removeAIChatHistory = async (tid) => {
-	chrome.storage.session.remove(tid + ':crosspageConv');
-
 	var list, tasks = [];
-
+	
 	if (!!tid) {
+		chrome.storage.session.remove(tid + ':crosspageConv');
+
 		list = Tab2Article[tid];
 		if (!!list) {
 			delete Tab2Article[tid];
@@ -1957,7 +1959,7 @@ AIHandler.askArticle = async (data, source, sid) => {
 	else {
 		config.related = '(No Reference Material)';
 	}
-	var systemPrompt = PromptLib.assemble(PromptLib.askPageSystem, config);
+	const systemPrompt = PromptLib.assemble(PromptLib.askPageSystem, config);
 	list = list.filter(item => item[0] !== 'system');
 	list.unshift(['system', systemPrompt]);
 	if (TrialVersion) {
@@ -1972,15 +1974,15 @@ AIHandler.askArticle = async (data, source, sid) => {
 	}
 	console.log(list);
 
-	var request = {
+	const request = {
 		conversation: [...list],
 		model: myInfo.model,
 	};
-	var tokens = estimateTokenCount(request.conversation);
+	const tokens = estimateTokenCount(request.conversation);
 	if (tokens > AILongContextLimit) {
 		request.model = PickLongContextModel();
 	}
-	var result = await callAIandWait('directAskAI', request), usage = {};
+	var result = await callAIandWait('directAskAI', request, taskID), usage = {};
 	if (!!result) {
 		updateUsage(usage, result.usage);
 		result = result.reply || result;
@@ -1998,7 +2000,7 @@ AIHandler.askArticle = async (data, source, sid) => {
 	result = parseReplyAsXMLToJSON(result);
 	result = result.reply?._origin || result.reply || result._origin;
 
-	removeAIChatHistory();
+	removeAIChatHistory(); // Force expire all expired in-page conversations
 	return {reply: result, usage};
 };
 AIHandler.translateContent = async (data, source, sid) => {
@@ -2013,7 +2015,7 @@ AIHandler.translateContent = async (data, source, sid) => {
 	var prompt = PromptLib.assemble(PromptLib.firstTranslation, data);
 	var conversation = [['human', prompt]];
 	var modelList = getFunctionalModelList('firstTranslation'), usage = {};
-	var translation = await callLLMOneByOne(modelList, conversation, true, 'Translate[First]');
+	var translation = await callLLMOneByOne(modelList, conversation, null, true, 'Translate[First]');
 	if (!!translation) {
 		updateUsage(usage, translation.usage);
 		translation = translation.reply || translation;
@@ -2038,7 +2040,7 @@ AIHandler.translateContent = async (data, source, sid) => {
 	data.translation = translation;
 	prompt = PromptLib.assemble(PromptLib.reflectTranslation, data);
 	conversation = [['human', prompt]];
-	var suggestion = await callLLMOneByOne(modelList, conversation, true, 'Translate[Suggestion]');
+	var suggestion = await callLLMOneByOne(modelList, conversation, null, true, 'Translate[Suggestion]');
 	updateUsage(usage, suggestion.usage);
 	if (!!suggestion) {
 		if (!!suggestion.usage) {
@@ -2202,8 +2204,12 @@ AIHandler.translateAndInterpretation = async (data, source, sid) => {
 
 	return {translation, usage};
 };
-AIHandler.directSendToAI = async (conversation) => {
-	return await callAIandWait('directAskAI', conversation);
+AIHandler.directSendToAI = async (conversation, source, sid) => {
+	const taskID = conversation.taskID || newID();
+	UtilityLib.registerMessageSender(taskID, source, sid);
+	const reply = await callAIandWait('directAskAI', conversation, taskID);
+	UtilityLib.removeMessageSenderByTaskID(taskID);
+	return reply;
 };
 AIHandler.findRelativeWebPages = async (data, source, sid) => {
 	data.isWebPage = true;
@@ -2494,7 +2500,7 @@ const getIrrelevants = async (modelList, pack, request, isWebPage, summary) => {
 			return '- [' + item.title + '](' + item.url + ')';
 		}).join('\n');
 		let conversation = [['human', PromptLib.assemble(prompt, config)]], irrelevants;
-		irrelevants = await callLLMOneByOne(modelList, conversation, true, 'ExcludeIrrelevants');
+		irrelevants = await callLLMOneByOne(modelList, conversation, null, true, 'ExcludeIrrelevants');
 		updateUsage(usage, irrelevants.usage);
 		irrelevants = irrelevants.reply || {};
 		['unrelated', 'related'].forEach(key => {

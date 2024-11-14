@@ -49,8 +49,8 @@ const getRequestHeader = (model) => {
 	var header = Object.assign(ModelDefaultConfig.Gemini.header, (ModelDefaultConfig[model]|| {}).header || {});
 	return header;
 };
-const getRequestPackage = (model, action, options) => {
-	var request = combineObject(ModelDefaultConfig.Gemini[action], (ModelDefaultConfig[model]|| {})[action] || {}, options || {});
+const getRequestPackage = (model, action) => {
+	var request = combineObject(ModelDefaultConfig.Gemini[action], (ModelDefaultConfig[model]|| {})[action] || {});
 	return request;
 };
 const assembleConversation = conversation => {
@@ -84,6 +84,35 @@ const assembleConversation = conversation => {
 				]
 			});
 		}
+		else if (item[0] === 'call') {
+			prompt.push({
+				role: "model",
+				parts: [
+					{
+						functionCall: {
+							name: item[1].name,
+							args: item[1].args,
+						}
+					}
+				]
+			});
+		}
+		else if (item[0] === 'tool') {
+			prompt.push({
+				role: "user",
+				parts: [
+					{
+						functionResponse: {
+							name: item[1].name,
+							response: {
+								name: item[1].name,
+								content: item[1].content,
+							}
+						}
+					}
+				]
+			});
+		}
 	});
 	prompt = {
 		contents: prompt
@@ -92,6 +121,27 @@ const assembleConversation = conversation => {
 		prompt.system_instruction = sp;
 	}
 	return prompt;
+};
+const appendToolsToRequest = (data, tools) => {
+	if (!isArray(tools) || tools.length === 0) return;
+	data.tools = {};
+	data.tools.function_declarations = tools.map(tool => {
+		const fun = {
+			name: tool.name,
+			description: tool.description,
+			parameters: {
+				type: tool.parameters.type,
+				properties: tool.parameters.properties,
+				required: tool.parameters.required,
+			},
+		};
+		return fun;
+	});
+	data.tool_config = {
+		function_calling_config: {
+			mode: "auto"
+		}
+	};
 };
 const scoreContent = content => {
 	var score = 0;
@@ -132,12 +182,14 @@ AI.Gemini.list = async () => {
 	response = await response.json();
 	return response;
 };
-AI.Gemini.chat = async (conversation, model=DefaultChatModel, options={}) => {
+AI.Gemini.chat = async (conversation, model=DefaultChatModel, tools = [], tid) => {
 	const request = { method: "POST" };
 	const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ':generateContent?key=' + myInfo.apiKey.gemini;
 
-	var originRequest = getRequestPackage(model, 'chat', options);
+	tools = AI.prepareToolList(tools);
+	var originRequest = getRequestPackage(model, 'chat');
 	request.header = getRequestHeader(model);
+	appendToolsToRequest(originRequest, tools);
 
 	var tag = model.match(/\bpro\b/);
 	if (!!tag) tag = 'gemini-1.5-pro';
@@ -146,9 +198,9 @@ AI.Gemini.chat = async (conversation, model=DefaultChatModel, options={}) => {
 	return await sendRequestAndWaitForResponse('Gemini', tag, conversation, url, request, () => {
 		Object.assign(originRequest, assembleConversation(conversation));
 		request.body = JSON.stringify(originRequest);
-	});
+	}, tools, tid);
 };
-AI.Gemini.embed = async (contents, model=DefaultEmbeddingModel, options={}) => {
+AI.Gemini.embed = async (contents, model=DefaultEmbeddingModel) => {
 	var header = getRequestHeader(model);
 	model = 'models/' + model;
 
@@ -157,7 +209,7 @@ AI.Gemini.embed = async (contents, model=DefaultEmbeddingModel, options={}) => {
 		weights.push(scoreContent(item.content));
 		requests.push({
 			model,
-			taskType: options.taskType || "RETRIEVAL_DOCUMENT",
+			taskType: "RETRIEVAL_DOCUMENT",
 			title: item.title,
 			content: {
 				parts: [{text: item.content}]
