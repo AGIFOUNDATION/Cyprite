@@ -1982,7 +1982,7 @@ AIHandler.askArticle = async (data, source, sid) => {
 	if (tokens > AILongContextLimit) {
 		request.model = PickLongContextModel();
 	}
-	var result = await callAIandWait('directAskAI', request, taskID), usage = {};
+	var result = await callAIandWait('directAskAI', request), usage = {};
 	if (!!result) {
 		updateUsage(usage, result.usage);
 		result = result.reply || result;

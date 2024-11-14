@@ -25,7 +25,7 @@ const assembleMessages = (conversation, full=true, useSP=true) => {
 			}
 			else {
 				role = 'user';
-				prompt = item[1] + '\n\nKeep in mind the above requirements and instructions.';
+				prompt = prompt + '\n\nKeep in mind the above requirements and instructions.';
 				extra = {
 					role: 'assistant',
 					content: full ? [{
@@ -41,16 +41,26 @@ const assembleMessages = (conversation, full=true, useSP=true) => {
 			let conv = {
 				role: 'assistant',
 				content: "",
-				tool_calls: item[1],
+				tool_calls: [],
 			};
+			prompt.forEach(quest => {
+				conv.tool_calls.push({
+					id: quest.id,
+					type: "function",
+					function: {
+						name: quest.name,
+						arguments: JSON.stringify(quest.arguments),
+					}
+				});
+			});
 			messages.push(conv);
 			normalAppend = false;
 		}
 		else if (item[0] === 'tool') {
 			let conv = {
 				role: 'tool',
-				content: item[1].content,
-				tool_call_id: item[1].id,
+				tool_call_id: prompt.id,
+				content: prompt.content,
 			};
 			messages.push(conv);
 			normalAppend = false;

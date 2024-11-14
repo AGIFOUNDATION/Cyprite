@@ -52,7 +52,7 @@ globalThis.AISkils.searchViaGoogle = async (topic) => {
 		}
 	}
 	else {
-		logger.blank('UseCachedGoogleSearchResult', keyword);
+		logger.blank('UseCachedGoogleSearchResult', topic);
 		result = [...result];
 	}
 

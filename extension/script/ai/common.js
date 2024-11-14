@@ -203,15 +203,11 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 			}
 
 			if (isToolCall) {
-				reply = reply.message?.tool_calls || [];
-				reply.forEach(entry => {
+				(reply.message?.tool_calls || []).forEach(entry => {
 					const ent = {
-						type: entry.type,
 						id: entry.id,
-						function: {
-							name: entry.function.name,
-							arguments: JSON.parse(entry.function.arguments),
-						}
+						name: entry.function.name,
+						arguments: JSON.parse(entry.function.arguments),
 					};
 					toolList.push(ent);
 				});
@@ -259,24 +255,16 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 					textList.splice(0);
 					toolList.splice(0);
 
+					// Use one tool in one turn
 					toolList.push({
 						id: item.id,
-						function: {
-							name: item.name,
-							arguments: item.input
-						},
-					});
-					// Use one tool in one turn
-					reply.push({
-						"type": "tool_use",
-						"id": item.id,
-						"name": item.name,
-						"input": item.input
+						name: item.name,
+						arguments: item.input
 					});
 				}
 			});
 
-			if (!reply.length) {
+			if (!textList.length && !toolList.length) {
 				reply = "";
 				let errMsg = response.error?.message || 'Error Occur!';
 				logger.error(tag, errMsg);
@@ -298,27 +286,17 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 			else {
 				let list = candidate.content?.parts || [];
 				let textList = [];
-				let toolReply;
-				reply = [];
 				list.forEach(item => {
 					if (!!item.functionCall) {
 						stopReason = 'toolcall';
 
-						reply.splice(0);
 						textList.splice(0);
 						toolList.splice(0);
-
 						toolList.push({
 							id: newID(),
-							function: {
-								name: item.functionCall.name,
-								arguments: item.functionCall.args,
-							}
-						});
-						toolReply = {
 							name: item.functionCall.name,
-							args: item.functionCall.args,
-						};
+							arguments: item.functionCall.args,
+						});
 					}
 					else if (stopReason === 'normal') {
 						item = item.text || "";
@@ -327,13 +305,9 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 					}
 				});
 
-				if (stopReason === 'toolcall') {
-					reply = toolReply;
-				}
-				else {
+				if (stopReason !== 'toolcall') {
 					if (textList.length > 0) {
-						reply = textList.join('\n\n');
-						replies.push(reply);
+						replies.push(textList.join('\n\n'));
 					}
 					else {
 						reply = "";
@@ -378,16 +352,14 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 			assembleConversation();
 		}
 		else if (stopReason === 'toolcall') {
-			let replies = [];
+			let replies = [], requests = [];
 			for (let quest of toolList) {
 				let fid = quest.id;
-				quest = quest.function;
-				if (!quest) continue;
 				let params = quest.arguments;
 				let fun = toolMap[quest.name];
 				if (!fun) continue;
 				try {
-					let response = await fun.call(params, locker, tid);
+					let response = await fun.call(params, locker, tid, fid);
 					if (!!response) {
 						updateUsage(usage, response.usage);
 						response = response.reply || response.result;
@@ -402,9 +374,10 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 					logger.error('AICallFunction[' + quest.name + ']', err);
 					continue;
 				}
+				requests.push(quest);
 			}
 			if (replies.length > 0) {
-				conversation.push(['call', reply]);
+				conversation.push(['call', requests]);
 				replies.forEach(reply => {
 					conversation.push(['tool', reply]);
 				});

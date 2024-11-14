@@ -40,14 +40,16 @@ UtilityLib.collectInformation = {
 		},
 		required: ["topic"]
 	},
-	call: async (params, model, taskID) => {
+	call: async (params, model, taskID, questID) => {
 		const topic = params.topic;
 		if (!topic) {
 			return "NO Information";
 		}
 
+		questID = questID || newID();
 		UtilityLib.sendMessageByTaskID(taskID, "appendAction", {
 			task: taskID,
+			id: questID,
 			hint: "Collecting Information: " + topic.replace(/[\n\r]+/g, ' '),
 			running: true,
 		});
@@ -57,41 +59,68 @@ UtilityLib.collectInformation = {
 		tasks.push(AISkils.searchLocally(topic, taskID));
 		tasks.push(AISkils.searchViaGoogle(topic, taskID));
 		tasks.push(AISkils.searchViaAI(topic, taskID));
-		var [local, google, llm] = await Promise.all(tasks);
 
-		const articles = [], urls = [];
-		if (!!local) {
-			updateUsage(usage, local.usage);
-			(local.result || []).forEach(item => {
-				if (!item.url) return;
-				if (urls.includes(item.url)) return;
-				articles.push('<webpage title="' + (item.title || '').replace(/[\n\r]+/g, ' ') + '" url="' + item.url + '">\n' + (item.summary || '').trim() + '\n</webpage>');
-			});
+		var articles = [];
+		var pair;
+		try {
+			var [local, google, llm] = await Promise.all(tasks);
+	
+			const urls = [];
+			if (!!local) {
+				updateUsage(usage, local.usage);
+				(local.result || []).forEach(item => {
+					if (!item.url) return;
+					if (urls.includes(item.url)) return;
+					articles.push(item);
+				});
+			}
+			if (!!google) {
+				updateUsage(usage, google.usage);
+				(google.result || []).forEach(item => {
+					if (!item.url) return;
+					if (urls.includes(item.url)) return;
+					articles.push(item);
+				});
+			}
+			if (!!llm) {
+				updateUsage(usage, llm.usage);
+				(llm.result || []).forEach(item => {
+					if (!item.url) return;
+					if (urls.includes(item.url)) return;
+					articles.push(item);
+				});
+			}
+
+			articles = articles.map(item => {
+				return '<webpage title="' + (item.title || '').replace(/[\n\r]+/g, ' ') + '" url="' + item.url + '">\n' + (item.summary || '').trim() + '\n</webpage>';
+			}).join('\n');
+
+			pair = {};
+			pair.call = [{
+				id: questID,
+				name: "collect_information",
+				arguments: params,
+			}];
+			pair.tool = {
+				id: questID,
+				name: "collect_information",
+				content: articles,
+			};
 		}
-		if (!!google) {
-			updateUsage(usage, google.usage);
-			(google.result || []).forEach(item => {
-				if (!item.url) return;
-				if (urls.includes(item.url)) return;
-				articles.push('<webpage title="' + (item.title || '').replace(/[\n\r]+/g, ' ') + '" url="' + item.url + '">\n' + (item.summary || '').trim() + '\n</webpage>');
-			});
-		}
-		if (!!llm) {
-			updateUsage(usage, llm.usage);
-			(llm.result || []).forEach(item => {
-				if (!item.url) return;
-				if (urls.includes(item.url)) return;
-				articles.push('<webpage title="' + (item.title || '').replace(/[\n\r]+/g, ' ') + '" url="' + item.url + '">\n' + (item.summary || '').trim() + '\n</webpage>');
-			});
+		catch (err) {
+			logger.error('CollectInformation', err);
+			articles = "(Failed to search information)";
 		}
 
 		UtilityLib.sendMessageByTaskID(taskID, "appendAction", {
 			task: taskID,
+			id: questID,
 			running: false,
+			conversation: pair
 		});
 
 		return {
-			result: articles.join('\n'),
+			result: articles,
 			usage,
 		};
 	},

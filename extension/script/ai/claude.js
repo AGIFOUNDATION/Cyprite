@@ -43,8 +43,17 @@ const assembleConversation = conversation => {
 		else if (item[0] === 'human') {
 			data.messages.push(convertItem('user', item[1]));
 		}
-		else if (item[0] === 'ai' || item[0] === 'call') {
+		else if (item[0] === 'ai') {
 			data.messages.push(convertItem('assistant', item[1]));
+		}
+		else if (item[0] === 'call') {
+			let ctx = item[1][0];
+			data.messages.push(convertItem('assistant', {
+				"type": "tool_use",
+				"id": ctx.id,
+				"name": ctx.name,
+				"input": ctx.arguments
+			}));
 		}
 		else if (item[0] === 'tool') {
 			toolUses.push({

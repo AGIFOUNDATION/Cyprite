@@ -25,6 +25,7 @@ var aiSearchInputter = null;
 var tmrThinkingHint = null;
 var searchRecord = {};
 var advSearchConversation = null;
+var xPageConversation = null;
 var ntfDeepThinking = null;
 var running = false;
 var orderType = 'totalDuration';
@@ -329,6 +330,19 @@ const addChatItem = (target, content, type, cid, need=false) => {
 		content = '';
 		isOther = true;
 	}
+	else if (type === 'processDone') {
+		item.classList.add('other');
+		item.classList.add('process');
+		let cap = newEle('span', 'caption');
+		cap.innerText = content;
+		titleBar.appendChild(cap);
+		let imgDown = newEle('img', 'done');
+		imgDown.src = "../images/check.svg";
+		imgDown.setAttribute('button', 'true');
+		titleBar.appendChild(imgDown);
+		content = '';
+		isOther = true;
+	}
 	else {
 		return;
 	}
@@ -552,6 +566,12 @@ const restoreConversation = (conversation, mode, start=0) => {
 				addChatItem(mode, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
 			}
 			content = json.reply || content;
+		}
+		else if (type === 'call') {
+			(item[1] || []).forEach(item => {
+				addChatItem(mode, item.name, 'processDone');
+			});
+			return;
 		}
 		else {
 			return;
@@ -1032,14 +1052,32 @@ const onSelectArticleItem = ({target}) => {
 		}
 	}
 };
-EventHandler.appendAction = (data) => {
+EventHandler.appendAction = async (data) => {
 	if (data.running) {
 		const type = TaskCategory.get(data.task);
 		if (!type) return
-		addChatItem(type, data.hint, 'process', data.task);
+		addChatItem(type, data.hint, 'process', data.id);
 	}
 	else {
-		const ele = document.querySelector('.chat_item[chatid="' + data.task + '"]');
+		if (!!data.conversation && !!data.conversation.call && !!data.conversation.tool) {
+			const type = TaskCategory.get(data.task);
+			// Save conversation item for tool use and tool result
+			if (!!type) {
+				let conversation;
+				if (type === 'crossPageConversation') {
+					conversation = xPageConversation;
+				}
+				else if (type === 'intelligentSearch') {
+					conversation = advSearchConversation
+				}
+				if (!!conversation) {
+					conversation.push(['call', data.conversation.call]);
+					conversation.push(['tool', data.conversation.tool]);
+				}
+			}
+		}
+
+		const ele = document.querySelector('.chat_item[chatid="' + data.id + '"]');
 		if (!ele) return;
 		if (!!data.hint) {
 			const titlebar = ele.querySelector('.chat_title .caption');
@@ -1049,6 +1087,19 @@ EventHandler.appendAction = (data) => {
 		img.src = '../images/check.svg';
 		img.classList.remove('rotate');
 		img.classList.add('done');
+	}
+};
+const removeLatestConversation = (conversation) => {
+	while (true) {
+		let item = conversation.pop();
+		if (conversation.length === 0) return;
+		if (item[0] === "human") break;
+	}
+};
+const findLatestHumanChat = (conversation) => {
+	for (let i = conversation.length - 1; i >= 0; i --) {
+		let item = conversation[i];
+		if (item[0] === 'human') return item;
 	}
 };
 
@@ -2901,6 +2952,7 @@ ActionCenter.sendMessage = async (button) => {
 		conversation = await prepareXPageConv(content);
 		updateUsage(usage, conversation.usage);
 		conversation = conversation.conversation;
+		xPageConversation = conversation;
 		const option = {
 			request: content,
 			time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")
@@ -2919,6 +2971,11 @@ ActionCenter.sendMessage = async (button) => {
 		if (tokens > AILongContextLimit) {
 			request.model = PickLongContextModel();
 		}
+		console.log('VVVVVVVVVVVVVVVVVVVV');
+		console.log('VVVVVVVVVVVVVVV');
+		console.log('VVVVVVVVVV');
+		console.log('VVVVV');
+		console.log([...conversation]);
 		try {
 			result = await askAIandWait('directSendToAI', request);
 			updateUsage(usage, result.usage);
@@ -2931,15 +2988,19 @@ ActionCenter.sendMessage = async (button) => {
 			Notification.show('', err, "middleTop", 'error');
 		}
 		TaskCategory.delete(taskID);
-		conversation.pop();
 		if (!!result) {
 			prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
-			conversation.push(['human', prompt, cid]);
+			let item = findLatestHumanChat(conversation);
+			item[1] = prompt;
+			item[2] = cid;
 			conversation.push(['ai', result]);
 			const json = parseReplyAsXMLToJSON(result);
 			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
 			if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
 			result = json.reply?._origin || json.reply || result;
+		}
+		else {
+			removeLatestConversation(conversation);
 		}
 	}
 	else if (target === 'instantTranslation') {
@@ -3010,15 +3071,19 @@ ActionCenter.sendMessage = async (button) => {
 		}
 		console.log('AISEARCH GOT REPLY:', result);
 		TaskCategory.delete(taskID);
-		conversation.pop();
 		if (!!result) {
 			prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
-			conversation.push(['human', prompt, cid]);
+			let item = findLatestHumanChat(conversation);
+			item[1] = prompt;
+			item[2] = cid;
 			conversation.push(['ai', result]);
 			const json = parseReplyAsXMLToJSON(result);
 			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
 			if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
 			result = json.reply?._origin || json.reply || result;
+		}
+		else {
+			removeLatestConversation(conversation);
 		}
 	}
 	else if (target === 'freelyConversation') {
@@ -3052,7 +3117,7 @@ ActionCenter.sendMessage = async (button) => {
 			result = json.reply?._origin || json.reply || result;
 		}
 		else {
-			conversation.pop();
+			removeLatestConversation(conversation);
 		}
 	}
 	if (!!result) {

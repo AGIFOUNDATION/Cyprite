@@ -9,30 +9,41 @@ const assemblePayload = (conversation) => {
 	var payload = [];
 
 	conversation.forEach(item => {
-		var content = item[1];
-		if (item[0] === 'system') {
+		var role = item[0], content = item[1];
+		if (role === 'system') {
 			payload.push({
 				role: 'system',
 				content
 			});
 		}
-		else if (item[0] === 'human') {
+		else if (role === 'human') {
 			payload.push({
 				role: 'user',
 				content
 			});
 		}
-		else if (item[0] === 'ai') {
+		else if (role === 'ai') {
 			payload.push({
 				role: 'assistant',
 				content
 			});
 		}
-		else if (item[0] === 'call') {
-			payload.push({
+		else if (role === 'call') {
+			let conv = {
 				role: 'assistant',
-				tool_calls: item[1],
+				tool_calls: [],
+			};
+			content.forEach(quest => {
+				conv.tool_calls.push({
+					id: quest.id,
+					type: "function",
+					function: {
+						name: quest.name,
+						arguments: JSON.stringify(quest.arguments),
+					}
+				});
 			});
+			payload.push(conv);
 		}
 		else if (item[0] === 'tool') {
 			payload.push({
@@ -69,13 +80,13 @@ AI.Groq.chat = async (conversation, model, tools=[], tid) => {
 	const request = { method: "POST" };
 	const url = 'https://api.groq.com/openai/v1/chat/completions';
 	const apiKey = myInfo.apiKey.groq || '';
-	const AI = Model2AI[model];
+	const ai = Model2AI[model];
 
 	tools = AI.prepareToolList(tools);
-	request.headers = Object.assign({}, ModelDefaultConfig[AI].header, (ModelDefaultConfig[model] || {}).header || {}, {
+	request.headers = Object.assign({}, ModelDefaultConfig[ai].header, (ModelDefaultConfig[model] || {}).header || {}, {
 		"Authorization": "Bearer " + apiKey
 	});
-	var payload = Object.assign({}, ModelDefaultConfig[AI].chat, (ModelDefaultConfig[model] || {}).chat || {}, {model});
+	var payload = Object.assign({}, ModelDefaultConfig[ai].chat, (ModelDefaultConfig[model] || {}).chat || {}, {model});
 	appendToolsToRequest(payload, tools);
 
 	return await sendRequestAndWaitForResponse('Groq', model, conversation, url, request, () => {

@@ -90,8 +90,8 @@ const assembleConversation = conversation => {
 				parts: [
 					{
 						functionCall: {
-							name: item[1].name,
-							args: item[1].args,
+							name: item[1][0].name,
+							args: item[1][0].arguments,
 						}
 					}
 				]
