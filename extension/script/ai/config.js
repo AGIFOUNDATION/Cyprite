@@ -10,7 +10,7 @@ globalThis.Model2AI = {
 	"claude-3-5-haiku-latest": "Claude",
 	"o1-preview": "OpenAI",
 	"o1-mini": "OpenAI",
-	"chatgpt-4o-latest": "OpenAI",
+	"gpt-4o": "OpenAI",
 	"gpt-4o-mini": "OpenAI",
 	"grok-beta": "Grok",
 	"open-mixtral-8x22b": "Mixtral",
@@ -36,7 +36,7 @@ globalThis.AI2Model = {
 		"claude-3-5-haiku-latest",
 	],
 	"openai": [
-		"chatgpt-4o-latest",
+		"gpt-4o",
 		"gpt-4o-mini",
 		"o1-preview",
 		"o1-mini",
@@ -76,7 +76,7 @@ globalThis.ModelNameList = {
 	"claude-3-5-haiku-latest": "Haiku3.5",
 	"o1-preview": "O1",
 	"o1-mini": "O1-Mini",
-	"chatgpt-4o-latest": "GPT",
+	"gpt-4o": "GPT",
 	"gpt-4o-mini": "GPTMini",
 	"grok-beta": "GrokBeta",
 	"open-mixtral-8x22b": "OpenMixtral",
@@ -187,7 +187,7 @@ globalThis.ModelDefaultConfig = {
 			max_tokens: 8192,
 		}
 	},
-	"chatgpt-4o-latest": {
+	"gpt-4o": {
 		chat: {
 			max_tokens: 16384,
 		}
@@ -238,6 +238,7 @@ globalThis.PaCableModels = [
 	"claude-3-opus-20240229",
 	"o1-preview",
 	"deepseek-chat",
+	"qwen-max-latest",
 ];
 
 /* Long Context Control */
@@ -269,7 +270,7 @@ const FunctionalModel = {
 		'gemini-1.5-flash-exp-0827',
 		'deepseek-chat',
 		'glm-4-plus',
-		'chatgpt-4o-latest',
+		'gpt-4o',
 		'gemini-1.5-pro-002',
 		'gpt-4o-mini',
 		'grok-beta',
@@ -293,7 +294,7 @@ const FunctionalModel = {
 	identityRelevants: [
 		"gemini-1.5-flash-exp-0827",
 		"gemini-1.5-flash-002",
-		"chatgpt-4o-latest",
+		"gpt-4o",
 		"deepseek-chat",
 		"glm-4-plus",
 		"claude-3-5-sonnet-latest",
@@ -306,7 +307,7 @@ const FunctionalModel = {
 	],
 	firstTranslation: [
 		'claude-3-5-sonnet-latest',
-		'chatgpt-4o-latest',
+		'gpt-4o',
 		'o1-preview',
 		'grok-beta',
 		'moonshot-v1-auto',
@@ -350,7 +351,7 @@ globalThis.ModelRateLimit= {
 		rpm: 30,
 		tpm: 15000
 	},
-	"chatgpt-4o-latest": {
+	"gpt-4o": {
 		rpm: 10000,
 		tpm: 30000000,
 	},

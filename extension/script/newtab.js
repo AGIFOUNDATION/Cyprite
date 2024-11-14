@@ -26,6 +26,7 @@ var tmrThinkingHint = null;
 var searchRecord = {};
 var advSearchConversation = null;
 var xPageConversation = null;
+var freeConversation = null;
 var ntfDeepThinking = null;
 var running = false;
 var orderType = 'totalDuration';
@@ -565,7 +566,7 @@ const restoreConversation = (conversation, mode, start=0) => {
 			if (!!strategy) {
 				addChatItem(mode, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
 			}
-			content = json.reply || content;
+			content = json.reply?._origin ||json.reply || content.replace(/\s*<strategy>[\w\W]*?<\/strategy>\s*/i, '\n\n').trim();
 		}
 		else if (type === 'call') {
 			(item[1] || []).forEach(item => {
@@ -951,7 +952,9 @@ ActionCenter.reAnswerRequest = async (target, ui) => {
 	else {
 		const contentPad = eles[1].querySelector('.chat_content');
 		const json = parseReplyAsXMLToJSON(result);
-		const reply = json.reply?._origin || json.reply || result;
+		const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
+		if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
+		const reply = json.reply?._origin || json.reply || result.replace(/\s*<strategy>[\w\W]*?<\/strategy>\s*/i, '\n\n').trim();
 		parseMarkdownWithOutwardHyperlinks(contentPad, reply, messages.conversation.AIFailed);
 		contentPad._data = reply;
 
@@ -1068,7 +1071,10 @@ EventHandler.appendAction = async (data) => {
 					conversation = xPageConversation;
 				}
 				else if (type === 'intelligentSearch') {
-					conversation = advSearchConversation
+					conversation = advSearchConversation;
+				}
+				else if (type === 'freelyConversation') {
+					conversation = freeConversation;
 				}
 				if (!!conversation) {
 					conversation.push(['call', data.conversation.call]);
@@ -2971,11 +2977,6 @@ ActionCenter.sendMessage = async (button) => {
 		if (tokens > AILongContextLimit) {
 			request.model = PickLongContextModel();
 		}
-		console.log('VVVVVVVVVVVVVVVVVVVV');
-		console.log('VVVVVVVVVVVVVVV');
-		console.log('VVVVVVVVVV');
-		console.log('VVVVV');
-		console.log([...conversation]);
 		try {
 			result = await askAIandWait('directSendToAI', request);
 			updateUsage(usage, result.usage);
@@ -2997,7 +2998,7 @@ ActionCenter.sendMessage = async (button) => {
 			const json = parseReplyAsXMLToJSON(result);
 			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
 			if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
-			result = json.reply?._origin || json.reply || result;
+			result = json.reply?._origin || json.reply || result.replace(/\s*<strategy>[\w\W]*?<\/strategy>\s*/i, '\n\n').trim();
 		}
 		else {
 			removeLatestConversation(conversation);
@@ -3080,7 +3081,7 @@ ActionCenter.sendMessage = async (button) => {
 			const json = parseReplyAsXMLToJSON(result);
 			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
 			if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
-			result = json.reply?._origin || json.reply || result;
+			result = json.reply?._origin || json.reply || result.replace(/\s*<strategy>[\w\W]*?<\/strategy>\s*/i, '\n\n').trim();
 		}
 		else {
 			removeLatestConversation(conversation);
@@ -3097,8 +3098,17 @@ ActionCenter.sendMessage = async (button) => {
 			conversation[0][1] = prompt;
 		}
 		conversation.push(['human', content + '\n\n(Time: ' + timestmp2str("YYYY/MM/DD hh:mm :WDE:") + ')', cid]);
+		freeConversation = conversation;
+		const taskID = newID();
+		TaskCategory.set(taskID, 'freelyConversation');
+		const request = {
+			taskID,
+			conversation,
+			model: myInfo.model,
+			tools: ['collectInformation'],
+		};
 		try {
-			result = await askAIandWait('directSendToAI', conversation);
+			result = await askAIandWait('directSendToAI', request);
 			console.log(result);
 			updateUsage(usage, result.usage);
 			result = result.reply;
@@ -3109,12 +3119,13 @@ ActionCenter.sendMessage = async (button) => {
 			err = err.message || err.msg || err.data || err.toString();
 			Notification.show('', err, "middleTop", 'error');
 		}
+		TaskCategory.delete(taskID);
 		if (!!result) {
 			conversation.push(['ai', result]);
 			const json = parseReplyAsXMLToJSON(result);
 			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
 			if (!!strategy) addChatItem(target, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
-			result = json.reply?._origin || json.reply || result;
+			result = json.reply?._origin || json.reply || result.replace(/\s*<strategy>[\w\W]*?<\/strategy>\s*/i, '\n\n').trim();
 		}
 		else {
 			removeLatestConversation(conversation);
@@ -3179,6 +3190,7 @@ window.addEventListener('resize', resizeCurrentInputter);
 chrome.storage.local.onChanged.addListener(evt => {
 	if (!!evt.AImodel?.newValue) {
 		myInfo.model = evt.AImodel.newValue;
+		updateModelList(myInfo.model);
 	}
 });
 

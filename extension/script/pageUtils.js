@@ -245,8 +245,8 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 	// Colorize code block
 	[...container.querySelectorAll('pre > code')].forEach(block => {
 		const content = block.innerText;
-		const lang = (block.className.match(/language-([\w\-\+_]+)/) || [])[1];
-		var isSVG = (lang || '').trim().match(/^svg/i);
+		const lang = (block.className.match(/language-([\w\-\+_]+)/) || [])[1] || '';
+		var isSVG = lang.trim().match(/^svg/i);
 		if (!isSVG) {
 			if (!!('\n' + content).match(/\n\s*(<\?xml[^\n\r]*>\s*\n\s*)?<svg/i)) {
 				isSVG = true;
