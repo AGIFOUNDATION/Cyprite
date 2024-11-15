@@ -1191,8 +1191,8 @@ AIHandler.getSearchKeyWord = async (request) => {
 	var keywords = (await callLLMOneByOne(modelList, conversation, null, true, 'SearchKeywords'));
 	updateUsage(usage, keywords.usage);
 	keywords = keywords.reply || {};
-	['search', 'arxiv', 'wikipedia'].forEach(tag => {
-		var list = keywords[tag] || '';
+	['search', 'arxiv', 'wikipedia', 'philosophy'].forEach(tag => {
+		var list = keywords[tag]._origin || keywords[tag] || '';
 		list = list
 			.replace(/[\n\r]+/g, '\n').split('\n')
 			.map(ctx => ctx.replace(/^[\s\-]*|\s*$/gi, ''))
@@ -1200,6 +1200,12 @@ AIHandler.getSearchKeyWord = async (request) => {
 		;
 		keywords[tag] = list;
 	});
+	
+	// Set philosophy as a special google search
+	keywords.philosophy.forEach(keyword => {
+		keywords.search.push(keyword + ' siteof:plato.stanford.edu');
+	});
+
 	logger.info('SearchKeywords', (keywords.search.length + keywords.arxiv.length + keywords.wikipedia.length) + ' / ' + keywords.search.length + ' / ' + keywords.arxiv.length + ' / ' + keywords.wikipedia.length);
 
 	return {keywords, usage};
@@ -2234,10 +2240,7 @@ AIHandler.replyBasedOnSearch = async (data) => {
 		lang: LangName[myInfo.lang] || myInfo.lang,
 		request: data.request,
 	});
-	// For hyper-long string
-	var start = prompt.indexOf('{{webpages}}'), end = start + ('{{webpages}}').length;
-	var bra = prompt.substring(0, start), ket = prompt.substring(end);
-	prompt = bra + data.webpages + ket;
+	prompt = PromptLib.assembleLongContent(prompt, 'webpages', data.webpages);
 
 	var conversation = [['human', prompt]];
 	logger.info('ReplyBasedOnSearch', 'Prompt Assembled', conversation);

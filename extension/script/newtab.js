@@ -142,6 +142,9 @@ const generateModelList = async () => {
 	ModelList.forEach(mdl => {
 		var name = ModelNameList[mdl];
 		if (!name) return;
+		if (!isString(name)) {
+			name = name[myInfo.lang] || name.en;
+		}
 		var item = newEle('div', 'panel_model_item');
 		item.innerText = name;
 		item.setAttribute('name', mdl);
@@ -570,7 +573,7 @@ const restoreConversation = (conversation, mode, start=0) => {
 		}
 		else if (type === 'call') {
 			(item[1] || []).forEach(item => {
-				addChatItem(mode, item.name, 'processDone');
+				addChatItem(mode, item.hint || item.name, 'processDone');
 			});
 			return;
 		}
@@ -1953,7 +1956,7 @@ const generateSearchResultContent = () => {
 		info.reference = messages.hintNone;
 	}
 	if (!!searchRecord.conversation) {
-		const limit = searchRecord.mode === "fullAnalyze" ? 7 : 3;
+		const limit = searchRecord.mode === "fullAnalyze" ? 5 : 3;
 		const chat = [];
 		for (let i = limit; i < searchRecord.conversation.length; i ++) {
 			const part = [];
@@ -2426,7 +2429,7 @@ ActionCenter.loadSearchRecord = async (host, data, evt) => {
 			let last = info.conversation[info.conversation.length - 1];
 			if (last[0] === 'human') info.conversation.pop();
 			document.body.querySelector('.furthure_dialog').style.display = 'block';
-			let limit = info.mode === 'fullAnalyze' ? 7 : 3;
+			let limit = info.mode === 'fullAnalyze' ? 5 : 3;
 			if (info.conversation.length > limit) {
 				restoreConversation(info.conversation, 'intelligentSearch', limit);
 			}
@@ -2905,7 +2908,7 @@ ActionCenter.clearConversation = async () => {
 	}
 	else if (currentMode === 'intelligentSearch') {
 		if (!!advSearchConversation) {
-			const limit = myInfo.searchMode === 'fullAnalyze' ? 7 : 3;
+			const limit = myInfo.searchMode === 'fullAnalyze' ? 5 : 3;
 			if (advSearchConversation.length > limit) {
 				advSearchConversation.splice(limit);
 			}

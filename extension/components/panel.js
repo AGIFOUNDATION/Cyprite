@@ -113,6 +113,9 @@ const generateModelList = async () => {
 	ModelList.forEach(mdl => {
 		var name = ModelNameList[mdl];
 		if (!name) return;
+		if (!isString(name)) {
+			name = name[myInfo.lang] || name.en;
+		}
 		var item = newEle('div', 'cyprite', 'panel_model_item');
 		item.innerText = name;
 		item.setAttribute('name', mdl);

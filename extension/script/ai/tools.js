@@ -47,10 +47,11 @@ UtilityLib.collectInformation = {
 		}
 
 		questID = questID || newID();
+		const hint = "Collecting Information: " + topic.replace(/[\n\r]+/g, ' ');
 		UtilityLib.sendMessageByTaskID(taskID, "appendAction", {
 			task: taskID,
 			id: questID,
-			hint: "Collecting Information: " + topic.replace(/[\n\r]+/g, ' '),
+			hint,
 			running: true,
 		});
 
@@ -100,6 +101,7 @@ UtilityLib.collectInformation = {
 				id: questID,
 				name: "collect_information",
 				arguments: params,
+				hint,
 			}];
 			pair.tool = {
 				id: questID,
