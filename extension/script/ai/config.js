@@ -5,6 +5,7 @@ globalThis.Model2AI = {
 	"gemini-1.5-flash-exp-0827": "Gemini",
 	"gemini-1.5-pro-002": "Gemini",
 	"gemini-1.5-flash-002": "Gemini",
+	"gemini-exp-1114": "Gemini",
 	"claude-3-5-sonnet-latest": "Claude",
 	"claude-3-opus-20240229": "Claude",
 	"claude-3-5-haiku-latest": "Claude",
@@ -29,6 +30,7 @@ globalThis.AI2Model = {
 		"gemini-1.5-flash-exp-0827",
 		"gemini-1.5-pro-002",
 		"gemini-1.5-flash-002",
+		"gemini-exp-1114",
 	],
 	"claude": [
 		"claude-3-5-sonnet-latest",
@@ -71,6 +73,7 @@ globalThis.ModelNameList = {
 	"gemini-1.5-flash-exp-0827": "Gemini Flash",
 	// "gemini-1.5-pro-002": "GeminiPro2",
 	// "gemini-1.5-flash-002": "GeminiFlash2",
+	"gemini-exp-1114": "Gemini Exp",
 	"claude-3-5-sonnet-latest": "Sonnet 3.5",
 	"claude-3-opus-20240229": "Opus 3",
 	"claude-3-5-haiku-latest": "Haiku 3.5",
@@ -247,6 +250,7 @@ globalThis.AILongContextLimit = 200000;
 const LongContextModel = [
 	'gemini-1.5-pro-exp-0827',
 	'gemini-1.5-pro-002',
+	"gemini-exp-1114",
 ];
 LongContextModel.idx = -1;
 globalThis.PickLongContextModel = () => {
@@ -340,7 +344,7 @@ globalThis.ModelRateLimit= {
 		tpm: 160000,
 	},
 	Gemini: {
-		rpm: 15,
+		rpm: 2,
 		tpm: 32000,
 	},
 	Mixtral: {
@@ -374,16 +378,8 @@ globalThis.ModelRateLimit= {
 		rpm: 15,
 		tpm: 1000000,
 	},
-	"gemini-1.5-pro-exp-0827": {
-		rpm: 2,
-		tpm: 32000,
-	},
 	"gemini-1.5-flash-002": {
 		rpm: 15,
 		tpm: 1000000,
-	},
-	"gemini-1.5-pro-002": {
-		rpm: 2,
-		tpm: 32000,
 	},
 };

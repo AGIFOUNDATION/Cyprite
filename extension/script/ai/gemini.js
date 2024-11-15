@@ -4,6 +4,7 @@ globalThis.AI = globalThis.AI || {};
 globalThis.AI.Gemini = {};
 
 const DefaultChatModel = AI2Model.gemini[0];
+const DefaultSearchModel = "gemini-1.5-flash-002";
 const DefaultEmbeddingModel = 'text-embedding-004';
 
 const combineObject = (...objs) => {
@@ -124,8 +125,10 @@ const assembleConversation = conversation => {
 };
 const appendToolsToRequest = (data, tools) => {
 	if (!isArray(tools) || tools.length === 0) return;
-	data.tools = {};
-	data.tools.function_declarations = tools.map(tool => {
+	data.tools = [{
+		function_declarations: []
+	}];
+	tools.forEach(tool => {
 		const fun = {
 			name: tool.name,
 			description: tool.description,
@@ -135,7 +138,7 @@ const appendToolsToRequest = (data, tools) => {
 				required: tool.parameters.required,
 			},
 		};
-		return fun;
+		data.tools[0].function_declarations.push(fun);
 	});
 	data.tool_config = {
 		function_calling_config: {
@@ -199,6 +202,132 @@ AI.Gemini.chat = async (conversation, model=DefaultChatModel, tools = [], tid) =
 		Object.assign(originRequest, assembleConversation(conversation));
 		request.body = JSON.stringify(originRequest);
 	}, tools, tid);
+};
+AI.Gemini.search = async (topic, model=DefaultSearchModel) => {
+	const request = { method: "POST" };
+	const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ':generateContent?key=' + myInfo.apiKey.gemini;
+
+	const locker = 'gemini-1.5-flash', tag = 'gemini-google-search';
+	const conversation = [['human', PromptLib.assemble(PromptLib.googleSearch, {topic})]];
+	const originRequest = getRequestPackage(model, 'chat');
+	request.header = getRequestHeader(model);
+	// Call Google Search for Grounding
+	originRequest.tools = [{google_search_retrieval: {
+		dynamic_retrieval_config: {
+			mode: "MODE_DYNAMIC",
+			dynamic_threshold: 0, // Always search google
+		}
+	}}];
+	Object.assign(originRequest, assembleConversation(conversation));
+	request.body = JSON.stringify(originRequest);
+
+	const usage = { count: 0, input: 0, output: 0 };
+	var response, time = Date.now();
+	try {
+		await AI.requestRateLimitLock(locker);
+		AI.updateRateLimitLock(locker, true);
+		response = await waitUntil(fetchWithCheck(url, request));
+		AI.updateRateLimitLock(locker, false);
+	}
+	catch (err) {
+		AI.updateRateLimitLock(locker, false);
+		throw err;
+	}
+
+	// Occasionally, abnormal JSON structures may appear in some LLM's returned data, requiring additional processing.
+	try {
+		let text = await response.text();
+		let inner = text.match(/^\s*b'\{[\w\W]+\}'\s*$/);
+		if (!!inner) {
+			text = text.replace(/^\s*b'|'\s*$/g, '').replace(/\\n/g, '\n');
+		}
+		response = JSON.parse(text);
+	}
+	catch (err) {
+		logger.error(tag, err);
+		response = {};
+	}
+	logger.info(tag, response);
+
+	let error = response.error || response.error_msg || response.error?.message;
+	if (!!error && !!error.message) throw new Error(error.message);
+
+	let usg = response.usageMetadata;
+	usage.count ++;
+	if (!!usg) {
+		usage.input += usg.prompt_tokens || usg.input_tokens || usg.promptTokenCount || 0;
+		usage.output += usg.completion_tokens || usg.output_tokens || usg.candidatesTokenCount || 0;
+	}
+
+	response = response.candidates[0] || {};
+	response = response.content?.parts || [];
+	response = response[0];
+	if (!!response) {
+		let list = response.text;
+		if (!!list) {
+			list = list.replace(/^\s*\`+[\w\+\-_\.]*\s*|\s*\`+\s*$/gi, '');
+			try {
+				list = JSON.parse(list);
+				list = list.map(item => {
+					var record = {};
+					for (let k in item) {
+						if (!!k.match(/title/i)) {
+							record.title = item[k] || '(Untitled)';
+						}
+						else if (!!k.match(/url/i) && !k.match(/cover/i)) {
+							let url = item[k];
+							if (!url.match(/^https?:\/\//i)) url = 'https://' + url;
+							record.url = url;
+						}
+						else if (!!k.match(/summary/i)) {
+							if (!!item[k]) record.summary = item[k];
+						}
+						else if (!!k.match(/cover/i)) {
+							if (!!item[k]) record.cover = item[k];
+						}
+					}
+					return record;
+				});
+			}
+			catch {
+				list = null;
+			}
+		}
+		else {
+			list = null;
+		}
+
+		if (!list && !!response.groundingMetadata) {
+			list = response.groundingMetadata?.groundingChunks || [];
+			list = list.map(item => {
+				if (!item.web) return;
+				return item.web;
+			}).filter(item => !!item);
+		}
+
+		if (!list || !list.length) {
+			let errMsg = 'Search Failed!';
+			logger.error(tag, errMsg);
+			throw new Error(errMsg);
+		}
+		else {
+			response = list;
+		}
+	}
+	else {
+		let errMsg = 'Search Failed!';
+		logger.error(tag, errMsg);
+		throw new Error(errMsg);
+	}
+
+	time = Date.now() - time;
+	logger.info(tag, 'Timespent: ' + (time / 1000) + 's; Input: ' + usage.input + '; Output: ' + usage.output);
+	recordAIUsage("gemini-google-search", 'Gemini', usage);
+
+	return {
+		reply: response,
+		usage,
+	};
 };
 AI.Gemini.embed = async (contents, model=DefaultEmbeddingModel) => {
 	var header = getRequestHeader(model);
