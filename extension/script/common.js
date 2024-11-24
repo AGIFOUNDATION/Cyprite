@@ -3,6 +3,9 @@ const RegUnlatin = /(\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{S
 const RegLatin = /(\p{L}+)/ug;
 const RegPunctuation = /[\p{P}．，、。？！；：‘’“”"'\(\)\[\]\{\}《》〈〉<>«»“„\-_=\+~`\/\\\|@#\$%\^&\*…—·～¡¿・ー;\u00A1-\u00BF\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF]/gu;
 
+globalThis.OneMinute = 60 * 1000;
+globalThis.DayLong = 24 * 3600 * 1000;
+
 globalThis.TagSearchRecord = 'CACHE_SEARCH_RECORDS';
 globalThis.TagArticleList = 'CACHE_ARTICLE_LIST';
 globalThis.TagKeywordList = 'CACHE_KEYWORD_LIST';
@@ -12,7 +15,7 @@ globalThis.TagFreeCypriteConversation = "FREECYPRITECONVERSATION"
 globalThis.ForceServer = false;
 globalThis.TrialVersion = true;
 
-globalThis.DurationForever = 24 * 3600 * 1000;
+globalThis.DurationForever = DayLong;
 
 globalThis.DefaultLang = 'en';
 globalThis.i18nList = ['en', 'zh', 'fr', 'de', 'it', 'jp'];
@@ -99,6 +102,20 @@ globalThis.writeData = (data, path, value) => {
 	}
 	writeData(next, path, value);
 };
+globalThis.parseParams = param => {
+	var json = {};
+	param = (param || '').split('?');
+	param.shift();
+	param = (param || '').join('?').split('&');
+	param.forEach(item => {
+		item = item.split('=');
+		var key = item.shift();
+		if (!key) return;
+		item = item.join('=');
+		json[key] = item;
+	});
+	return json;
+};
 globalThis.parseURL = url => {
 	// For VUE SPA
 	if (url.match(/\/#[\w\W]*[\?\/]/)) {
@@ -146,6 +163,7 @@ globalThis.parseReplyAsXMLToJSON = (xml, init=true) => {
 	const reg = /<(\/?)([^>\n\r\t ]+?[^>\n\r ]*?)>/gi;
 
 	if (init) {
+		xml = xml.replace(/<[^\n\r ]*?\s*\/>/g, ''); // Remove self-closed tags
 		let tags = [], lev = 0;
 		xml.replace(reg, (_, end, tag) => {
 			end = !!end;
@@ -242,6 +260,152 @@ globalThis.parseReplyAsXMLToJSON = (xml, init=true) => {
 	return json;
 };
 
+globalThis.simplyParseHTML = (content, host) => {
+	var ctx = [];
+	content.replace(/<body[\w\W]*?>([\w\W]*)<\/body>/i, (m, c) => ctx.push(c.trim()));
+	content = ctx.join('\n\n----\n\n');
+	ctx.splice(0);
+	content = content.replace(/<script[\w\W]*?>\s*([\w\W]*?)\s*<\/script>/gi, '');
+	content = content.replace(/<style[\w\W]*?>\s*([\w\W]*?)\s*<\/style>/gi, '');
+	content = content.replace(/<link[\w\W]*?>/gi, '');
+	content = content.replace(/<img(\s+[\w\W]*?)?\/?>/gi, (m, prop) => {
+		var title = (prop || '').match(/alt=('|")([\w\W]*?)\1/);
+		var url = (prop || '').match(/src=('|")([\w\W]*?)\1/);
+		if (!title) title = '';
+		else title = title[2].trim();
+		if (!url) {
+			return ' ' + (title || '(image)') + ' ';
+		}
+		else {
+			url = url[2];
+			if (!url.match(/^(([\w\-]+:)?\/\/|data:)/)) {
+				let head = host.split('/');
+				head.pop();
+				let parts = url.match(/^(\.{1,2}\/)+/);
+				if (!!parts) {
+					parts = parts[0];
+					let tail = url.replace(parts, '/');
+					if (tail.indexOf('/') !== 0) tail = '/' + tail;
+					parts = parts.split('/');
+					parts.filter(line => line === '..').forEach(() => head.pop());
+					url = head.join('/') + tail;
+				}
+				else {
+					let tail = url;
+					if (tail.indexOf('/') !== 0) tail = '/' + tail;
+					url = head.join('/') + tail;
+				}
+			}
+			else if (!!url.match(/^\/\//)) {
+				let protocol = host.match(/^[\w\-]+:/);
+				if (!!protocol) {
+					url = protocol[0] + url;
+				}
+				else {
+					url = 'https:' + url; // default protocol
+				}
+			}
+			return ' ![' + title + '](' + url + ') '
+		}
+	});
+
+	return content;
+};
+globalThis.getPageContent = (container, keepLink=false) => {
+	var content = isString(container) ? container : container.innerHTML || '';
+	if (!content) return;
+
+	content = content.replace(/<img(\s+[\w\W]*?)?\/?>/gi, (m, prop) => {
+		var link = (prop || '').match(/src=('|")([\w\W]*?)\1/);
+		if (!link) link = '';
+		else link = link[2].trim();
+
+		var title = (prop || '').match(/alt=('|")([\w\W]*?)\1/);
+		if (!title) title = '';
+		else title = title[2].trim();
+
+		if (title.indexOf('{') === 0) {
+			if (keepLink) return '> ' + title + '\n\n![](' + link + ')';
+			else return '> ' + title;
+		}
+
+		if (keepLink) return ' ![' + title + '](' + link + ') ';
+		return ' ' + (title || '(image)') + ' ';
+	});
+	if (globalThis.document) content = clearHTML(content, true, true);
+	content = content.replace(/<(h\d)(\s+[\w\W]*?)?>([\w\W]*?)<\/\1>/gi, (m, tag, prop, inner) => {
+		var lev = tag.match(/h(\d)/i);
+		lev = lev[1] * 1;
+		if (lev === 1) return '\n\n##\t' + inner + '\n\n';
+		if (lev === 2) return '\n\n###\t' + inner + '\n\n';
+		if (lev === 3) return '\n\n####\t' + inner + '\n\n';
+		if (lev === 4) return '\n\n#####\t' + inner + '\n\n';
+		if (lev === 5) return '\n\n######\t' + inner + '\n\n';
+		return inner;
+	});
+	content = content.replace(/<\/?(article|header|section|aside|footer|div|p|center|ul|ol|tr)(\s+[\w\W]*?)?>/gi, '<br><br>');
+	content = content.replace(/<\/?(option|span|font)(\s+[\w\W]*?)?>/gi, '');
+	content = content.replace(/<\/(td|th)><\1(\s+[\w\W]*?)?>/gi, ' | ');
+	content = content.replace(/<(td|th)(\s+[\w\W]*?)?>/gi, '| ');
+	content = content.replace(/<\/(td|th)>/gi, ' |');
+	content = content.replace(/<hr(\s+[\w\W]*?)?>/gi, '<br>----<br>');
+	content = content.replace(/<li mark="([\w\W]+?)">/gi, (m, mark) => mark + '\t');
+	content = content.replace(/<li(\s+[\w\W]*?)?>/gi, '-\t');
+	content = content.replace(/<\/li>/gi, '\n');
+	content = content.replace(/<\/?(b|strong)(\s+[\w\W]*?)?>/gi, '**');
+	content = content.replace(/<\/?(i|em)(\s+[\w\W]*?)?>/gi, '*');
+	if (!keepLink) {
+		content = content.replace(/<\/?a(\s+[\w\W]*?)?>/gi, '');
+	}
+	else {
+		let temp = '';
+		while (content !== temp) {
+			temp = content;
+			content = content.replace(/<a(\s+[\w\W]*?)?>([\w\W]*?)<\/a>/gi, (m, prop, inner) => {
+				var match = (prop || '').match(/href=('|")([\w\W]*?)\1/);
+				if (!match) return inner;
+				match = match[2];
+				return '[' + inner + '](' + match + ')';
+			});
+		}
+	}
+
+	content = content.replace(/\s*<br>\s*/gi, '\n');
+	content = content.replace(/<\/?([\w\-\_]+)(\s+[\w\W]*?)?>/gi, '');
+	content = content.replace(/\r/g, '');
+	content = content.replace(/\n\n+/g, '\n\n');
+
+	content = content.replace(/\[\s*[\n\r]+\s*/gi, '[');
+	content = content.replace(/\s*[\n\r]+\s*\]/gi, ']');
+	content = content.replace(/([\n\r]\s*[\-\+\*>])\s*[\n\r]+\s*/gi, (m, pre) => pre + ' ');
+
+	content = content.trim();
+
+	if (globalThis.document) {
+		let parser = new DOMParser();
+		let dom = parser.parseFromString(content, "text/html");
+		content = dom.body.textContent;
+	}
+
+	return content;
+};
+globalThis.parseWebPage = (content, keepLink=false, host) => {
+	if (!content) return '';
+	content = simplyParseHTML(content, host);
+	if (!!globalThis.document) {
+		let container = newEle('section');
+		container.style.display = 'none';
+		container.innerHTML = content;
+		content = getPageContent(container, keepLink);
+		container.innerHTML = '';
+		container = null;
+	}
+	else {
+		content = getPageContent(content, keepLink);
+	}
+	return content;
+};
+
 globalThis.newEle = (tag, ...classList) => {
 	var ele = document.createElement(tag);
 	classList.forEach(cls => ele.classList.add(cls));
@@ -272,7 +436,8 @@ globalThis.calculateWordCount = (text) => {
 		countLatin += match.length;
 	});
 	return {
-		total: countLatin + countUnlatin,
+		total: countLatin + countUnlatin + countPunctuation,
+		words: countLatin + countUnlatin,
 		latin: countLatin,
 		unlatin: countUnlatin,
 		punctuation: countPunctuation,

@@ -100,9 +100,22 @@ const renderI18N = () => {
 		var path = item.getAttribute('hintPath');
 		item.title = readData(messages, path);
 	});
+	[...document.body.querySelectorAll('[prefixHint]')].forEach(item => {
+		const path = item.getAttribute('prefixHint');
+		const value = readData(messages, path);
+		item.setAttribute('prefix', value);
+	});
 	[...document.body.querySelectorAll('[placeholderName]')].forEach(item => {
-		var path = item.getAttribute('placeholderName');
-		item.placeholder = readData(messages, path) || path;
+		const path = item.getAttribute('placeholderName');
+		const tagName = (item.tagName || '').toLowerCase();
+		if (!tagName) return;
+		const value = readData(messages, path) || path;
+		if (['input', 'textarea'].includes(tagName)) {
+			item.placeholder = value;
+		}
+		else {
+			item.setAttribute('placeholder', value);
+		}
 	});
 	[...document.body.querySelectorAll('[showIf]')].forEach(item => {
 		var condition = item.getAttribute('showIf');
@@ -121,6 +134,12 @@ const renderI18N = () => {
 		else {
 			item.style.display = 'none';
 		}
+	});
+	[...document.body.querySelectorAll('[contenteditable]')].forEach(item => {
+		item.addEventListener('keyup', () => {
+			var ctx = (item.innerText || '').trim();
+			if (ctx === '') item.innerHTML = '';
+		});
 	});
 };
 const registerAction = () => {

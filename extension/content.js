@@ -51,6 +51,7 @@ var sendMessage = (event, data, target, tid, sender=PageName) => {
 
 		logger.info('Runtime', 'Runtime Reconnect: ' + runtimeID);
 		if (!chrome.runtime?.id && !!globalThis.Notification) {
+			const messages = I18NMessages[myLang] || I18NMessages[DefaultLang];
 			Notification.show(messages.cypriteName, messages.refreshHint, 'rightTop', 'fetal');
 		}
 		port = chrome.runtime.connect(runtimeID, {name: "cyberbutler_contentscript"});
@@ -808,6 +809,15 @@ window.addEventListener('message', ({data}) => {
 /* Init */
 
 const initArticleInfo = async () => {
+	const messages = I18NMessages[myLang] || I18NMessages[DefaultLang];
+
+	await Promise.all([
+		waitForMountUtil('notification'),
+		generateAIPanel(messages),
+	]);
+	document.body.classList.remove('showCypritePanel');
+	document.body.classList.add('showCypriteAccess');
+
 	var data;
 	try {
 		data = await askSWandWait('LoadPageSummary');
@@ -821,7 +831,6 @@ const initArticleInfo = async () => {
 	pageHash = data.hash || pageHash;
 	pageVector = data.embedding || pageVector;
 	if (!!pageSummary) {
-		await waitForMountUtil('notification');
 		showPageSummary(pageSummary, true);
 	}
 };

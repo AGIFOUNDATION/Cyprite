@@ -9,7 +9,7 @@
 .extension_component.notification {
 	position: fixed;
 	z-index: 999999;
-	color: rgba(28, 28, 28, 1.0);
+	color: rgba(28, 28, 28, 1.0) !important;
 	font-size: 16px;
 	line-height: 1.2;
 	cursor: default;
@@ -179,5 +179,6 @@
 }
 .notification_close img {
 	width: 100%;
+	filter: none;
 	pointer-events: none;
 }

@@ -1,4 +1,3 @@
-const OneMinute = 60 * 1000;
 const ModelRequestHistory = {};
 const ModelRequestPending = {};
 

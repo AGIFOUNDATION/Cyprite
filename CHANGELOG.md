@@ -1,5 +1,34 @@
 # Change Logs
 
+## v0.5.10 (2024.11.16)
+
+- New Features
+  + Added web search functionality to all AI conversations
+  + Added dictionary-style explanations and translations for words and phrases in translation
+  + Added code block highlighting in the full version
+  + Shortcut keys for switching function pages: `ctrl + alt + arrowLeft|arrowRight`
+  + Integrated Qwen (Qwen Max, Qwen Turbo, Qwen Long)
+  + Added Google Search functionality based on Gemini Grounding
+- Optimizations
+  + Added display of thinking process in translation, search, and conversation pages
+  + Further optimized related article filtering mechanism in multi-page conversation mode, using current topic to search for most relevant content across all keywords and categories
+  + Added Stanford Encyclopedia of Philosophy search capability in smart search
+  + Added conversation history management function to intelligent assistant page
+  + Optimized programmatic prompts for intelligent assistant;
+  + Optimized initial thinking prompts for smart search using programmatic framework;
+  + Optimized smart search summary responses
+  + Code blocks can be copied by clicking the title
+  + Added support for generating SVG cards
+  + Synchronized model selection across all pages globally with automatic UI adjustment
+  + Internationalization of model names
+  + Added floating directory navigation for smart search results
+  + Added official website navigation to homepage
+- Bug Fixes
+  + Fixed the bug where article selection status was cleared after search completion in multi-page conversations
+  + Fixed the bug where asynchronous calls caused database records to be incorrectly cleared in certain situations
+  + Fixed the issue where cross-page Q&A records were cleared upon page refresh
+  + Fixed missing strategy and other information in conversation history
+
 ## v0.5.9 (2024.11.03)
 
 - New Features

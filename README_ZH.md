@@ -28,9 +28,11 @@
 # 机灵（Cyprite）
 
 > - Author: LostAbaddon
-> - Version: 0.5.10
+> - Version: 1.0.0
 
 我是您最好最聪明的AI伙伴，机灵（Cyprite）。
+
+“Cyprite”就是“Cyber”+“Sprite”，“机灵”就是“机器”+“精灵”，也表示Cyprite的头脑很机灵！
 
 ---
 
@@ -50,7 +52,7 @@ $$
 
 **受限版与完整版的区别：**
 
-1. 完整版包含一个使用思维链（Chain of Thought，CoT）和提示即编码（Prompt as Coding，PaC）方法构建的人工智能助手，它具有深度思考、反思能力，以及学习和重写自身提示的能力；
+1. 完整版包含一个使用思维链（Chain of Thought，CoT）、提示即编码（Prompt as Coding，PaC）、程序化提示语工程（Programmatic Prompt Engineering，PPE）等方法构建的人工智能助手，它具有深度思考、反思能力，以及学习和重写自身提示的能力；
 2. 完整版中的"智能搜索"功能允许使用"智能分析"功能。这种分析在提示设计和程序流程中都采用了思维链方法，以提供更详细、全面和深入的推理；
 3. 完整版中的所有提示都更加高效和详细，显著地最大化了人工智能的能力，并提供更有价值的反馈；
 4. 完整版接入了更多的人工智能平台，并根据不同的功能将不同的人工智能分配给不同的任务，以最高效的方式完成任务。
@@ -95,9 +97,9 @@ $$
 
 我们目前能接入的AI平台包括：
 
-- **Gemini**：Flash 1.5，Pro 1.5
+- **Gemini**：Flash 1.5，Pro 1.5, Exp 1121, LearnLM
 - **OpenAI**：o1 Preview，o1 Mini，GPT-4o，GPT-40 mini
-- **Anthropic**：Claude 3.5 Sonnet，Claude 3 Opus
+- **Anthropic**：Claude 3.5 Sonnet，Claude 3.5 Haiku，Claude 3 Opus
 - **Grok**: Grok Beta
 - **Mistral**：open-mixtral-8x22b，open-mistral-7b，open-mistral-nemo，pixtral-12b-latest，open-codestral-mamba
 - **Groq**：gemma2-9b-it，llama3-groq-70b-8192-tool-use-preview，llama-3.1-70b-versatile，llama-3.2-90b-vision-preview
@@ -174,9 +176,9 @@ $$
 
 在完整版中，我们同样为机灵准备了一套CoT提示语，确保机灵的回复足够精彩。
 
-#### 智能助手（研发完善中）
+#### 智能助手（完善中）
 
-这是完整版独有的机灵，它拥有可以自我迭代的CoT+PaC（提示语即代码）提示语模板系统，能学习您的喜好，自主发起对话，自主反省与更迭，并能使用大量工具，包括主动为您搜索资料等。
+这是完整版独有的机灵，它拥有可以自我迭代、自我学习、自动经验总结的CoT+PaC+PPE的智能系统，能学习您的喜好，自主发起对话，自主反省与更迭，并能使用大量工具，包括主动为您搜索资料等。
 
 在未来的规划中，我们还会允许智能助手通加载技能包与经验包，这是一种更新形式的Agent架构，会让您的机灵越用越符合您的心意，越用越灵活主动。
 

@@ -265,7 +265,15 @@ const init = async () => {
 	showUsage('LLMList', usage.llm);
 	showUsage('ModelList', usage.model);
 
-	changeTab('groupPersonel');
+	var params = parseParams(location.href);
+	if ((params.tab || '').toLowerCase() === 'about') {
+		changeTab('groupAboutUs');
+	}
+	else {
+		changeTab('groupPersonel');
+	}
+
+	document.body.classList.add('loaded');
 };
 
 window.onload = init;

@@ -28,9 +28,11 @@
 # Cyprite
 
 > - Author: LostAbaddon
-> - Version: 0.5.10
+> - Version: 1.0.0
 
-I am your best and smartest AI partner, Cyprite.
+I am your best and smartest AI partner, Cyprite（机灵）.
+
+"Cyprite" is a combination of "Cyber" and "Sprite," while "机灵 (jī ling)" is formed by combining "机器 (jī qì, machine)" and "精灵 (jīng líng, sprite)." It also implies that Cyprite is very clever!
 
 ---
 
@@ -50,7 +52,7 @@ This extension (Cyprite) is divided into RESTRICTED version and FULL version. Th
 
 **The differences between RESTRICTED version and FULL version:**
 
-1. The full version includes an AI assistant built using the CoT (Chain of Thought) and PaC (Prompt as Coding) approach, which has deep thinking, reflective capabilities, and the ability to learn and rewrite its own prompts;
+1. The full version includes an AI assistant built using methods like Chain of Thought (CoT), Prompt as Coding (PaC), and Programmatic Prompt Engineering (PPE). It possesses deep thinking and reflection capabilities, as well as the ability to learn and rewrite its own prompts;
 2. The "intelligent search" feature in the full version allows the use of the "intelligent analysis" function. This analysis employs the CoT approach in both prompt design and program flow to provide more detailed, comprehensive, and in-depth reasoning;
 3. All prompts in the full version are more efficient and detailed, significantly maximizing the AI's capabilities and providing more valuable feedback;
 4. The full version can connect to more AI platforms and assign different AIs to different tasks based on various functions to complete tasks in the most efficient manner.
@@ -95,17 +97,17 @@ After completing the setup, we can switch models by moving the mouse over the Cy
 
 The AI platforms we can currently connect to include:
 
-- **Gemini**: Flash 1.5, Pro 1.5
+- **Gemini**: Flash 1.5, Pro 1.5, Exp 1121, LearnLM
 - **OpenAI**: o1 Preview, o1 Mini, GPT-4o, GPT-40 mini
-- **Anthropic**: Claude 3.5 Sonnet, Claude 3 Opus
+- **Anthropic**: Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus
 - **Grok**: Grok Beta
 - **Mistral**: open-mixtral-8x22b, open-mistral-7b, open-mistral-nemo, pixtral-12b-latest, open-codestral-mamba
-- **Groq**：gemma2-9b-it, llama3-groq-70b-8192-tool-use-preview, llama-3.1-70b-versatile, llama-3.2-90b-vision-preview
+- **Groq**: gemma2-9b-it, llama3-groq-70b-8192-tool-use-preview, llama-3.1-70b-versatile, llama-3.2-90b-vision-preview
 - **MoonShot** (Full Version only): moonshot-v1-auto, moonshot-web-search
 - **DeepSeek** (Full Version only): deepseek-chat, deepseek-coder
 - **GLM** (Full Version only): glm-4-plus, glm-4-long, glm-4-flash, glm-web-search-pro
 - **MiniMax** (Full Version only): abab6.5s-chat
-- **Qwen** (Full Version only)：qwen-max, qwen-long, qwen-turbo
+- **Qwen** (Full Version only): qwen-max, qwen-long, qwen-turbo
 - **Ernie** (Full Version only): ernie-4.0-8k
 
 Most models are optional, while some models can only be used covertly in the Full Version, such as `open-codestral-mamba` and `deepseek-coder` for writing code.
@@ -175,9 +177,9 @@ Here, you can select several webpages that Cyprite has previously summarized, an
 
 In the Full Version, we have also prepared a set of CoT prompts for Cyprite to ensure that its responses are sufficiently impressive.
 
-#### Intelligent Assistant (Under Development)
+#### Intelligent Assistant (Under Improvement)
 
-This is a Cyprite exclusive to the Full Version. It has a self-iterating CoT+PaC (Prompt as Code) prompt template system that can learn your preferences, initiate conversations autonomously, self-reflect and evolve, and use a wide range of tools, including actively searching for information for you.
+This is the Cyprite exclusive to the full version, which has an intelligent system that can self-iterate, self-learn, and automatically summarize experiences with CoT+PaC+PPE. It can learn your preferences, initiate conversations autonomously, engage in self-reflection and updates, and use numerous tools, including actively searching for information for you.
 
 In future plans, we will also allow the intelligent assistant to load skill packages and experience packages. This is a newer form of Agent architecture that will make your Cyprite more aligned with your intentions and more flexible and proactive as you use it.
 

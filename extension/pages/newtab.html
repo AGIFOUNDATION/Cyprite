@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="../style/main.css">
 <link rel="stylesheet" href="../components/panel.css">
 <link rel="stylesheet" href="../components/notification.css">
-<link rel="stylesheet" href="../style/newtab.css">
+<link rel="stylesheet" href="./newtab.css">
 <script src="../components/marked.min.js"></script>
 <script src="../components/MathJax2.5/MathJax.js?config=TeX-AMS_HTML&delayStartupUntil=configured"></script>
 <script src="../script/i18n.js"></script>
@@ -17,9 +17,17 @@
 <script src="../script/pageUtils.js"></script>
 <script src="../script/ai/prompts.js"></script>
 <script src="../components/notification.js"></script>
-<script src="../script/newtab.js"></script>
+<script src="./newtab.js"></script>
 </head>
 <body page="newtab" class="scrollable">
+<div class="themePanel">
+	<div class="inner">
+		<img src="../images/rectangle-list.svg" layout="row" action="changeLayoutToColumnTab">
+		<img src="../images/window-maximize.svg" layout="column" action="changeLayoutToRowTab">
+		<img src="../images/sun.svg" theme="dark" action="changeThemeToLight">
+		<img src="../images/moon.svg" theme="light" action="changeThemeToDark">
+	</div>
+</div>
 <div class="panel_frame">
 	<div class="panel_container">
 		<div class="panel_logo">
@@ -28,30 +36,97 @@
 			<div class="thinking_hint" titlePath="thinkingHeartBeating"></div>
 		</div>
 		<nav class="panel_tabs_area">
-			<div class="panel_tab" action="gotoConfig"><img src="../images/gears.svg"></div>
-			<div class="panel_tab" titlePath="newTab.articleManager" showGroup="articleManager"></div>
-			<div class="panel_tab" titlePath="newTab.intelligentSearch" showGroup="intelligentSearch"></div>
-			<div class="panel_tab" titlePath="newTab.crossPageConversation" showGroup="crossPageConversation"></div>
-			<div class="panel_tab" titlePath="newTab.freelyConversation" showGroup="freelyConversation"></div>
-			<div class="panel_tab" titlePath="newTab.instantTranslation" showGroup="instantTranslation"></div>
+			<div class="panel_placeholder logo" layout="column">
+				<img class="namedLogo" src="../images/logo.png">
+			</div>
+			<div class="panel_tab" layout="row" action="gotoConfig"><img src="../images/gears.svg"></div>
+			<div class="panel_tab" layout="row" titlePath="newTab.articleManager" showGroup="articleManager"></div>
+			<div class="panel_tab" showGroup="freelyConversation">
+				<img class="btn_cover avatar" src="../images/cyprite.png" layout="column">
+				<span titlePath="newTab.freelyConversation"></span>
+				<div class="border" layout="column"></div>
+			</div>
+			<div class="panel_tab" showGroup="intelligentSearch">
+				<img class="btn_cover" src="../images/scholar.svg" layout="column">
+				<span titlePath="newTab.intelligentSearch"></span>
+				<div class="border" layout="column"></div>
+			</div>
+			<div class="panel_tab" showGroup="crossPageConversation">
+				<img class="btn_cover" src="../images/book-reader.svg" layout="column">
+				<span titlePath="newTab.crossPageConversation"></span>
+				<div class="border" layout="column"></div>
+			</div>
+			<div class="panel_tab" showGroup="instantTranslation">
+				<img class="btn_cover" src="../images/chalkboard.svg" layout="column">
+				<span titlePath="newTab.instantTranslation"></span>
+				<div class="border" layout="column"></div>
+			</div>
+			<div class="panel_tab" showGroup="intelligentWriter">
+				<img class="btn_cover" src="../images/feather-pointed.svg" layout="column">
+				<span titlePath="newTab.intelligentWriter"></span>
+				<div class="border" layout="column"></div>
+			</div>
+			<div class="panel_tab" layout="row" showGroup="cypriteHelper"><img src="../images/helper.svg"></div>
 
-			<div class="panel_button" hintPath="newTab.cleanConversation" group="crossPageConversation|freelyConversation|instantTranslation|intelligentSearch" action="clearConversation">
-				<img src="../images/eraser.svg">
+			<div class="sep_line" layout="column"></div>
+
+			<div class="operator_panel" layout="column">
+				<div class="panel_tab" showGroup="articleManager">
+					<img class="btn_cover" src="../images/computer.svg">
+					<span titlePath="newTab.articleManager"></span>
+					<div class="border" layout="column"></div>
+				</div>
+				<div class="panel_tab" action="gotoConfig">
+					<img class="btn_cover" src="../images/gears.svg">
+					<span titlePath="newTab.configuration"></span>
+				</div>
+				<div class="panel_tab" showGroup="cypriteHelper">
+					<img class="btn_cover" src="../images/helper.svg">
+					<span titlePath="newTab.helpPage"></span>
+					<div class="border" layout="column"></div>
+				</div>
+				<div class="panel_tab" action="gotoAboutPage">
+					<img class="btn_cover" src="../images/route.svg">
+					<span titlePath="newTab.aboutPage"></span>
+				</div>
 			</div>
-			<div class="panel_button" hintPath="newTab.downloadConversation" group="crossPageConversation|intelligentSearch|freelyConversation" action="downloadConversation">
-				<img src="../images/download.svg">
+
+			<div class="contract_column" layout="column" shrinked="no" action="shrinkColumn">
+				<img src="../images/outdent.svg">
 			</div>
-			<div class="panel_button" hintPath="newTab.saveConversation" group="intelligentSearch" action="saveConversation">
-				<img src="../images/save.svg">
+			<div class="contract_column" layout="column" shrinked="yes" action="expandColumn">
+				<img src="../images/indent.svg">
 			</div>
-			<div class="panel_button" hintPath="newTab.copyConversation" group="intelligentSearch" action="copyConversation">
-				<img src="../images/copy.svg">
+
+			<div class="button_panel">
+				<div class="panel_button" group="intelligentWriter" action="toggleAutoRewrite">
+					<span titlePath="writer.btnModifyAutomatically"></span>
+					<img src="../images/toggle-on.svg" autoRewrite="false">
+					<img src="../images/toggle-off.svg" autoRewrite="true">
+				</div>
+				<div class="panel_button" group="intelligentWriter" action="toggleDirectRewrite">
+					<span titlePath="writer.btnModifyDirectly"></span>
+					<img src="../images/toggle-on.svg" directRewrite="false">
+					<img src="../images/toggle-off.svg" directRewrite="true">
+				</div>
+				<div class="panel_button" hintPath="newTab.cleanConversation" group="crossPageConversation|freelyConversation|instantTranslation|intelligentSearch|cypriteHelper|intelligentWriter" action="clearConversation">
+					<img src="../images/eraser.svg">
+				</div>
+				<div class="panel_button" hintPath="newTab.downloadConversation" group="crossPageConversation|intelligentSearch|freelyConversation|intelligentWriter" action="downloadConversation">
+					<img src="../images/download.svg">
+				</div>
+				<div class="panel_button" hintPath="newTab.saveConversation" group="intelligentSearch" action="saveConversation">
+					<img src="../images/save.svg">
+				</div>
+				<div class="panel_button" hintPath="newTab.copyConversation" group="intelligentSearch" action="copyConversation">
+					<img src="../images/copy.svg">
+				</div>
+				<div class="panel_button" group="instantTranslation">
+					<span titlePath="buttons.hintTranslateInto"></span>
+					<input name="translation_language" type="text" class="panel_input">
+				</div>
+				<div class="panel_button" titlePath="newTab.chooseArticles" group="crossPageConversation" action="showArticleChooser"></div>
 			</div>
-			<div class="panel_button" group="instantTranslation">
-				<span titlePath="buttons.hintTranslateInto"></span>
-				<input name="translation_language" type="text" class="panel_input">
-			</div>
-			<div class="panel_button" titlePath="newTab.chooseArticles" group="crossPageConversation" action="showArticleChooser"></div>
 		</nav>
 		<section class="panel_operation_area scrollable" group="articleManager">
 			<div class="caption">
@@ -74,7 +149,7 @@
 		<section class="panel_operation_area" group="intelligentSearch" type="conversationArea">
 			<div class="content_container scrollable">
 				<div class="search_inputter">
-					<div class="inner scrollable" contenteditable="true" placeholdername="aiSearch.hintSearch"></div>
+					<div class="inner scrollable" contenteditable="true" placeholderName="aiSearch.hintSearch"></div>
 					<div class="submitter">
 						<div class="mode_chooser">
 							<li mode="keywordOnly" action="changeMode">
@@ -105,8 +180,7 @@
 					</div>
 				</div>
 				<div class="result_panel">
-					<ul class="search_records" action="loadSearchRecord"></ul>
-					<ul class="search_history" action="chooseQuestion"></ul>
+					<div class="search_records" action="loadSearchRecord"></div>
 					<div class="local_result_panel" action="switchFold"></div>
 					<div class="wikipedia_result_panel" action="switchFold"></div>
 					<div class="arxiv_result_panel" action="switchFold"></div>
@@ -119,7 +193,7 @@
 				</div>
 			</div>
 			<div class="furthure_dialog">
-				<div class="input_container scrollable" contenteditable="true"></div>
+				<div class="input_container scrollable" contenteditable="true" placeholderName="mentions.quickAccessHint"></div>
 				<div class="input_sender" action="sendMessage" target="intelligentSearch">
 					<span titlePath="buttons.sendMessageToCyprite"></span>
 				</div>
@@ -132,23 +206,47 @@
 		</section>
 		<section class="panel_operation_area" group="crossPageConversation" type="conversationArea">
 			<div class="content_container scrollable"></div>
-			<div class="input_container scrollable" contenteditable="true"></div>
+			<div class="input_container scrollable" contenteditable="true" placeholderName="mentions.quickAccessHint"></div>
 			<div class="input_sender" action="sendMessage" target="crossPageConversation">
 				<span titlePath="buttons.sendMessageToCyprite"></span>
 			</div>
 		</section>
 		<section class="panel_operation_area" group="freelyConversation" type="conversationArea">
 			<div class="content_container scrollable"></div>
-			<div class="input_container scrollable" contenteditable="true"></div>
+			<div class="input_container scrollable" contenteditable="true" placeholderName="mentions.quickAccessHint"></div>
 			<div class="input_sender" action="sendMessage" target="freelyConversation">
 				<span titlePath="buttons.talkToCyprite"></span>
 			</div>
 		</section>
 		<section class="panel_operation_area" group="instantTranslation" type="conversationArea">
 			<div class="content_container scrollable"></div>
-			<div class="input_container scrollable" contenteditable="true"></div>
+			<div class="input_container scrollable" contenteditable="true" placeholderName="mentions.quickAccessHint"></div>
 			<div class="input_sender" action="sendMessage" target="instantTranslation">
 				<span titlePath="buttons.startInstantTranslation"></span>
+			</div>
+		</section>
+		<section class="panel_operation_area" group="cypriteHelper" type="conversationArea">
+			<div class="content_container scrollable"></div>
+			<div class="input_container scrollable" contenteditable="true" placeholderName="mentions.quickAccessHint"></div>
+			<div class="input_sender" action="sendMessage" target="cypriteHelper">
+				<span titlePath="buttons.talkToCyprite"></span>
+			</div>
+		</section>
+		<section class="panel_operation_area" group="intelligentWriter" type="conversationArea">
+			<div class="writingArea scrollable" contenteditable="true" placeholderName="writer.hintComposeHere"></div>
+			<div class="infoArea">
+				<span class="wordcount"></span>
+				<span class="category"></span>
+				<span class="style"></span>
+				<span class="feature"></span>
+			</div>
+			<div class="requirementArea scrollable" contenteditable="true" placeholderName="writer.hintRequirement" prefixHint="writer.hintRequirementHere"></div>
+			<div class="conversationArea">
+				<div class="content_container scrollable"></div>
+				<div class="input_container scrollable" contenteditable="true" placeholderName="mentions.quickAccessHint"></div>
+				<div class="input_sender" action="sendMessage" target="intelligentWriter">
+					<span titlePath="buttons.talkToCyprite"></span>
+				</div>
 			</div>
 		</section>
 		<div class="panel_inner_mask" action="hideFloatWindow"></div>

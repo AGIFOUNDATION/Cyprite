@@ -114,7 +114,7 @@ const generateModelList = async () => {
 		var name = ModelNameList[mdl];
 		if (!name) return;
 		if (!isString(name)) {
-			name = name[myInfo.lang] || name.en;
+			name = name[myLang] || name.en;
 		}
 		var item = newEle('div', 'cyprite', 'panel_model_item');
 		item.innerText = name;
@@ -248,7 +248,7 @@ UIAction.onCloseMe = () => {
 UIAction.onShowPanel = () => {
 	document.body.classList.remove('showCypriteAccess');
 	UIList.QuickAccess.classList.remove('showDialogInputter');
-	UIAction.onShowPageSummary();
+	UIAction.onShowPageSummary(true);
 };
 UIAction.onShowDialogInputter = async () => {
 	UIList.QuickAccess.classList.add('showDialogInputter');
@@ -348,11 +348,12 @@ UIAction.onCloseQuickReply = () => {
 	UIList.QuickAccess.classList.remove('showQuickReply');
 	UIList.QuickReplyContent.innerHTML = '';
 };
-UIAction.onChatTrigger = async () => {
+UIAction.onChatTrigger = async (forceShow) => {
 	if (!UIList.ChatTrigger) return;
 
 	var messages = I18NMessages[myLang] || I18NMessages.en;
-	showChatter = !showChatter;
+	// showChatter = !showChatter;
+	showChatter = isBoolean(forceShow) ? forceShow : !showChatter;
 	if (showChatter) {
 		for (let tab of UIList.Panel.querySelectorAll('.panel_tabs_area .panel_button[group="' + currentMode + '"]')) tab.classList.add('show');
 		UIList.ChatTrigger.innerText = messages.buttons.hideChatPanel;
@@ -473,8 +474,9 @@ UIAction.onClickChatItem = ({target}) => {
 		onCopyContent(target);
 	}
 };
-UIAction.onShowPageSummary = () => {
-	showPageSummary(pageSummary || '');
+UIAction.onShowPageSummary = (quick) => {
+	quick = isBoolean(quick) ? quick : false;
+	showPageSummary(pageSummary || '', false, quick);
 };
 UIAction.onShowTranslationResult = () => {
 	showTranslationResult(translationInfo.translation);
@@ -513,14 +515,13 @@ UIAction.onEditContentTitle = async (evt) => {
 	}
 };
 
-const showPageSummary = async (summary, quick=false) => {
+const showPageSummary = async (summary, quick=false, showCyprite=false) => {
 	currentMode = 'summary';
 
 	const messages = I18NMessages[myLang] || I18NMessages.en;
 	const conversation = await restoreConversation();
 	console.log(conversation);
 
-	if (!UIList.Container) await generateAIPanel(messages);
 	document.body.querySelector('.panel_title_editor').innerText = (pageInfo.title || 'Untitled').replace(/[\n\r]+/g, ' ');
 
 	generateModelList();
@@ -537,6 +538,10 @@ const showPageSummary = async (summary, quick=false) => {
 		document.body.classList.add('showCypritePanel');
 		document.body.classList.remove('showCypriteAccess');
 		findRelativeArticles(messages);
+	}
+
+	if (showCyprite) {
+		await UIAction.onChatTrigger(true);
 	}
 };
 const showTranslationResult = async (translation, list) => {

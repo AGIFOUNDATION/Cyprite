@@ -5,7 +5,8 @@ globalThis.Model2AI = {
 	"gemini-1.5-flash-exp-0827": "Gemini",
 	"gemini-1.5-pro-002": "Gemini",
 	"gemini-1.5-flash-002": "Gemini",
-	"gemini-exp-1114": "Gemini",
+	"gemini-exp-1121": "Gemini",
+	"learnlm-1.5-pro-experimental": "Gemini",
 	"claude-3-5-sonnet-latest": "Claude",
 	"claude-3-opus-20240229": "Claude",
 	"claude-3-5-haiku-latest": "Claude",
@@ -30,7 +31,8 @@ globalThis.AI2Model = {
 		"gemini-1.5-flash-exp-0827",
 		"gemini-1.5-pro-002",
 		"gemini-1.5-flash-002",
-		"gemini-exp-1114",
+		"gemini-exp-1121",
+		"learnlm-1.5-pro-experimental",
 	],
 	"claude": [
 		"claude-3-5-sonnet-latest",
@@ -73,7 +75,8 @@ globalThis.ModelNameList = {
 	"gemini-1.5-flash-exp-0827": "Gemini Flash",
 	// "gemini-1.5-pro-002": "GeminiPro2",
 	// "gemini-1.5-flash-002": "GeminiFlash2",
-	"gemini-exp-1114": "Gemini Exp",
+	"gemini-exp-1121": "Gemini Exp",
+	"learnlm-1.5-pro-experimental": "Gemini LearnLM",
 	"claude-3-5-sonnet-latest": "Sonnet 3.5",
 	"claude-3-opus-20240229": "Opus 3",
 	"claude-3-5-haiku-latest": "Haiku 3.5",
@@ -238,6 +241,7 @@ globalThis.PaCableModels = [
 	"gemini-1.5-pro-002",
 	"gemini-1.5-flash-002",
 	"claude-3-5-sonnet-latest",
+	"claude-3-5-haiku-latest",
 	"claude-3-opus-20240229",
 	"o1-preview",
 	"deepseek-chat",
@@ -250,7 +254,8 @@ globalThis.AILongContextLimit = 200000;
 const LongContextModel = [
 	'gemini-1.5-pro-exp-0827',
 	'gemini-1.5-pro-002',
-	"gemini-exp-1114",
+	"gemini-exp-1121",
+	"learnlm-1.5-pro-experimental",
 ];
 LongContextModel.idx = -1;
 globalThis.PickLongContextModel = () => {

@@ -14,12 +14,17 @@ div.background {
 }
 div.bgmask {
 	background-color: rgb(from var(--front-color) r g b / 50%);
+	backdrop-filter: blur(0px);
+	transition: backdrop-filter linear 300ms;
+}
+body.loaded > div.bgmask {
 	backdrop-filter: blur(5px);
 }
 
 body > section {
 	position: relative;
 	display: block;
+	opacity: 0;
 	width: 100%;
 	max-width: 800px;
 	margin-top: 0px;
@@ -30,6 +35,10 @@ body > section {
 	border-radius: 20px;
 	background-color: rgb(from var(--back-color) r g b / 60%);
 	box-shadow: 0px 0px 15px var(--back-color), 0px 0px 5px var(--back-color);
+	transition: opacity linear 300ms;
+}
+body.loaded > section {
+	opacity: 1;
 }
 body > section > h1:first-child {
 	margin-top: 0px;

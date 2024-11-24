@@ -799,7 +799,7 @@ chrome.contextMenus.onClicked.addListener((evt, tab) => {
 
 /* EventHandler */
 
-var lastRequest = [];
+const lastRequest = [];
 globalThis.EventHandler = {};
 globalThis.AIHandler = {};
 globalThis.dispatchEvent = async (msg) => {
@@ -831,7 +831,13 @@ globalThis.dispatchEvent = async (msg) => {
 		let handler = EventHandler[msg.event];
 		if (!handler) return logger.log('SW', 'Got Event', msg);
 
-		handler(msg.data, msg.sender, msg.sid, msg.target, msg.tid);
+		try {
+			handler(msg.data, msg.sender, msg.sid, msg.target, msg.tid);
+		}
+		catch (err) {
+			logger.error('SW', err);
+			throw err;
+		}
 	}
 	// To HomeScreen and ConfigPage
 	else {
@@ -1580,7 +1586,7 @@ EventHandler.SearchSimilarArticleForCurrentPage = async (url) => {
 		let modelList = getFunctionalModelList('analyzeKeywordCategory');
 		let reply = await callLLMOneByOne(modelList, conversation, null, true, 'AnalyzeKeywordCategory');
 		updateUsage(usage, reply.usage);
-		reply = reply.reply;
+		reply = reply.reply || {};
 		// Refresh article info
 		articleInfo = await DBs.pageInfo.get('pageInfo', key);
 		// Update article info
@@ -1749,6 +1755,7 @@ EventHandler.SaveAISearchRecord = async (data) => {
 			if (item.quest !== quest) return;
 			item.timestamp = record.timestamp || 0;
 			item.datestring = record.datestring || messages.hintNone;
+			item.mode = record.mode;
 			isNew = false;
 			return true;
 		});
@@ -1757,6 +1764,7 @@ EventHandler.SaveAISearchRecord = async (data) => {
 				quest,
 				timestamp: record.timestamp || 0,
 				datestring: record.datestring || messages.hintNone,
+				mode: record.mode,
 			});
 		}
 		list.sort((a, b) => b.timestamp - a.timestamp);
@@ -1780,6 +1788,7 @@ EventHandler.LoadAISearchRecordList = async () => {
 		item.quest = info.quest || quest;
 		item.timestamp = info.timestamp || 0;
 		item.datestring = info.datestring || messages.hintNone;
+		item.mode = info.mode;
 		list.push(item);
 	}
 	list.sort((a, b) => b.timestamp - a.timestamp);
@@ -2726,26 +2735,12 @@ const findRelativeArticles = async (data, source, sid) => {
 
 	return {relevants, usage};
 };
-const parseParams = param => {
-	var json = {};
-	param = (param || '').split('?');
-	param.shift();
-	param = (param || '').join('?').split('&');
-	param.forEach(item => {
-		item = item.split('=');
-		var key = item.shift();
-		if (!key) return;
-		item = item.join('=');
-		json[key] = item;
-	});
-	return json;
-};
 
 /* Init */
 
 initDB();
 // initInjectScript();
-chrome.storage.local.remove('cached_article_list'); // clear old version cache
+chrome.storage.local.remove('searchHistory'); // clear old version cache (1.0.0)
 
 /* ------------ */
 

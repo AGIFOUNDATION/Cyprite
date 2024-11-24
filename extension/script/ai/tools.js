@@ -65,7 +65,7 @@ UtilityLib.collectInformation = {
 		var pair;
 		try {
 			var [local, google, llm] = await Promise.all(tasks);
-	
+
 			const urls = [];
 			if (!!local) {
 				updateUsage(usage, local.usage);
@@ -125,5 +125,82 @@ UtilityLib.collectInformation = {
 			result: articles,
 			usage,
 		};
+	},
+};
+UtilityLib.readArticle = {
+	name: "read_article",
+	description: "Reading the full text of web pages and other files.",
+	parameters: {
+		type: "object",
+		properties: {
+			url: {
+				type: "string",
+				description: "URL of the target article."
+			}
+		},
+		required: ["url"]
+	},
+	call: async (params, model, taskID, questID) => {
+		const url = params.url, usage = {};
+		if (!url) {
+			return "NO Content";
+		}
+
+		questID = questID || newID();
+		const hint = "Reading Article: " + url;
+		UtilityLib.sendMessageByTaskID(taskID, "appendAction", {
+			task: taskID,
+			id: questID,
+			hint,
+			running: true,
+		});
+
+		var pair, success = true;
+
+		// Read Local File
+		var article = await EventHandler.GetArticleInfo({
+			articles: [url]
+		});
+		if (!!article) article = article[0];
+		if (!!article) article = article.content;
+
+		// Read from internet
+		if (!article) {
+			try {
+				article = await EventHandler.ReadWebPage(url);
+				article = parseWebPage(article, true, url) || "";
+			}
+			catch (err) {
+				logger.error('ReadWebPage', err);
+				success = false;
+			}
+		}
+
+		if (success) {
+			pair = {};
+			pair.call = [{
+				id: questID,
+				name: "read_article",
+				arguments: params,
+				hint,
+			}];
+			pair.tool = {
+				id: questID,
+				name: "read_article",
+				content: article,
+			};
+		}
+
+		UtilityLib.sendMessageByTaskID(taskID, "appendAction", {
+			task: taskID,
+			id: questID,
+			running: false,
+			conversation: pair
+		});
+
+		return {
+			result: article,
+			usage,
+		}
 	},
 };

@@ -46,79 +46,9 @@ const clearHTML = (html, full=true, markList=false) => {
 
 	return html.trim();
 };
-const getPageContent = (container, keepLink=false) => {
-	var content = isString(container) ? container : container.innerHTML || '';
-	if (!content) return;
-
-	content = content.replace(/<img(\s+[\w\W]*?)?\/?>/gi, (m, prop) => {
-		var link = (prop || '').match(/src=('|")([\w\W]*?)\1/);
-		if (!link) link = '';
-		else link = link[2].trim();
-
-		var title = (prop || '').match(/alt=('|")([\w\W]*?)\1/);
-		if (!title) title = '';
-		else title = title[2].trim();
-
-		if (title.indexOf('{') === 0) {
-			if (keepLink) return '> ' + title + '\n\n![](' + link + ')';
-			else return '> ' + title;
-		}
-
-		if (keepLink) return ' ![' + title + '](' + link + ') ';
-		return ' ' + (title || '(image)') + ' ';
-	});
-	content = clearHTML(content, true, true);
-	content = content.replace(/<(h\d)(\s+[\w\W]*?)?>([\w\W]*?)<\/\1>/gi, (m, tag, prop, inner) => {
-		var lev = tag.match(/h(\d)/i);
-		lev = lev[1] * 1;
-		if (lev === 1) return '\n\n##\t' + inner + '\n\n';
-		if (lev === 2) return '\n\n###\t' + inner + '\n\n';
-		if (lev === 3) return '\n\n####\t' + inner + '\n\n';
-		if (lev === 4) return '\n\n#####\t' + inner + '\n\n';
-		if (lev === 5) return '\n\n######\t' + inner + '\n\n';
-		return inner;
-	});
-	content = content.replace(/<\/?(article|header|section|aside|footer|div|p|center|ul|ol|tr)(\s+[\w\W]*?)?>/gi, '<br><br>');
-	content = content.replace(/<\/?(option|span|font)(\s+[\w\W]*?)?>/gi, '');
-	content = content.replace(/<\/(td|th)><\1(\s+[\w\W]*?)?>/gi, ' | ');
-	content = content.replace(/<(td|th)(\s+[\w\W]*?)?>/gi, '| ');
-	content = content.replace(/<\/(td|th)>/gi, ' |');
-	content = content.replace(/<hr(\s+[\w\W]*?)?>/gi, '<br>----<br>');
-	content = content.replace(/<li mark="([\w\W]+?)">/gi, (m, mark) => mark + '\t');
-	content = content.replace(/<li(\s+[\w\W]*?)?>/gi, '-\t');
-	content = content.replace(/<\/li>/gi, '\n');
-	content = content.replace(/<\/?(b|strong)(\s+[\w\W]*?)?>/gi, '**');
-	content = content.replace(/<\/?(i|em)(\s+[\w\W]*?)?>/gi, '*');
-	if (!keepLink) {
-		content = content.replace(/<\/?a(\s+[\w\W]*?)?>/gi, '');
-	}
-	else {
-		let temp = '';
-		while (content !== temp) {
-			temp = content;
-			content = content.replace(/<a(\s+[\w\W]*?)?>([\w\W]*?)<\/a>/gi, (m, prop, inner) => {
-				var match = (prop || '').match(/href=('|")([\w\W]*?)\1/);
-				if (!match) return inner;
-				match = match[2];
-				return '[' + inner + '](' + match + ')';
-			});
-		}
-	}
-
-	content = content.replace(/\s*<br>\s*/gi, '\n');
-	content = content.replace(/<\/?([\w\-\_]+)(\s+[\w\W]*?)?>/gi, '');
-	content = content.replace(/\r/g, '');
-	content = content.replace(/\n\n+/g, '\n\n');
-	content = content.trim();
-
-	var parser = new DOMParser();
-	var dom = parser.parseFromString(content, "text/html");
-	content = dom.body.textContent;
-
-	return content;
-};
 const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
-	const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v6.6.0/svgs/";
+	const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v6.7.1/svgs/";
+	// const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v6.6.0/svgs/";
 	// const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v5.15.4/svgs/";
 
 	// MathJax

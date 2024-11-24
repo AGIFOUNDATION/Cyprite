@@ -6,6 +6,7 @@ globalThis.AI.Gemini = {};
 const DefaultChatModel = AI2Model.gemini[0];
 const DefaultSearchModel = "gemini-1.5-flash-002";
 const DefaultEmbeddingModel = 'text-embedding-004';
+const NoToolGeminiModels = ['gemini-exp-1121'];
 
 const combineObject = (...objs) => {
 	var keys = [];
@@ -189,6 +190,7 @@ AI.Gemini.chat = async (conversation, model=DefaultChatModel, tools = [], tid) =
 	const request = { method: "POST" };
 	const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ':generateContent?key=' + myInfo.apiKey.gemini;
 
+	if (NoToolGeminiModels.includes(model)) tools = null;
 	tools = AI.prepareToolList(tools);
 	var originRequest = getRequestPackage(model, 'chat');
 	request.header = getRequestHeader(model);
