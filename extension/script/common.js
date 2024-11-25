@@ -5,7 +5,6 @@ const RegPunctuation = /[\p{P}．，、。？！；：‘’“”"'\(\)\[\]\{\}
 
 globalThis.OneMinute = 60 * 1000;
 globalThis.DayLong = 24 * 3600 * 1000;
-globalThis.TimestampShift = 8 * 3600 * 1000;
 
 globalThis.TagSearchRecord = 'CACHE_SEARCH_RECORDS';
 globalThis.TagArticleList = 'CACHE_ARTICLE_LIST';
@@ -510,6 +509,14 @@ globalThis.isBoolean = obj => obj !== null && obj !== undefined && !!obj.__proto
 globalThis.isObject = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === Object;
 globalThis.isFunction = obj => obj !== null && obj !== undefined && !!obj.__proto__ && (obj.__proto__.constructor === Function || obj.__proto__.constructor === AsyncFunction);
 globalThis.isAsyncFunction = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === AsyncFunction;
+globalThis.shiftTimeToDayStart = time => {
+	time = new Date(time);
+	var y = time.getYear() + 1900;
+	var m = time.getMonth() + 1;
+	var d = time.getDate();
+	time = new Date(y + '/' + m + '/' + d);
+	return time.getTime();
+};
 
 /* Auxillary Utils and Extends for DateTime */
 

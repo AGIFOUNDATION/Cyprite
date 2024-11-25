@@ -2023,7 +2023,10 @@ const showReferences = (list, messages) => {
 	aiSearchInputter.referencePanel.appendChild(refs);
 
 	refs = newEle('h3');
-	refs.innerText = messages.aiSearch.hintReference;
+	var link = newEle('a');
+	link.innerText = messages.aiSearch.hintReference;
+	link.name = "referenceList";
+	refs.appendChild(link);
 	aiSearchInputter.referencePanel.appendChild(refs);
 
 	refs = newEle('ul', 'reference_area');
@@ -2601,6 +2604,17 @@ const generateNaviMenu = () => {
 			aiSearchInputter.navMenuPanel.appendChild(link);
 		}
 	});
+	var refEle = document.querySelector('.reference_panel [name="referenceList"]');
+	if (!!refEle) {
+		const link = newEle('a');
+		link.innerText = messages.aiSearch.hintReference;
+		link.href = "#referenceList";
+		link.addEventListener('click', evt => {
+			evt.preventDefault();
+			refEle.scrollIntoView({behavior: "smooth"});
+		});
+		aiSearchInputter.navMenuPanel.appendChild(link);
+	}
 
 	if (idx > 1) aiSearchInputter.navMenuPanel.style.display = 'block';
 };
@@ -2647,10 +2661,10 @@ const getAISearchRecordList = async (showUI=false) => {
 	// Show UI
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	const ul = document.body.querySelector('.search_records');
-	const nowDay = Math.ceil((Date.now() - TimestampShift) / DayLong);
+	const nowDay = Math.round(shiftTimeToDayStart(Date.now()) / DayLong);
 	var lastType = -1, area, titleBar, panel;
 	list.forEach(item => {
-		var day = Math.ceil((item.timestamp - TimestampShift) / DayLong);
+		var day = Math.round(shiftTimeToDayStart(item.timestamp) / DayLong);
 		var duration = nowDay - day;
 		var type = -1;
 		if (duration <= 0) {
@@ -3071,7 +3085,6 @@ ActionCenter.loadSearchRecord = async (host, data, evt) => {
 		aiSearchInputter.answerPanelHint.innerText = messages.aiSearch.hintAnswering;
 		aiSearchInputter.answerPanelHint.innerHTML = aiSearchInputter.answerPanelHint.innerHTML + searchResultButtons();
 		parseMarkdownWithOutwardHyperlinks(aiSearchInputter.answerPanel, info.answer, messages.aiSearch.msgEmptyAnswer);
-		generateNaviMenu();
 		if (info.more) {
 			showMoreQuestions(info.more);
 		}
@@ -3089,6 +3102,7 @@ ActionCenter.loadSearchRecord = async (host, data, evt) => {
 			advSearchConversation = info.conversation;
 			resizeCurrentInputter();
 		}
+		generateNaviMenu();
 	}
 };
 EventHandler.updateDeepThinkingStatus = (msg) => {
@@ -3698,6 +3712,28 @@ ActionCenter.clearConversation = async () => {
 		askCypriteWriterUltraly.editorIdea = '';
 		addChatItem('intelligentWriter', messages.writer.hintWelcome, 'cyprite', undefined, undefined, true);
 	}
+};
+ActionCenter.clearSearch = async () => {
+	if (!!advSearchConversation) {
+		advSearchConversation.splice(0);
+	}
+
+	aiSearchInputter.innerText = '';
+	aiSearchInputter.resultArxiv.innerHTML = '';
+	aiSearchInputter.resultWikipedia.innerHTML = '';
+	aiSearchInputter.resultWikipedia.innerHTML = '';
+	aiSearchInputter.resultLocal.innerHTML = '';
+	aiSearchInputter.answerPanelHint.innerHTML = '';
+	aiSearchInputter.answerPanel.innerHTML = '';
+	aiSearchInputter.morequestionPanel.innerHTML = '';
+	aiSearchInputter.referencePanel.innerHTML = '';
+	document.body.querySelector('.furthure_dialog').style.display = 'none';
+	aiSearchInputter.navMenuPanel.style.display = 'none';
+	aiSearchInputter.navMenuPanel.innerHTML = '';
+	[...document.body.querySelectorAll('[group="intelligentSearch"] .chat_item')].forEach(item => {
+		item.parentNode.removeChild(item);
+	});
+	document.body.querySelector('.search_records').style.display = '';
 };
 ActionCenter.hideFloatWindow = () => {
 	var container = document.body.querySelector('.panel_container');

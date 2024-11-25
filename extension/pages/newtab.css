@@ -961,11 +961,15 @@ body[layout="column"][theme="dark"] .panel_container .panel_operation_area .requ
 	bottom: 2px;
 	left: 5px;
 	width: max-content;
+	max-width: calc(45% - 15px);
 	padding: 2px 5px;
 	border-radius: 3px;
 	background-color: rgba(23, 23, 23, 0.5);
 	font-size: 8px;
 	color: rgb(250, 250, 250);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 .panel_container .panel_operation_area .infoArea span {
 	margin-right: 5px;
@@ -1379,7 +1383,7 @@ body[theme="light"] .panel_container table tr:nth-child(2n) {
 	background-color: rgba(23, 23, 23, 0.1);
 }
 body[theme="light"] .panel_article_list {
-	background-color: rgb(from var(--front-color) r g b / 80%);
+	background-color: rgb(from var(--background-color) r g b / 80%);
 }
 body[theme="light"] .panel_operation_area .search_result_item.more_question {
 	background-color: var(--background-color);
@@ -1393,7 +1397,7 @@ body[theme="light"] .panel_operation_area .file_item .article_ctkw {
 	background-color: rgba(240, 241, 235, 0.9);
 }
 body[theme="light"] .panel_operation_area .search_records .search_record_panel .search_record_item .item_desc {
-	background-color: rgb(from var(--front-color) r g b / 80%);
+	background-color: rgb(from var(--background-color) r g b / 80%);
 	box-shadow: 2px 2px 5px rgba(23, 23, 23, 0.6), inset 0px 0px 2px black;
 }
 body[theme="light"] .panel_container ul.reference_area li.reference_item {
@@ -1404,7 +1408,7 @@ body[theme="light"] .panel_container ul.reference_area li.reference_item .refere
 	background-image: linear-gradient(45deg, rgba(52, 108, 156, 1.0), rgba(27, 167, 132, 1.0));
 }
 body[theme="light"] .panel_container nav.nav_menu_panel {
-	background-color: rgb(from var(--front-color) r g b / 80%);
+	background-color: rgb(from var(--background-color) r g b / 80%);
 }
 body[theme="light"] > div.router {
 	border: 5px solid white;
@@ -1426,7 +1430,7 @@ body[theme="light"][layout="column"][shrinked="yes"] .panel_frame .panel_logo {
 	background-color: rgba(240, 241, 235, 0);
 }
 body[theme="light"][layout="column"] .panel_frame .panel_logo .panel_model_chooser {
-	background-color: rgb(from var(--front-color) r g b / 80%);
+	background-color: rgb(from var(--background-color) r g b / 80%);
 }
 body[theme="light"][layout="column"][shrinked="yes"] .panel_frame .panel_tabs_area .panel_placeholder {
 	border-bottom: 1px solid rgba(23, 23, 23, 0.5);
