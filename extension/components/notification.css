@@ -179,6 +179,6 @@
 }
 .notification_close img {
 	width: 100%;
-	filter: none;
+	filter: none !important;
 	pointer-events: none;
 }

@@ -5,6 +5,7 @@ const RegPunctuation = /[\p{P}．，、。？！；：‘’“”"'\(\)\[\]\{\}
 
 globalThis.OneMinute = 60 * 1000;
 globalThis.DayLong = 24 * 3600 * 1000;
+globalThis.TimestampShift = 8 * 3600 * 1000;
 
 globalThis.TagSearchRecord = 'CACHE_SEARCH_RECORDS';
 globalThis.TagArticleList = 'CACHE_ARTICLE_LIST';
@@ -424,6 +425,14 @@ globalThis.calculateHash = async (content, algorithm='SHA-256') => {
 };
 
 globalThis.calculateWordCount = (text) => {
+	if (!text) return {
+		total: 0,
+		words: 0,
+		latin: 0,
+		unlatin: 0,
+		punctuation: 0,
+	};
+
 	var match = text.match(/(\p{L}+)/ug);
 	if (!match) return 0;
 	var countLatin = 0, countUnlatin = 0, countPunctuation = (text.match(RegPunctuation) || []).length;

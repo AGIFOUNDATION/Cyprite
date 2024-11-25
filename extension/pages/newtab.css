@@ -190,8 +190,11 @@ body[layout="column"] .themePanel > .inner {
 }
 .panel_operation_area .content_container .chat_item.ai {
 	margin-right: 50px;
-	background-color: rgba(31, 32, 64, 1.0);
+	background-color: var(--background-color);
 	transition: background-color cubic-bezier(0.5, 0.1, 0.3, 1) 250ms;
+}
+body[layout="column"][theme="dark"] .panel_operation_area .content_container .chat_item.ai {
+	background-color: var(--back-color);
 }
 .panel_operation_area .content_container .chat_item.other {
 	padding: 5px 0px;
@@ -922,23 +925,29 @@ body[layout="column"] .themePanel > .inner {
 	display: block;
 	margin: 5px;
 }
-.panel_container .panel_operation_area .writingArea {
-	position: absolute;
-	top: 3px;
-	bottom: 0px;
-	left: 0px;
-	width: calc(45% - 5px);
-	border-radius: 5px;
-	box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.6);
-}
+.panel_container .panel_operation_area .writingArea,
 .panel_container .panel_operation_area .requirementArea {
 	position: absolute;
 	top: 3px;
+	border-radius: 5px;
+	background-color: var(--background-color);
+	box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+	transition: box-shadow cubic-bezier(0.5, 0.1, 0.3, 1) 250ms;
+}
+body[layout="column"][theme="dark"] .panel_container .panel_operation_area .writingArea,
+body[layout="column"][theme="dark"] .panel_container .panel_operation_area .requirementArea {
+	background-color: var(--back-color);
+}
+.panel_container .panel_operation_area .writingArea {
+	bottom: 0px;
+	left: 0px;
+	width: calc(45% - 5px);
+	padding-bottom: 20px;
+}
+.panel_container .panel_operation_area .requirementArea {
 	right: 0px;
 	width: 55%;
-	height: calc(30% - 3px);
-	border-radius: 5px;
-	box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.6);
+	height: calc(30% - 10px);
 }
 .panel_container .panel_operation_area .conversationArea {
 	position: absolute;
@@ -1197,9 +1206,6 @@ body[layout="column"] .panel_frame .panel_operation_area {
 	top: 35px;
 	bottom: 10px;
 }
-body[layout="column"] .panel_frame .panel_operation_area .content_container .chat_item.ai {
-	background-color: var(--back-color);
-}
 body[layout="column"] .panel_frame .panel_inner_mask {
 	top: 0px;
 	left: -250px;
@@ -1317,6 +1323,7 @@ body[theme="dark"] img[src*="svg"] {
 	--front-color: rgba(29, 30, 27, 1.0);
 	--back-color: rgba(234, 238, 219, 1.0);
 	--emphasize-color: rgba(36, 134, 185, 1.0);
+	--background-color: rgba(241, 240, 237, 1.0);
 }
 body[theme="light"] {
 	background-color: rgba(234, 238, 219, 1.0);
@@ -1325,7 +1332,7 @@ body[theme="light"] .panel_operation_area .search_inputter {
 	background-image: linear-gradient(45deg, rgba(52, 108, 156, 1.0), rgba(27, 167, 132, 1.0));
 }
 body[theme="light"] .panel_operation_area .input_container {
-	background-color: rgb(240, 241, 235);
+	background-color: var(--background-color);
 	color: var(--front-color);
 	border-color: white;
 	box-shadow: inset 2px 2px 5px rgb(from var(--front-color) r g b / 80%);
@@ -1343,9 +1350,6 @@ body[theme="light"] .panel_operation_area .content_container .chat_item {
 body[theme="light"] .panel_operation_area .content_container .chat_item.human {
 	background-color: rgba(173, 213, 162, 1.0);
 }
-body[theme="light"] .panel_frame .panel_operation_area .content_container .chat_item.ai {
-	background-color: rgba(241, 240, 237, 1.0);
-}
 body[theme="light"] .panel_container .panel_logo .panel_model_chooser .panel_model_item.current {
 	border-color: black;
 }
@@ -1356,7 +1360,7 @@ body[theme="light"] .panel_frame .panel_tabs_area .panel_tab {
 	color: rgb(from var(--front-color) r g b / 80%) !important;
 }
 body[theme="light"] .panel_container .panel_button {
-	background-color: rgb(240, 241, 235);
+	background-color: var(--background-color);
 }
 body[theme="light"] .panel_container .content_container pre,
 body[theme="light"] .panel_operation_area .chat_item .chat_content pre {
@@ -1375,21 +1379,21 @@ body[theme="light"] .panel_container table tr:nth-child(2n) {
 	background-color: rgba(23, 23, 23, 0.1);
 }
 body[theme="light"] .panel_article_list {
-	background-color: rgba(240, 241, 235, 0.8);
+	background-color: rgb(from var(--front-color) r g b / 80%);
 }
 body[theme="light"] .panel_operation_area .search_result_item.more_question {
-	background-color: rgb(240, 241, 235);
+	background-color: var(--background-color);
 	box-shadow: 1px 1px 2px rgba(23, 23, 23, 0.05), -1px -1px 2px rgba(23, 23, 23, 0.05);
 }
 body[theme="light"] .panel_operation_area .file_item:hover {
-	background-color: rgb(240, 241, 235);
+	background-color: var(--background-color);
 }
 body[theme="light"] .panel_operation_area .file_item .article_ctkw {
 	border-color: white;
 	background-color: rgba(240, 241, 235, 0.9);
 }
 body[theme="light"] .panel_operation_area .search_records .search_record_panel .search_record_item .item_desc {
-	background-color: rgba(240, 241, 235, 0.8);
+	background-color: rgb(from var(--front-color) r g b / 80%);
 	box-shadow: 2px 2px 5px rgba(23, 23, 23, 0.6), inset 0px 0px 2px black;
 }
 body[theme="light"] .panel_container ul.reference_area li.reference_item {
@@ -1400,11 +1404,11 @@ body[theme="light"] .panel_container ul.reference_area li.reference_item .refere
 	background-image: linear-gradient(45deg, rgba(52, 108, 156, 1.0), rgba(27, 167, 132, 1.0));
 }
 body[theme="light"] .panel_container nav.nav_menu_panel {
-	background-color: rgba(240, 241, 235, 0.8);
+	background-color: rgb(from var(--front-color) r g b / 80%);
 }
 body[theme="light"] > div.router {
 	border: 5px solid white;
-	background-color: rgba(240, 241, 235, 0.6);
+	background-color: rgb(from var(--front-color) r g b / 60%);
 }
 body[theme="light"] > div.router .logo img {
 	filter: invert(0.6) sepia(1.0) hue-rotate(60deg) brightness(1.5);
@@ -1413,16 +1417,16 @@ body[theme="light"][layout="column"] .panel_frame .panel_tabs_area .panel_tab.ac
 	background-color: rgba(234, 238, 219, 1.0);
 }
 body[theme="light"][layout="column"] .panel_frame .panel_tabs_area {
-	background-color: rgb(240, 241, 235);
+	background-color: var(--background-color);
 }
 body[theme="light"][layout="column"] .panel_frame .panel_logo {
-	background-color: rgb(240, 241, 235);
+	background-color: var(--background-color);
 }
 body[theme="light"][layout="column"][shrinked="yes"] .panel_frame .panel_logo {
 	background-color: rgba(240, 241, 235, 0);
 }
 body[theme="light"][layout="column"] .panel_frame .panel_logo .panel_model_chooser {
-	background-color: rgba(240, 241, 235, 0.8);
+	background-color: rgb(from var(--front-color) r g b / 80%);
 }
 body[theme="light"][layout="column"][shrinked="yes"] .panel_frame .panel_tabs_area .panel_placeholder {
 	border-bottom: 1px solid rgba(23, 23, 23, 0.5);

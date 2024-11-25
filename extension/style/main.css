@@ -2,6 +2,7 @@
 	--front-color: rgba(19, 17, 36, 1.0);
 	--back-color: rgba(226, 225, 228, 1.0);
 	--emphasize-color: rgba(36, 134, 185, 1.0);
+	--background-color: rgba(31, 32, 64, 1.0);
 }
 
 @font-face {

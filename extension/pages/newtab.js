@@ -1373,16 +1373,27 @@ const askCypriteWriter = async (content, usage, cid) => {
 
 	const writerArea = document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea');
 	var context = getPageContent(writerArea, true) || '';
-	var requirement = getPageContent(document.querySelector('.panel_operation_area[group="intelligentWriter"] .requirementArea'), true) || '（没有具体要求）';
+	var requirement = getPageContent(document.querySelector('.panel_operation_area[group="intelligentWriter"] .requirementArea'), true);
 
 	if (!!tmrWordCount) clearTimeout(tmrWordCount);
 	if (!!tmrAutoRewrite) clearTimeout(tmrAutoRewrite);
 	const wordCount = calculateWordCount(context);
-	document.querySelector('.infoArea span.wordcount').innerText = messages.writer.hintWordCount + ': ' + wordCount.total;
+	document.querySelector('.infoArea span.wordcount').innerText = messages.writer.hintWordCount + ': ' + (wordCount.total || 0);
 
+	var result;
+	if (!!PromptLib.writerSystemPromptUltra) {
+		result = await askCypriteWriterUltraly(context, requirement, content, usage, cid, messages);
+	}
+	else {
+		result = await askCypriteWriterSimply(context, requirement, content, usage, cid, messages);
+	}
+
+	return [result, writerConversation];
+};
+const askCypriteWriterSimply = async (context, requirement, content, usage, cid, messages) => {
 	var prompt = PromptLib.assemble(PromptLib.writerSystemPrompt, {
 		context: context || '（还没开始写）',
-		requirement
+		requirement: requirement || '（没有具体要求）',
 	});
 	if (!writerConversation || !writerConversation.length) {
 		writerConversation = [['system', prompt]];
@@ -1390,6 +1401,7 @@ const askCypriteWriter = async (content, usage, cid) => {
 	else {
 		writerConversation[0][1] = prompt;
 	}
+
 	if (!content) {
 		let chatBox = document.querySelector('.chat_item[chatid="' + cid + '"]');
 		if (!!chatBox) {
@@ -1427,7 +1439,7 @@ const askCypriteWriter = async (content, usage, cid) => {
 	if (!!result) {
 		writerConversation.push(['ai', result]);
 		const json = parseReplyAsXMLToJSON(result);
-		console.log(result, json);
+		logger.log('CypriteWriter', result, json);
 		result = [];
 		if (!!json.category) {
 			document.querySelector('.infoArea span.category').innerText = messages.writer.hintCategory + ': ' + (json.category._origin || json.category);
@@ -1484,22 +1496,223 @@ const askCypriteWriter = async (content, usage, cid) => {
 			});
 			result.push(ctx);
 			if (changed) {
-				document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea').innerText = context || originalContent;
-				// parseMarkdownWithOutwardHyperlinks(document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea'), context, originalContent);
+				let ctx = (context || originalContent).trim();
+				document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea').innerText = ctx;
+				// parseMarkdownWithOutwardHyperlinks(document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea'), ctx);
+				const wordCount = calculateWordCount(ctx);
+				document.querySelector('.infoArea span.wordcount').innerText = messages.writer.hintWordCount + ': ' + (wordCount.total || 0);
 			}
 		}
 		if (result.length === 0) {
 			result = json._origin;
 		}
 		else {
-			result = result.join('\n\n----\n\n');
+			result = result.join('\n\n----\n\n').trim();
 		}
 	}
 	else {
 		removeLatestConversation(writerConversation);
 	}
 
-	return [result, writerConversation];
+	return result;
+};
+const askCypriteWriterUltraly = async (context, requirement, content, usage, cid, messages) => {
+	const ctx = context || '（还没开始写）';
+	const req = requirement || '（没有具体要求）';
+	const lastC = askCypriteWriterUltraly.lastContext || '';
+	const lastR = askCypriteWriterUltraly.lastRequirement || '';
+	const tasks = [];
+
+	chrome.storage.local.set({
+		writerContent: context || '',
+		writerRequirement: requirement || '',
+	});
+
+	if (!!context && ctx !== lastC) tasks.push(askCypriteWriterAsReader(context, usage, messages));
+	else tasks.push(askCypriteWriterUltraly.readerIdea || '');
+
+	if ((!!context || !!requirement) && (ctx !== lastC || req !== lastR)) tasks.push(askCypriteWriterAsEditor(ctx, req, usage, messages));
+	else tasks.push({analyze: askCypriteWriterUltraly.editorIdea || ''});
+
+	var [asReader, asEditor] = await Promise.all(tasks);
+	console.log(asReader, asEditor);
+	if (!!asReader) askCypriteWriterUltraly.readerIdea = asReader;
+	if (!!asEditor.analyze) askCypriteWriterUltraly.editorIdea = asEditor.analyze;
+	if (!!asEditor.category) document.querySelector('.infoArea span.category').innerText = messages.writer.hintCategory + ': ' + asEditor.category;
+	if (!!asEditor.style) document.querySelector('.infoArea span.style').innerText = messages.writer.hintStyle + ': ' + asEditor.style;
+	if (!!asEditor.feature) document.querySelector('.infoArea span.feature').innerText = messages.writer.hintFeature + ': ' + asEditor.feature;
+	askCypriteWriterUltraly.lastContext = context || '';
+	askCypriteWriterUltraly.lastRequirement = requirement || '';
+
+	var asWriter = await askCypriteWriterAsWriter(context, req, content, cid, usage, messages);
+
+	var reply = [];
+	if (!!asReader) reply.push(asReader);
+	if (!!asEditor.analyze) reply.push(asEditor.analyze);
+	if (!!asWriter) reply.push(asWriter);
+	return reply.join('\n\n----\n\n').trim();
+};
+const askCypriteWriterAsReader = async (context, usage, messages) => {
+	const request = {
+		conversation: [['human', PromptLib.assemble(PromptLib.writerAsReader, { context })]],
+	};
+
+	var result;
+	try {
+		result = await askAIandWait('directSendToAI', request);
+		updateUsage(usage, result.usage);
+		result = result.reply || '';
+	}
+	catch (err) {
+		result = '';
+		logger.error('CypriteWriterAsReader', err);
+		err = err.message || err.msg || err.data || err.toString();
+		Notification.show('', err, "middleTop", 'error');
+	}
+
+	return result;
+};
+const askCypriteWriterAsEditor = async (context, requirement, usage, messages) => {
+	const request = {
+		conversation: [['human', PromptLib.assemble(PromptLib.writerAsEditor, { context, requirement })]],
+	};
+
+	var result;
+	try {
+		result = await askAIandWait('directSendToAI', request);
+		updateUsage(usage, result.usage);
+		result = result.reply;
+	}
+	catch (err) {
+		result = null;
+		logger.error('CypriteWriterAsEditor', err);
+		err = err.message || err.msg || err.data || err.toString();
+		Notification.show('', err, "middleTop", 'error');
+	}
+	if (!result) return {};
+
+	const json = parseReplyAsXMLToJSON(result);
+	result = {};
+	if (!!json.category) result.category = json.category._origin || json.category;
+	if (!!json.style) result.style = json.style._origin || json.style;
+	if (!!json.feature) result.feature = json.feature._origin || json.feature;
+	if (!!json.analyze) result.analyze = json.analyze._origin || json.analyze;
+	return result;
+};
+const askCypriteWriterAsWriter = async (context, requirement, content, cid, usage, messages) => {
+	const readerIdea = askCypriteWriterUltraly.readerIdea || '（暂时没有想法）';
+	const editorIdea = askCypriteWriterUltraly.editorIdea || '（暂时没有意见）';
+	var prompt = PromptLib.assemble(PromptLib.writerSystemPromptUltra, {
+		context: context || '（还没开始写）',
+		requirement: requirement,
+		readerIdea,
+		editorIdea,
+	});
+	if (!writerConversation || !writerConversation.length) {
+		writerConversation = [['system', prompt]];
+	}
+	else {
+		writerConversation[0][1] = prompt;
+	}
+
+	if (!content) {
+		let chatBox = document.querySelector('.chat_item[chatid="' + cid + '"]');
+		if (!!chatBox) {
+			chatBox.parentElement.removeChild(chatBox);
+		}
+		content = PromptLib.quickOptimize;
+	}
+	prompt = PromptLib.assemble(PromptLib.writeTemplate, {request: content});
+	writerConversation.push(['human', prompt, cid]);
+
+	const taskID = newID();
+	TaskCategory.set(taskID, 'intelligentWriter');
+	const request = {
+		taskID,
+		conversation: writerConversation,
+		model: myInfo.model,
+		tools: ['collectInformation', 'readArticle'],
+	};
+
+	var result;
+	try {
+		result = await askAIandWait('directSendToAI', request);
+		updateUsage(usage, result.usage);
+		result = result.reply;
+	}
+	catch (err) {
+		result = null;
+		logger.error('CypriteWriter', err);
+		err = err.message || err.msg || err.data || err.toString();
+		Notification.show('', err, "middleTop", 'error');
+	}
+	TaskCategory.delete(taskID);
+	writerConversation[writerConversation.length - 1][1] = content;
+
+	if (!!result) {
+		writerConversation.push(['ai', result]);
+		const json = parseReplyAsXMLToJSON(result);
+		logger.log('CypriteWriter', result, json);
+
+		const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
+		if (!!strategy) addChatItem('intelligentWriter', [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint', undefined, undefined, true);
+
+		result = [];
+		let changed = false, originalContent = context, isRewrite = false;
+		let ctx = json.rewrite._origin || json.rewrite || json._origin;
+		ctx = ctx.replace(/<idea>\s*([\w\W]*?)\s*<\/idea>/gi, (m, inner) => {
+			var c = parseReplyAsXMLToJSON(inner);
+			var paragraph = c.iscontinue ? 0 : c.paragraphnumber;
+			var original = (c.iscontinue ? '' : (c.originalcontent || '')).replace(/[\n\r]+/g, ' ').replace(/^[\-\+\*>#\s]+/, '');
+			var modify = (c.modifiedcontent || '').replace(/[\n\r]+/g, ' ').replace(/^[\-\+\*>#\s]+/, '');
+
+			if (directRewrite && !isRewrite) {
+				if (c.isrewrite && !!modify) {
+					context = c.modifiedcontent;
+					isRewrite = true;
+					changed = true;
+				}
+				else if (c.iscontinue) {
+					if (!!modify) {
+						changed = true;
+						context = context + '\n\n' + c.modifiedcontent;
+					}
+				}
+				else {
+					if (!!original) {
+						let idx = context.indexOf(c.originalcontent);
+						if (idx >= 0) {
+							changed = true;
+							context = context.replace(c.originalcontent, c.modifiedcontent || "");
+						}
+					}
+				}
+			}
+
+			if (c.isrewrite) {
+				return '\n\n> ' + (c.modifiedcontent || '""') + '\n\n';
+			}
+			else if (c.iscontinue) {
+				return '\n\n> ' + (modify || '""') + '\n\n';
+			}
+			else {
+				return '- P' + paragraph + '\n  + > ' + (original || '""') + '\n  + ' + (modify || '""') + '\n';
+			}
+		});
+		result = ctx.trim();
+		if (changed) {
+			let ctx = (context || originalContent).trim();
+			document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea').innerText = ctx;
+			// parseMarkdownWithOutwardHyperlinks(document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea'), ctx);
+			const wordCount = calculateWordCount(ctx);
+			document.querySelector('.infoArea span.wordcount').innerText = messages.writer.hintWordCount + ': ' + (wordCount.total || 0);
+		}
+	}
+	else {
+		removeLatestConversation(writerConversation);
+	}
+
+	return result;
 };
 
 /* AISearch */
@@ -2434,10 +2647,10 @@ const getAISearchRecordList = async (showUI=false) => {
 	// Show UI
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	const ul = document.body.querySelector('.search_records');
-	const nowDay = Math.ceil(Date.now() / DayLong);
+	const nowDay = Math.ceil((Date.now() - TimestampShift) / DayLong);
 	var lastType = -1, area, titleBar, panel;
 	list.forEach(item => {
-		var day = Math.ceil(item.timestamp / DayLong);
+		var day = Math.ceil((item.timestamp - TimestampShift) / DayLong);
 		var duration = nowDay - day;
 		var type = -1;
 		if (duration <= 0) {
@@ -2460,10 +2673,10 @@ const getAISearchRecordList = async (showUI=false) => {
 
 			titleBar = newEle('div', 'search_record_area_title');
 			area.appendChild(titleBar);
-			
+
 			panel = newEle('ul', 'search_record_panel');
 			area.appendChild(panel);
-			
+
 			ul.appendChild(area);
 
 			lastType = type;
@@ -2483,7 +2696,7 @@ const getAISearchRecordList = async (showUI=false) => {
 				titleBar.innerText = messages.aiSearch.hintFarPast;
 			}
 		}
-	
+
 		var li = newEle('li', 'search_record_item');
 		li._quest = item.quest;
 
@@ -3481,6 +3694,8 @@ ActionCenter.clearConversation = async () => {
 	}
 	else if (currentMode === 'intelligentWriter') {
 		if (!!writerConversation) writerConversation.splice(0);
+		askCypriteWriterUltraly.readerIdea = '';
+		askCypriteWriterUltraly.editorIdea = '';
 		addChatItem('intelligentWriter', messages.writer.hintWelcome, 'cyprite', undefined, undefined, true);
 	}
 };
@@ -3608,19 +3823,22 @@ chrome.storage.local.onChanged.addListener(evt => {
 const init = async () => {
 	// Init
 	var ot = await Promise.all([
-		chrome.storage.local.get(['FilesOrderType', 'transLang', 'layout', 'theme', 'shrinked', 'directRewrite', 'autoRewrite']),
+		chrome.storage.local.get(['FilesOrderType', 'transLang', 'layout', 'theme', 'shrinked', 'directRewrite', 'autoRewrite', 'writerContent', 'writerRequirement']),
 		getConfig(),
 		getAISearchRecordList(true),
 	]);
-	document.body.querySelector('[name="translation_language"]').value = (ot[0] || {}).transLang || LangName[myInfo.lang];
-	document.body.setAttribute('layout', (ot[0] || {}).layout || 'column');
-	document.body.setAttribute('theme', (ot[0] || {}).theme || 'light');
-	document.body.setAttribute('shrinked', (ot[0] || {}).shrinked || 'no');
-	directRewrite = (ot[0] || {}).directRewrite || false;
-	autoRewrite = (ot[0] || {}).autoRewrite || false;
+	ot[0] = ot[0] || {};
+	document.body.querySelector('[name="translation_language"]').value = ot[0].transLang || LangName[myInfo.lang];
+	document.body.setAttribute('layout', ot[0].layout || 'column');
+	document.body.setAttribute('theme', ot[0].theme || 'light');
+	document.body.setAttribute('shrinked', ot[0].shrinked || 'no');
+	orderType = ot[0].FilesOrderType || orderType;
+	directRewrite = ot[0].directRewrite || false;
+	autoRewrite = ot[0].autoRewrite || false;
 	document.body.setAttribute('directRewrite', directRewrite);
 	document.body.setAttribute('autoRewrite', autoRewrite);
-	orderType = (ot[0] || {}).FilesOrderType || orderType;
+	document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea').innerText = ot[0].writerContent || '';
+	document.querySelector('.panel_operation_area[group="intelligentWriter"] .requirementArea').innerText = ot[0].writerRequirement || '';
 	await getConfig();
 	updateAIModelList();
 
