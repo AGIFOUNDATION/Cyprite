@@ -129,13 +129,13 @@ UtilityLib.collectInformation = {
 };
 UtilityLib.readArticle = {
 	name: "read_article",
-	description: "Reading the full text of web pages and other files.",
+	description: "Reading the complete content of webpages, local documents, or other files can be used to understand their ideas, find the complete original text of needed materials, or learn their writing styles, etc.",
 	parameters: {
 		type: "object",
 		properties: {
 			url: {
 				type: "string",
-				description: "URL of the target article."
+				description: "URL of the target webpage, local documents or article."
 			}
 		},
 		required: ["url"]

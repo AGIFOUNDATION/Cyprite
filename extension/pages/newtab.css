@@ -288,10 +288,14 @@ body[layout="column"][theme="dark"] .panel_operation_area .content_container .ch
 }
 .panel_operation_area .content_container .chat_item .chat_title .caption {
 	display: inline-block;
+	max-width: calc(100% - 100px);
 	margin-top: 0px;
 	margin-bottom: 0px;
 	font-size: 1em;
 	vertical-align: middle;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 .panel_operation_area .content_container .chat_item .other_content {
 	display: none;
@@ -943,11 +947,13 @@ body[layout="column"][theme="dark"] .panel_container .panel_operation_area .requ
 	left: 0px;
 	width: calc(45% - 5px);
 	padding-bottom: 20px;
+	transition: background-color cubic-bezier(0.5, 0.1, 0.3, 1) 250ms;
 }
 .panel_container .panel_operation_area .requirementArea {
 	right: 0px;
 	width: 55%;
 	height: calc(30% - 10px);
+	transition: background-color cubic-bezier(0.5, 0.1, 0.3, 1) 250ms;
 }
 .panel_container .panel_operation_area .conversationArea {
 	position: absolute;
@@ -1062,6 +1068,14 @@ img.fontawesome {
 	height: 1em;
 	margin-left: 2px;
 	margin-right: 2px;
+}
+
+body[panel] [action="changeLayoutToRowTab"],
+body[panel] [action="expandColumn"] {
+	display: none !important;
+}
+body[panel][layout="column"] .panel_frame .operator_panel {
+	bottom: 10px;
 }
 
 body[layout="column"] [layout="row"] {
@@ -1205,6 +1219,9 @@ body[layout="column"] .panel_frame .panel_tabs_area .panel_placeholder.logo img 
 	object-position: left;
 	object-fit: cover;
 	transition: top cubic-bezier(0.5, 0.1, 0.3, 1) 250ms, left cubic-bezier(0.5, 0.1, 0.3, 1) 250ms, width cubic-bezier(0.5, 0.1, 0.3, 1) 250ms;
+}
+body[loading="true"] .panel_frame .panel_tabs_area .panel_placeholder.logo img {
+	display: none;
 }
 body[layout="column"] .panel_frame .panel_operation_area {
 	top: 35px;

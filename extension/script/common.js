@@ -111,7 +111,20 @@ globalThis.parseParams = param => {
 		item = item.split('=');
 		var key = item.shift();
 		if (!key) return;
-		item = item.join('=');
+		item = item.join('=').trim();
+		var value = item * 1;
+		if (!isNaN(value)) {
+			item = value;
+		}
+		else {
+			value = item.toLowerCase();
+			if (value === 'true') {
+				item = true;
+			}
+			else if (value === 'false') {
+				item = false;
+			}
+		}
 		json[key] = item;
 	});
 	return json;

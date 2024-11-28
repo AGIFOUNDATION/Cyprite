@@ -23,6 +23,12 @@ const SearchModeOrderList = [
 	'searchOnly',
 	'keywordOnly',
 ];
+const AIToolsForMode = {
+	freelyConversation: ['collectInformation', 'readArticle'],
+	intelligentSearch: ['collectInformation'],
+	crossPageConversation: ['collectInformation'],
+	intelligentWriter: ['collectInformation', 'readArticle'],
+};
 const UseSearch = true;
 const CurrentArticleList = [];
 const CacheExpire = 1000 * 3600;
@@ -32,6 +38,7 @@ var AIModelList = null;
 var currentTabId = 0;
 var curerntStatusMention = null;
 var running = false;
+var isPanel = false;
 
 var aiSearchInputter = null;
 var tmrThinkingHint = null;
@@ -613,7 +620,7 @@ const askCrossPages = async (content, usage, cid) => {
 		taskID,
 		conversation,
 		model: myInfo.model,
-		tools: ['collectInformation'],
+		tools: AIToolsForMode.crossPageConversation,
 	};
 	const tokens = estimateTokenCount(request.conversation);
 	if (tokens > AILongContextLimit) {
@@ -959,15 +966,11 @@ ActionCenter.reAnswerRequest = async (target, ui) => {
 
 	const taskID = newID();
 	TaskCategory.set(taskID, mode);
-	const tools = ['collectInformation'];
-	if (mode === 'freelyConversation') {
-		tools.push('readArticle');
-	}
 	const request = {
 		taskID,
 		conversation: tempConversation,
 		model: myInfo.model,
-		tools,
+		tools: AIToolsForMode[mode],
 	};
 	const tokens = estimateTokenCount(request.conversation);
 	if (tokens > AILongContextLimit) {
@@ -1235,7 +1238,7 @@ const askFreeCyprite = async (content, usage, cid) => {
 		taskID,
 		conversation,
 		model: myInfo.model,
-		tools: ['collectInformation', 'readArticle'],
+		tools: AIToolsForMode.freelyConversation,
 	};
 
 	var result;
@@ -1303,10 +1306,10 @@ const callTranslator = async (content, usage) => {
 	var lineCount = content.replace(/\w+(\.\w+)+/g, 'w').split(/[\.\!\?。！？\n\r]/).map(line => line.trim()).filter(line => !!line).length;
 	wordCount = wordCount.unlatin + wordCount.latin * 2;
 
-	if (punctuationCount < 3 && wordCount < 10) {
+	if (punctuationCount < 3 && wordCount < 5 && lineCount < 2) {
 		action = "translateAndInterpretation";
 	}
-	else if (lineCount > 10 || wordCount > 200) {
+	else if (lineCount > 5 || wordCount > 200) {
 		action = 'translateContent';
 	}
 
@@ -1418,7 +1421,7 @@ const askCypriteWriterSimply = async (context, requirement, content, usage, cid,
 		taskID,
 		conversation: writerConversation,
 		model: myInfo.model,
-		tools: ['collectInformation', 'readArticle'],
+		tools: AIToolsForMode.intelligentWriter,
 	};
 
 	var result;
@@ -1442,19 +1445,19 @@ const askCypriteWriterSimply = async (context, requirement, content, usage, cid,
 		logger.log('CypriteWriter', result, json);
 		result = [];
 		if (!!json.category) {
-			document.querySelector('.infoArea span.category').innerText = messages.writer.hintCategory + ': ' + (json.category._origin || json.category);
+			document.querySelector('.infoArea span.category').innerText = messages.writer.hintCategory + ': ' + (json.category?._origin || json.category);
 		}
 		if (!!json.style) {
-			document.querySelector('.infoArea span.style').innerText = messages.writer.hintStyle + ': ' + (json.style._origin || json.style);
+			document.querySelector('.infoArea span.style').innerText = messages.writer.hintStyle + ': ' + (json.style?._origin || json.style);
 		}
 		if (!!json.feature) {
-			document.querySelector('.infoArea span.feature').innerText = messages.writer.hintFeature + ': ' + (json.feature._origin || json.feature);
+			document.querySelector('.infoArea span.feature').innerText = messages.writer.hintFeature + ': ' + (json.feature?._origin || json.feature);
 		}
-		if (!!json.asreader) result.push(json.asreader._origin || json.asreader);
-		if (!!json.aseditor) result.push(json.aseditor._origin || json.aseditor);
+		if (!!json.asreader) result.push(json.asreader?._origin || json.asreader);
+		if (!!json.aseditor) result.push(json.aseditor?._origin || json.aseditor);
 		if (!!json.aswriter) {
 			let changed = false, originalContent = context, isRewrite = false;
-			let ctx = json.aswriter._origin || json.aswriter;
+			let ctx = json.aswriter?._origin || json.aswriter;
 			ctx = ctx.replace(/<idea>\s*([\w\W]*?)\s*<\/idea>/gi, (m, inner) => {
 				var c = parseReplyAsXMLToJSON(inner);
 				var paragraph = c.iscontinue ? 0 : c.paragraphnumber;
@@ -1593,10 +1596,10 @@ const askCypriteWriterAsEditor = async (context, requirement, usage, messages) =
 
 	const json = parseReplyAsXMLToJSON(result);
 	result = {};
-	if (!!json.category) result.category = json.category._origin || json.category;
-	if (!!json.style) result.style = json.style._origin || json.style;
-	if (!!json.feature) result.feature = json.feature._origin || json.feature;
-	if (!!json.analyze) result.analyze = json.analyze._origin || json.analyze;
+	if (!!json.category) result.category = json.category?._origin || json.category;
+	if (!!json.style) result.style = json.style?._origin || json.style;
+	if (!!json.feature) result.feature = json.feature?._origin || json.feature;
+	if (!!json.analyze) result.analyze = json.analyze?._origin || json.analyze;
 	return result;
 };
 const askCypriteWriterAsWriter = async (context, requirement, content, cid, usage, messages) => {
@@ -1631,7 +1634,7 @@ const askCypriteWriterAsWriter = async (context, requirement, content, cid, usag
 		taskID,
 		conversation: writerConversation,
 		model: myInfo.model,
-		tools: ['collectInformation', 'readArticle'],
+		tools: AIToolsForMode.intelligentWriter,
 	};
 
 	var result;
@@ -1659,7 +1662,7 @@ const askCypriteWriterAsWriter = async (context, requirement, content, cid, usag
 
 		result = [];
 		let changed = false, originalContent = context, isRewrite = false;
-		let ctx = json.rewrite._origin || json.rewrite || json._origin;
+		let ctx = json.rewrite?._origin || json.rewrite || json._origin;
 		ctx = ctx.replace(/<idea>\s*([\w\W]*?)\s*<\/idea>/gi, (m, inner) => {
 			var c = parseReplyAsXMLToJSON(inner);
 			var paragraph = c.iscontinue ? 0 : c.paragraphnumber;
@@ -2525,7 +2528,7 @@ const replyQuestBySearchResult = async (messages, quest) => {
 		answer = answer.reply;
 		moreList = answer.more || [];
 		if (!!answer) {
-			answer = answer.reply._origin || answer.reply;
+			answer = answer.reply?._origin || answer.reply;
 		}
 		answer = answer || messages.aiSearch.msgEmptyAnswer;
 	}
@@ -2744,83 +2747,85 @@ const getAISearchRecordList = async (showUI=false) => {
 
 	return list;
 };
-const saveAISearchRecord = async () => {
+const saveAISearchRecord = async (onlyConversation=false) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	if (!searchRecord || !searchRecord.mode) return;
-
-	const clearData = item => {
-		const data = Object.assign({}, item);
-		if (!!data.reply) {
-			delete data.summary;
-		}
-		else {
-			data.summary = data.summary || data.description;
-		}
-		delete data.content;
-		delete data.description;
-		delete data.embedding;
-		delete data.hash;
-		delete data.similar;
-		delete data.totalDuration;
-		delete data.currentDuration;
-		delete data.viewed;
-		delete data.reading;
-		return data;
-	};
 
 	const data = Object.assign({}, searchRecord);
 	data.conversation = advSearchConversation;
 	data.timestamp = Date.now();
 	data.datestring = timestmp2str("YYYY/MM/DD hh:mm :WDE:");
-	if (!!searchRecord.reference) {
-		data.reference = searchRecord.reference.map(item => {
-			return clearData(item);
-		});
-	}
-	if (!!searchRecord.searchResult) {
-		data.searchResult = data.searchResult || {};
-		if (!!searchRecord.searchResult.google) {
-			data.searchResult.google = searchRecord.searchResult.google.map(item => {
-				const data = {
-					title: item.title,
-					url: item.url,
-				};
-				return data;
+
+	if (!onlyConversation) {
+		const clearData = item => {
+			const data = Object.assign({}, item);
+			if (!!data.reply) {
+				delete data.summary;
+			}
+			else {
+				data.summary = data.summary || data.description;
+			}
+			delete data.content;
+			delete data.description;
+			delete data.embedding;
+			delete data.hash;
+			delete data.similar;
+			delete data.totalDuration;
+			delete data.currentDuration;
+			delete data.viewed;
+			delete data.reading;
+			return data;
+		};
+
+		if (!!searchRecord.reference) {
+			data.reference = searchRecord.reference.map(item => {
+				return clearData(item);
 			});
 		}
-		if (!!searchRecord.searchResult.arxiv) {
-			data.searchResult.arxiv = searchRecord.searchResult.arxiv.map(item => {
-				const data = {
-					title: item.title,
-					url: item.url,
-				};
-				return data;
-			});
-		}
-		if (!!searchRecord.searchResult.wikipedia) {
-			data.searchResult.wikipedia = searchRecord.searchResult.wikipedia.map(item => {
-				const data = {
-					title: item.title,
-					url: item.url,
-				};
-				return data;
-			});
-		}
-		if (!!searchRecord.searchResult.local) {
-			data.searchResult.local = searchRecord.searchResult.local.map(item => {
-				const data = {
-					title: item.title,
-					url: item.url,
-				};
-				return data;
-			});
+		if (!!searchRecord.searchResult) {
+			data.searchResult = data.searchResult || {};
+			if (!!searchRecord.searchResult.google) {
+				data.searchResult.google = searchRecord.searchResult.google.map(item => {
+					const data = {
+						title: item.title,
+						url: item.url,
+					};
+					return data;
+				});
+			}
+			if (!!searchRecord.searchResult.arxiv) {
+				data.searchResult.arxiv = searchRecord.searchResult.arxiv.map(item => {
+					const data = {
+						title: item.title,
+						url: item.url,
+					};
+					return data;
+				});
+			}
+			if (!!searchRecord.searchResult.wikipedia) {
+				data.searchResult.wikipedia = searchRecord.searchResult.wikipedia.map(item => {
+					const data = {
+						title: item.title,
+						url: item.url,
+					};
+					return data;
+				});
+			}
+			if (!!searchRecord.searchResult.local) {
+				data.searchResult.local = searchRecord.searchResult.local.map(item => {
+					const data = {
+						title: item.title,
+						url: item.url,
+					};
+					return data;
+				});
+			}
 		}
 	}
 
 	try {
 		await askSWandWait('SaveAISearchRecord', {quest: searchRecord.quest, record: data});
 		logger.log('SaveSearchRecord', 'Quest Saved:', searchRecord.quest);
-		Notification.show('', messages.newTab.hintSaveSearchRecordSuccess, 'middleTop', 'success');
 	}
 	catch (err) {
 		logger.error('SaveSearchRecord', err);
@@ -2912,7 +2917,7 @@ const askViaSearchResult = async (content, usage, cid) => {
 		taskID,
 		conversation,
 		model: myInfo.model,
-		tools: ['collectInformation'],
+		tools: AIToolsForMode.intelligentSearch,
 	};
 	const tokens = estimateTokenCount(request.conversation);
 	if (tokens > AILongContextLimit) {
@@ -2951,13 +2956,18 @@ const askViaSearchResult = async (content, usage, cid) => {
 
 	return [result, conversation];
 };
-ActionCenter.startAISearch = async () => {
+ActionCenter.startAISearch = async (mode) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	if (running) {
+		Notification.show('', messages.mentions.actionWhileRunning, 'middleTop', 'warn');
+		return;
+	}
+
 	if (isAISearching) return;
 	isAISearching = true;
 
-	[...aiSearchInputter.querySelectorAll('*')].forEach(ele => ele.removeAttribute('style'));
-
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	if (!!mode) await ActionCenter.changeMode(mode); // Force to change mode
+	[...aiSearchInputter.querySelectorAll('*')].forEach(ele => ele.removeAttribute('style')); // Remove unexpectable styles
 
 	var content = getPageContent(aiSearchInputter, true);
 	if (!content) {
@@ -2965,6 +2975,8 @@ ActionCenter.startAISearch = async () => {
 		isAISearching = false;
 		return;
 	}
+
+	running = true;
 
 	// Init UI
 	aiSearchInputter.resultLocal.innerHTML = '';
@@ -3008,6 +3020,7 @@ ActionCenter.startAISearch = async () => {
 
 	aiSearchInputter.setAttribute('contentEditable', 'true');
 	isAISearching = false;
+	running = false;
 };
 ActionCenter.chooseQuestion = (host, data, evt) => {
 	if (!evt) return;
@@ -3562,6 +3575,7 @@ ActionCenter.changeLayoutToColumnTab = async () => {
 	resizeCurrentInputter();
 };
 ActionCenter.changeLayoutToRowTab = async () => {
+	if (isPanel) return;
 	try {
 		await chrome.storage.local.set({layout: 'row'});
 	}
@@ -3608,6 +3622,7 @@ ActionCenter.shrinkColumn = async () => {
 	resizeCurrentInputter();
 };
 ActionCenter.expandColumn = async () => {
+	if (isPanel) return;
 	try {
 		await chrome.storage.local.set({shrinked: 'no'});
 	}
@@ -3714,14 +3729,16 @@ ActionCenter.clearConversation = async () => {
 	}
 };
 ActionCenter.clearSearch = async () => {
+	// Clear Search Conversation
 	if (!!advSearchConversation) {
 		advSearchConversation.splice(0);
 	}
 
+	// Hide Search Results
 	aiSearchInputter.innerText = '';
 	aiSearchInputter.resultArxiv.innerHTML = '';
 	aiSearchInputter.resultWikipedia.innerHTML = '';
-	aiSearchInputter.resultWikipedia.innerHTML = '';
+	aiSearchInputter.resultSearch.innerHTML = '';
 	aiSearchInputter.resultLocal.innerHTML = '';
 	aiSearchInputter.answerPanelHint.innerHTML = '';
 	aiSearchInputter.answerPanel.innerHTML = '';
@@ -3733,7 +3750,11 @@ ActionCenter.clearSearch = async () => {
 	[...document.body.querySelectorAll('[group="intelligentSearch"] .chat_item')].forEach(item => {
 		item.parentNode.removeChild(item);
 	});
+
+	// Refresh Search Result List and Show UI
 	document.body.querySelector('.search_records').style.display = '';
+	document.body.querySelector('.search_records').innerHTML = '';
+	await getAISearchRecordList(true);
 };
 ActionCenter.hideFloatWindow = () => {
 	var container = document.body.querySelector('.panel_container');
@@ -3848,6 +3869,108 @@ ActionCenter.onOperateSearchResult = async (target, ui, evt) => {
 	}
 };
 
+/* Cyprite OS */
+
+const selectActionMode = (action, mode) => {
+	var needAsk = false;
+	mode = mode || DefaultPanel;
+	if (!IntelligentOrderList.includes(mode)) mode = DefaultPanel;
+
+	if (action === 'translate') {
+		mode = 'instantTranslation';
+		needAsk = true;
+	}
+	else if (action === 'explain') {
+		mode = 'freelyConversation';
+		needAsk = true;
+	}
+	else if (action === 'search') {
+		mode = 'intelligentSearch';
+		needAsk = true;
+	}
+	else if (action === 'expand') {
+		mode = 'intelligentWriter';
+		needAsk = true;
+	}
+	else if (action === 'polish') {
+		mode = 'intelligentWriter';
+		needAsk = true;
+	}
+	else if (action === 'ask') {
+		mode = 'freelyConversation';
+		needAsk = true;
+	}
+
+	return [mode, needAsk];
+};
+const handleOSAction = async (action, request) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	var inputter, sender;
+	if (action === 'translate') {
+		inputter = document.body.querySelector('section[group="instantTranslation"] .input_container');
+		if (!!inputter) {
+			inputter.innerText = request;
+			sender = document.body.querySelector('section[group="instantTranslation"] .input_sender');
+			ActionCenter.sendMessage(sender);
+		}
+	}
+	else if (action === 'explain') {
+		inputter = document.body.querySelector('section[group="freelyConversation"] .input_container');
+		if (!!inputter) {
+			inputter.innerText = messages.quickMenu.explainInfo + '\n\n' + request;
+			sender = document.body.querySelector('section[group="freelyConversation"] .input_sender');
+			ActionCenter.sendMessage(sender);
+		}
+	}
+	else if (action === 'search') {
+		inputter = document.body.querySelector('section[group="intelligentSearch"] .search_inputter .inner');
+		if (!!inputter) {
+			inputter.innerText = messages.quickMenu.searchInfo + '\n\n' + request;
+			ActionCenter.startAISearch("fullAnswer");
+		}
+	}
+	else if (action === 'expand') {
+		await wait(100); // Wait for `chrome.storage` to finish its job
+		let writeArea = document.body.querySelector('section[group="intelligentWriter"] .writingArea');
+		let requirementArea = document.body.querySelector('section[group="intelligentWriter"] .requirementArea');
+		inputter = document.body.querySelector('section[group="intelligentWriter"] .input_container');
+		if (!!inputter && !!writeArea && !!requirementArea) {
+			writeArea.innerText = request;
+			requirementArea.innerText = '';
+			inputter.innerText = messages.quickMenu.expandInfo;
+			sender = document.body.querySelector('section[group="intelligentWriter"] .input_sender');
+			ActionCenter.sendMessage(sender);
+		}
+	}
+	else if (action === 'polish') {
+		await wait(100); // Wait for `chrome.storage` to finish its job
+		let writeArea = document.body.querySelector('section[group="intelligentWriter"] .writingArea');
+		let requirementArea = document.body.querySelector('section[group="intelligentWriter"] .requirementArea');
+		inputter = document.body.querySelector('section[group="intelligentWriter"] .input_container');
+		if (!!inputter && !!writeArea && !!requirementArea) {
+			writeArea.innerText = request;
+			requirementArea.innerText = '';
+			inputter.innerText = messages.quickMenu.polishInfo;
+			sender = document.body.querySelector('section[group="intelligentWriter"] .input_sender');
+			ActionCenter.sendMessage(sender);
+		}
+	}
+	else if (action === 'ask') {
+		inputter = document.body.querySelector('section[group="freelyConversation"] .input_container');
+		if (!!inputter) {
+			inputter.innerText = '关于下面这段内容你能想到什么有趣的话题：\n\n' + request;
+			sender = document.body.querySelector('section[group="freelyConversation"] .input_sender');
+			ActionCenter.sendMessage(sender);
+		}
+	}
+};
+EventHandler.appendCypriteOSRequest = async (msg) => {
+	var targetMode = selectActionMode(msg.action)[0];
+	changeTab(targetMode);
+	await handleOSAction(msg.action, msg.content);
+};
+
 window.addEventListener('resize', resizeCurrentInputter);
 chrome.storage.local.onChanged.addListener(evt => {
 	if (!!evt.AImodel?.newValue) {
@@ -3857,6 +3980,9 @@ chrome.storage.local.onChanged.addListener(evt => {
 });
 
 const init = async () => {
+	const params = parseParams(location.href);
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
 	// Init
 	var ot = await Promise.all([
 		chrome.storage.local.get(['FilesOrderType', 'transLang', 'layout', 'theme', 'shrinked', 'directRewrite', 'autoRewrite', 'writerContent', 'writerRequirement']),
@@ -3865,9 +3991,19 @@ const init = async () => {
 	]);
 	ot[0] = ot[0] || {};
 	document.body.querySelector('[name="translation_language"]').value = ot[0].transLang || LangName[myInfo.lang];
-	document.body.setAttribute('layout', ot[0].layout || 'column');
 	document.body.setAttribute('theme', ot[0].theme || 'light');
-	document.body.setAttribute('shrinked', ot[0].shrinked || 'no');
+	if (params.panel) {
+		isPanel = true;
+		document.title = messages.cypriteName;
+		document.body.setAttribute('layout', 'column');
+		document.body.setAttribute('shrinked', 'yes');
+		document.body.setAttribute('panel', true);
+	}
+	else {
+		document.body.setAttribute('layout', ot[0].layout || 'column');
+		document.body.setAttribute('shrinked', ot[0].shrinked || 'no');
+		document.body.removeAttribute('panel');
+	}
 	orderType = ot[0].FilesOrderType || orderType;
 	directRewrite = ot[0].directRewrite || false;
 	autoRewrite = ot[0].autoRewrite || false;
@@ -3900,7 +4036,6 @@ const init = async () => {
 		}
 	}
 
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 	AIModelList = document.body.querySelector('.panel_model_chooser');
 	aiSearchInputter = document.body.querySelector('.panel_operation_area .search_inputter > div.inner');
 	var resultPanel = aiSearchInputter.parentNode.parentNode.querySelector('.result_panel');
@@ -4055,11 +4190,31 @@ const init = async () => {
 
 	var tab = await chrome.tabs.getCurrent();
 	currentTabId = tab.id;
-	changeTab(DefaultPanel);
-	if (DefaultPanel === 'intelligentSearch') {
+
+	var [startUp, needAsk] = selectActionMode(params.action, params.mode);
+	changeTab(startUp);
+
+	var done = false;
+	if (needAsk) {
+		let request;
+		try {
+			request = await askSWandWait('AskForCypriteRequest');
+		}
+		catch (err) {
+			logger.error("AskForCypriteRequest", err);
+			request = null;
+		}
+		if (!!request) {
+			await handleOSAction(params.action, request);
+			done = true;
+		}
+	}
+	if (!done && startUp === 'intelligentSearch') {
 		await wait(500);
 		aiSearchInputter.focus();
 	}
+
+	document.body.removeAttribute('loading');
 };
 
 window.onload = init;

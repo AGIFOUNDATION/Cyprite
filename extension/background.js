@@ -1198,7 +1198,7 @@ AIHandler.getSearchKeyWord = async (request) => {
 	updateUsage(usage, keywords.usage);
 	keywords = keywords.reply || {};
 	['search', 'arxiv', 'wikipedia', 'philosophy'].forEach(tag => {
-		var list = keywords[tag]._origin || keywords[tag] || '';
+		var list = (keywords[tag] || {})._origin || keywords[tag] || '';
 		list = list
 			.replace(/[\n\r]+/g, '\n').split('\n')
 			.map(ctx => ctx.replace(/^[\s\-]*|\s*$/gi, ''))
@@ -1206,7 +1206,7 @@ AIHandler.getSearchKeyWord = async (request) => {
 		;
 		keywords[tag] = list;
 	});
-	
+
 	// Set philosophy as a special google search
 	keywords.philosophy.forEach(keyword => {
 		keywords.search.push(keyword + ' siteof:plato.stanford.edu');
@@ -1538,7 +1538,7 @@ const searchRelativeArticles = async (options, prompt, related) => {
 	var articleList = await callLLMOneByOne(getFunctionalModelList('findArticlesFromList'), conversation, null, true, 'FindArticlesFromList');
 	updateUsage(usage, articleList.usage);
 
-	articleList = articleList.reply._origin.split(/[\n\r]+/).map(line => {
+	articleList = articleList.reply?._origin.split(/[\n\r]+/).map(line => {
 		line = line.replace(/^((\-|\+|\d+\.)\s*)+/, '').trim();
 		const match = line.match(/^\[[^\]]*\]\s*\(([\w\W]+)\)$/);
 		if (!!match) line = match[1];
@@ -1837,7 +1837,7 @@ EventHandler.DeleteAISearchRecord = async (quest) => {
 const CacheLimit = 1000 * 60 * 60 * 12;
 const removeAIChatHistory = async (tid) => {
 	var list, tasks = [];
-	
+
 	if (!!tid) {
 		chrome.storage.session.remove(tid + ':crosspageConv');
 
@@ -2195,7 +2195,7 @@ AIHandler.translateAndInterpretation = async (data, source, sid) => {
 		if (!!list) {
 			entry = [];
 			entry.push('#### ' + messages.dictionary.hintTranslation + '\n');
-			list._origin.replace(/<entry>\s*([\w\W]+?)\s*<\/entry>/gi, (m, ctx) => {
+			(list._origin || '').replace(/<entry>\s*([\w\W]+?)\s*<\/entry>/gi, (m, ctx) => {
 				var json = parseReplyAsXMLToJSON(ctx);
 				let item = [];
 				item.push('|　|　|');
@@ -2735,6 +2735,143 @@ const findRelativeArticles = async (data, source, sid) => {
 
 	return {relevants, usage};
 };
+
+/* For QuickMenu of OS */
+var lastCypriteOSRequestTabId = null;
+var lastCypriteRequest = "";
+var desktopWidth = -1, desktopHeight = -1;
+const findCypritePanel = async () => {
+	const targetURL = chrome.runtime.getURL("pages/newtab.html");
+	const wins = await chrome.windows.getAll();
+
+	for (let win of wins) {
+		if (win.type !== 'popup') continue;
+		let tabs = await chrome.tabs.query({windowId: win.id});
+		if (tabs.length !== 1) continue;
+		tabs = tabs.filter(tab => tab.url.indexOf(targetURL) >= 0);
+		if (tabs.length !== 1) continue;
+		return [win, tabs[0]];
+	}
+
+	return [];
+};
+const updatePanelWinPosition = (win, width, height) => {
+	var left = win.left, top = win.top;
+	var oldW = win.width, oldH = win.height;
+	width = width || oldW;
+	height = height || oldH;
+	var right = left + width, bottom = top + height;
+
+	if (Math.abs(left + oldW - desktopWidth) <= 10) {
+		left = desktopWidth - width;
+	}
+	else {
+		let right = left + width;
+		if (right > desktopWidth) {
+			left -= right - desktopWidth;
+		}
+	}
+
+	if (Math.abs(top + oldH - desktopHeight) <= 10) {
+		top = desktopHeight - height;
+	}
+	else {
+		let bottom = top + height;
+		if (bottom > desktopHeight) {
+			top -= bottom - desktopHeight;
+		}
+	}
+
+	return [left, top, width, height];
+};
+const responseForCypriteOS = async details => {
+	const {tabId, url} = details;
+	if (!url.match(/https?:\/\/cyprite(\/(\w+)?)?/i)) return;
+
+	if (lastCypriteOSRequestTabId === tabId) return;
+	lastCypriteOSRequestTabId = tabId;
+
+	lastCypriteRequest = "";
+	chrome.tabs.remove(tabId);
+
+	const request = url.replace(/https?:\/\/cyprite\/?/i, '').split('/');
+	const params = {};
+	var isName = false;
+	request.forEach((item, idx) => {
+		isName = !isName;
+		if (isName) return;
+		const key = request[idx - 1];
+		var value = item * 1;
+		if (!isNaN(value)) {
+			item = value;
+		}
+		else {
+			value = item.toLowerCase();
+			if (item === 'true') {
+				item = true;
+			}
+			else if (item === 'false') {
+				item = false;
+			}
+		}
+		params[key] = item;
+	});
+	if (!!params.ctx) {
+		params.ctx = decodeURIComponent(params.ctx);
+		lastCypriteRequest = params.ctx;
+	}
+
+	let [cypritePanelWin, cypritePanelTab] = await findCypritePanel(); // Get Current Cyprite Panel
+	if (!cypritePanelTab) {
+		const option = {
+			url: '/pages/newtab.html?panel=true',
+			type: 'popup',
+			width: params.width || 1600,
+			height: params.height || 900,
+			focused: true
+		};
+		if (!!params.action && params.action !== "new") option.url = option.url + '&action=' + params.action;
+		if (isNumber(params.left)) {
+			option.left = params.left;
+			if (isNumber(params.width)) {
+				desktopWidth = params.left + params.width;
+			}
+		}
+		if (isNumber(params.top)) {
+			option.top = params.top;
+			if (isNumber(params.height)) {
+				desktopHeight = params.top + params.height;
+			}
+		}
+		chrome.windows.create(option);
+	}
+	else {
+		let pos = updatePanelWinPosition(cypritePanelWin, params.width, params.height);
+		const option = {
+			focused: true,
+			left: pos[0],
+			top: pos[1],
+			width: pos[2],
+			height: pos[3]
+		};
+		await Promise.all([
+			chrome.windows.update(cypritePanelTab.windowId, option),
+			chrome.tabs.sendMessage(cypritePanelTab.id, {
+				event: "appendCypriteOSRequest",
+				data: {
+					action: params.action,
+					content: params.ctx,
+				},
+				target: "HomeScreen",
+				sender: 'BackEnd',
+			})
+		]);
+	}
+};
+chrome.webRequest.onBeforeRequest.addListener(responseForCypriteOS, {urls: ["https://cyprite/*", "http://cyprite/*"]});
+chrome.webRequest.onBeforeSendHeaders.addListener(responseForCypriteOS, {urls: ["https://cyprite/*", "http://cyprite/*"]});
+chrome.webNavigation.onBeforeNavigate.addListener(responseForCypriteOS);
+EventHandler.AskForCypriteRequest = () => lastCypriteRequest;
 
 /* Init */
 
