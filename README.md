@@ -57,6 +57,14 @@ This extension (Cyprite) is divided into RESTRICTED version and FULL version. Th
 3. All prompts in the full version are more efficient and detailed, significantly maximizing the AI's capabilities and providing more valuable feedback;
 4. The full version can connect to more AI platforms and assign different AIs to different tasks based on various functions to complete tasks in the most efficient manner.
 
+All versions provide the following methods to invoke Cyprite Application (Cyprite应用）：
+
+- In-page service
+- Browser main entry (new page)
+- System Tray (requires installing **Cyprite Application** on Windows, and requires waiting for a period of time for Mac)
+- Text selection activation
+- Copy and cut activation
+
 ## How to Use
 
 ### Installation
@@ -91,7 +99,7 @@ The **"Knowledge Base"** tab is only available in the Full Version. Here you can
 
 In the **"About"** tab, in addition to information about this extension program, you'll also find the current token usage of various AI platforms, as well as options to export and import current configuration information.
 
-### Selecting Models
+### Models Selection
 
 After completing the setup, we can switch models by moving the mouse over the Cyprite avatar on the far left of the top navigation bar on the new page. The model selection bar will automatically pop up, allowing you to make your selection.
 
@@ -134,19 +142,38 @@ At the same time, all pages that have been summarized will have their informatio
 
 ![](./assets/readme2.png)
 
+### Browser Main Entry
 
-### New Page
+Another important entry point of Jiling is the browser's new tab page.
 
-Another important entry point for Cyprite is the browser's new page.
+In the new tab page, you can:
 
-On the new page, you can:
+- Select AI models
+- Entry for Configuration Page
+- Cyprite the Intelligent Assistant (Only the Full Version supports all features)
+- Intelligent Search
+- Cross-Page Conversations
+- Intelligent Translation
+- Writing Assistant
+- AI Q&A Helper
 
-- Choose AI models
-- Enter the configuration page
-- Perform intelligent searches
-- Engage in multi-page conversations
-- Access the full-featured intelligent assistant Cyprite (Full Version only)
-- Translate
+Meanwhile, this entry page is divided into two layout themes: the top horizontal navigation bar mode (referred to as "Horizontal Layout") and the left navigation bar mode (referred to as "Vertical Layout"), as well as "light" and "dark" color themes. In the Vertical Layout mode, we can also collapse the left navigation bar to make the appearance more concise. Both layout themes and color themes can be switched through the theme selection button in the upper right corner. In the Horizontal Layout, the switching buttons for layout themes and color themes will automatically hide and appear when the mouse hovers over the upper right corner of the page.
+
+**Horizontal Layout Dark Theme:**
+
+![](./assets/readme9.png)
+
+**Horizontal Layout Light Theme:**
+
+![](./assets/readme10.png)
+
+**Vertical Layout Dark Theme with Navigation Area Expanded:**
+
+![](./assets/readme11.png)
+
+**Vertical Layout Dark Theme with Navigation Area Collapsed:**
+
+![](./assets/readme12.png)
 
 #### Intelligent Search
 
@@ -169,7 +196,7 @@ After completing the search, analysis, and response in "Summary Result" and "Int
 
 In particular, the Full Version uses a set of CoT (Chain of Thought) prompts during the response process, making the replies more complete and rigorous.
 
-#### Multi-Page Conversation
+#### Cross-Page Conversation
 
 Here, you can select several webpages that Cyprite has previously summarized, and in the Full Version, if connected to a local knowledge base, you can also select local files from the knowledge base. Then you can have Cyprite engage in conversations within the scope of these materials.
 
@@ -177,7 +204,7 @@ Here, you can select several webpages that Cyprite has previously summarized, an
 
 In the Full Version, we have also prepared a set of CoT prompts for Cyprite to ensure that its responses are sufficiently impressive.
 
-#### Intelligent Assistant (Under Improvement)
+#### Cyprite the Intelligent Assistant (Only the Full Version supports all features)
 
 This is the Cyprite exclusive to the full version, which has an intelligent system that can self-iterate, self-learn, and automatically summarize experiences with CoT+PaC+PPE. It can learn your preferences, initiate conversations autonomously, engage in self-reflection and updates, and use numerous tools, including actively searching for information for you.
 
@@ -185,21 +212,56 @@ In future plans, we will also allow the intelligent assistant to load skill pack
 
 **Stay tuned!**
 
-#### Translation
+#### Intelligent Translation
 
-Here, Cyprite will perform "reflective translation" on long texts, which involves:
+There are three translation modes in intelligent translation, which will be automatically selected:
 
-1. Initial translation, primarily literal
-2. Reflection on the shortcomings and deficiencies in the initial translation, and proposing modifications
-3. Second translation based on the shortcomings and deficiencies identified and modifications proposed in step two, with more focus on fluent and free translation
+1. Dictionary Mode: Similar to a dictionary, it lists the parts of speech, usage, example sentences, and other relevant information of the words to be translated, facilitating your learning
+2. Simple Mode: Performs a single direct translation for simple sentences
+3. Careful Mode: First analyzes the type and usage scenario of the content, then performs an initial translation, analyzes the shortcomings and areas for improvement in the initial translation, and finally provides the final translation based on the results of these two steps
 
 ![](./assets/readme5.png)
+![](./assets/readme6.png)
 
 When you have provided APIKeys for more than one AI, the second step of reflection will try to choose a model different from the one you currently selected to ensure reflection from as many different perspectives as possible.
 
-Meanwhile, for short texts, "Dictionary Mode" will be automatically enabled, which provides explanations for given words, along with pronunciation, synonyms, antonyms, and example sentences among other dictionary information, making it convenient for you to learn various languages.
+#### Writing Assistant
 
-![](./assets/readme6.png)
+The writing assistant interface is divided into three main areas: the content editing area on the left, the article requirements area in the upper right, and the conversation area in the lower right.
+
+Cyprite will polish, modify, or even continue writing and rewrite the entire text based on the article requirements and conversation history.
+
+![](./assets/readme7.png)
+
+Meanwhile, we can adjust Cyprite's working mode through two switches at the top - "Direct Rewrite" and "Auto Rewrite": If "Direct Rewrite" is selected, Cyprite will apply all modification suggestions directly to the current text, allowing you to see the changes immediately; otherwise, you will only see Cyprite's modification suggestions in the conversation area and need to adjust manually. If "Auto Rewrite" is selected, Cyprite will automatically make adjustments to the current content if there are no further operations for a period of time after the user completes editing in the content editing area.
+
+### Local Application
+
+If you want Cyprite to better serve you, you can install the local application. Currently, the Windows version has been completed, while Linux and Mac versions will take some more time. **We will also provide mobile applications in the future, stay tuned!**
+
+![](./assets/readmeen5.png)
+![](./assets/readme8.png)
+
+The local application provides the following features:
+
+- System tray access
+- Word selection activation (toggleable)
+- Copy and cut activation (toggleable)
+- Automatically start on system boot (toggleable)
+- Local file reading and learning (under development)
+- Reading full or partial screen content (under development)
+- Local private data center (under development, and all data will only be used locally, never uploaded to the cloud)
+- Integration of mobile, local, and web data (under development)
+
+**Note:**
+
+- Windows version requires .Net 4.8 runtime support
+
+**How to obtain:**
+
+Users with full version access rights can obtain the source code from the `vsp` directory in the [REPO](https://github.com/AGIFOUNDATION/CyberButler) and compile or further develop it themselves (please comply with relevant open source licenses).
+
+Users without full version access rights can click [here](./assets/cyprite.windows.zip) to download the publicly available version.
 
 ## Shortcuts
 
