@@ -2,6 +2,7 @@ import "./ai/prompts.js";
 import "./ai/tools.js";
 import "./ai/gpt.js";
 import "./skills.js";
+import "./skills/pipeline.js";
 import "./ai/gemini.js";
 import "./ai/claude.js";
 import "./ai/groq.js";
@@ -287,7 +288,7 @@ const batchize = content => {
 	content = content.filter(block => !!block);
 	return content;
 };
-const callEdgeAI = async (tid, conversation, model, tools, toolList) => {
+const callEdgeAI = async (tid, conversation, model, tools, operationID) => {
 	// Duplicate conversation
 	conversation = conversation.map(item => {
 		var role = item[0], content = item[1];
@@ -312,7 +313,7 @@ const callEdgeAI = async (tid, conversation, model, tools, toolList) => {
 
 	var reply, errMsg;
 	try {
-		reply = await chatToAI(conversation, model, tools, tid);
+		reply = await chatToAI(conversation, model, tools, operationID || tid);
 		recordAIUsage(model, aiName, reply.usage);
 		let usage = {};
 		usage[model] = reply.usage;
@@ -320,6 +321,7 @@ const callEdgeAI = async (tid, conversation, model, tools, toolList) => {
 		reply = {
 			reply: reply.reply,
 			usage,
+			toolUsage: reply.toolUsage,
 		};
 	}
 	catch (err) {
@@ -384,31 +386,19 @@ EdgedAI.embeddingArticle = async (tid, data) => {
 	replyRequest(tid, reply, errMsg);
 };
 EdgedAI.directAskAI = async (tid, conversation) => {
-	var model = myInfo.model, tools, toolList;
+	var model = myInfo.model, tools, oid;
 	if (isObject(conversation)) {
 		model = conversation.model || model;
 		tools = conversation.tools;
-		toolList = conversation.toolList;
+		oid = conversation.operationID;
 		conversation = conversation.conversation;
 	}
 
-	callEdgeAI(tid, conversation, model, tools, toolList);
+	callEdgeAI(tid, conversation, model, tools, oid);
 };
 EdgedAI.translateSentence = async (tid, data) => {
 	var prompt = [];
 	prompt.push(['human', PromptLib.assemble(PromptLib.instantTranslation, data)]);
 
 	callEdgeAI(tid, prompt);
-};
-
-EdgedAI.sayHello = async (tid) => {
-	return;
-	var prompt = PromptLib.assemble(PromptLib.sayHello, {
-		lang: LangName[myInfo.lang],
-		name: myInfo.name,
-		info: myInfo.info,
-		time: timestmp2str(Date.now(), "YY年MM月DD日 :WDE: hh:mm"),
-	});
-
-	callEdgeAI(tid, [['human', prompt]]);
 };

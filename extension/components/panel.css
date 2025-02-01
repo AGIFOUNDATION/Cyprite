@@ -477,7 +477,8 @@ body.showCypriteAccess .cyprite_access {
 .panel_container .chat_history_area .chat_item:hover .operator_bar {
 	display: block;
 }
-.panel_container .chat_history_area .chat_item .operator_bar img {
+.panel_container .chat_history_area .chat_item .operator_bar img,
+.panel_container .chat_history_area .chat_item .code_title_bar img {
 	box-sizing: border-box !important;
 	width: 23px;
 	margin-left: 10px;
@@ -659,6 +660,12 @@ body.showCypriteAccess .cyprite_access {
 .cyprite_access .panel_logo img {
 	width: 100% !important;
 	height: 100% !important;
+	top: 0px !important;
+	left: 0px !important;
+	padding-top: 0px !important;
+	padding-bottom: 0px !important;
+	padding-left: 0px !important;
+	padding-right: 0px !important;
 	pointer-events: none;
 }
 .cyprite_access .quick_button {

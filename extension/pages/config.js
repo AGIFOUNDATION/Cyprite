@@ -1,5 +1,6 @@
 const PageName = 'ConfigPage';
 var currentTabId = 0;
+var isPanel = false;
 
 const saveConfig = async () => {
 	var localInfo = {
@@ -48,7 +49,8 @@ ActionCenter.saveConfig = async (ele, config) => {
 	renderI18N('configPage');
 };
 ActionCenter.goBack = () => {
-	location.href = `./newtab.html`;
+	if (isPanel) location.href = `./newtab.html?panel=true`;
+	else location.href = `./newtab.html`;
 };
 ActionCenter.resetUsage = async () => {
 	await chrome.storage.local.remove(['llm_usage_record', 'model_usage_record']);
@@ -219,7 +221,10 @@ const init = async () => {
 		getConfig(),
 	]);
 	const messages = I18NMessages[myInfo.lang] || I18NMessages.en;
+	const params = parseParams(location.href);
+
 	currentTabId = tab.id;
+	isPanel = !!params.panel;
 
 	// Force Server
 	if (ForceServer) {
@@ -265,7 +270,6 @@ const init = async () => {
 	showUsage('LLMList', usage.llm);
 	showUsage('ModelList', usage.model);
 
-	var params = parseParams(location.href);
 	if ((params.tab || '').toLowerCase() === 'about') {
 		changeTab('groupAboutUs');
 	}

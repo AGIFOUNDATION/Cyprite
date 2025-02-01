@@ -37,13 +37,22 @@
 		onUpdate (cb) {
 			this.cbUpdates.push(cb);
 		}
-		open (name, keyPath='id', indexes) {
+		open (name, keyPath='id', autoIncrement=false, indexes) {
 			if (!this.db.objectStoreNames.contains(name)) {
-				let store = this.db.createObjectStore(name, { keyPath });
+				let config = { keyPath };
+				if (autoIncrement) config.autoIncrement = true;
+				let store = this.db.createObjectStore(name, config);
 				store.createIndex(keyPath, keyPath, { unique: true });
 				if (!!indexes && indexes.length > 0) {
 					indexes.forEach(idx => {
-						store.createIndex(idx, idx, { unique: false });
+						let config;
+						if (isArray(idx)) {
+							config = Objest.assign({ unique: false }, idx[1] || {});
+						}
+						else {
+							config = { unique: false };
+						}
+						store.createIndex(idx, idx, config);
 					});
 				}
 			}
@@ -70,14 +79,20 @@
 				};
 			});
 		}
-		get (store, key) {
+		get (store, key, index) {
 			return new Promise((res, rej) => {
 				var tx = this.db.transaction([store], "readonly");
 				// var tx = this.db.transaction([store], "readwrite");
 				if (!tx) rej(new Error('Open IndexedDB Transaction Failed: ' + store));
 				var cache = tx.objectStore(store);
 				if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: ' + store));
-				var index = cache.index(cache.keyPath);
+				try {
+					index = cache.index(index || cache.keyPath);
+				}
+				catch (err) {
+					rej(err);
+					return;
+				}
 
 				var result = index.get(key);
 				result.onsuccess = evt => {

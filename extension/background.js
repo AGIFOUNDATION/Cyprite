@@ -1,10 +1,12 @@
-import "./components/jsrsasign.all.min.js";
+import "./components/jose/index.js";
 import "./script/i18n.js";
 import "./script/ai/config.js";
 import "./script/ai/common.js";
 import "./script/common.js";
 import "./script/cachedDB.js";
 import "./script/ai.js";
+import "./script/syntax.js";
+import "./script/cyprite.js";
 
 const UtilList = {
 	notification: {
@@ -83,45 +85,22 @@ globalThis.getWSConfig = async () => {
 
 	return localInfo.wsHost;
 };
-const callLLMOneByOne = async (modelList, conversation, tools, needParse=true, tag="CallAI") => {
-	var reply, usage = {};
-
-	for (let model of modelList) {
-		let time = Date.now();
-		try {
-			reply = await callAIandWait('directAskAI', {
-				conversation,
-				model,
-				tools,
-			});
-			if (!!reply) {
-				usage = reply.usage || {};
-				reply = reply.reply || '';
-			}
-			else {
-				reply = '';
-			}
-		}
-		catch (err) {
-			reply = null;
-			logger.error(tag + ': ' + model, err);
-			continue;
-		}
-		time = Date.now() - time;
-		logger.info(tag, model + ' : ' + time + 'ms');
-		if (needParse) {
-			reply = parseReplyAsXMLToJSON(reply);
-		}
-		break;
-	}
-
-	return {reply, usage};
-};
 
 /* DB */
 
-const DBs = {};
+globalThis.DBs = {};
 const initDB = async () => {
+	const getAllInStore = (store, index) => new Promise((res) => {
+		const request = store.getAll(index);
+		request.onsuccess = evt => {
+			res(evt.target.result);
+		};
+		request.onerror = err => {
+			logger.error('IndexedDB', err);
+			res([]);
+		};
+	});
+
 	const dbPageInfos = new CachedDB("PageInfos", 1);
 	dbPageInfos.onUpdate((evt) => {
 		if (evt.oldVersion === 0) {
@@ -133,10 +112,8 @@ const initDB = async () => {
 		logger.info('DB[PageInfo]', 'Updated');
 	});
 	dbPageInfos.onConnect(() => {
-		globalThis.dbPageInfos = dbPageInfos; // test
 		logger.info('DB[PageInfo]', 'Connected');
 	});
-
 	await dbPageInfos.connect();
 	DBs.pageInfo = dbPageInfos;
 
@@ -148,12 +125,177 @@ const initDB = async () => {
 		logger.info('DB[SearchRecord]', 'Updated');
 	});
 	dbSearchRecord.onConnect(() => {
-		globalThis.dbSearchRecord = dbSearchRecord; // test
 		logger.info('DB[SearchRecord]', 'Connected');
 	});
-
 	await dbSearchRecord.connect();
 	DBs.searchRecord = dbSearchRecord;
+
+	const dbCypriteConversation = new CachedDB("Cyprite", 1);
+	dbCypriteConversation.onUpdate((evt) => {
+		if (evt.oldVersion === 0) {
+			dbCypriteConversation.open('conversation', 'id', true, [
+				// ['topic', {multiEntry: true}],
+				'topic',
+				'timestamp'
+			]);
+			dbCypriteConversation.open('info', 'key');
+		}
+		logger.info('DB[Cyprite]', 'Updated');
+	});
+	dbCypriteConversation.onConnect(() => {
+		logger.info('DB[Cyprite]', 'Connected');
+	});
+	dbCypriteConversation.appendConversation = (role, content, topic, timestamp) => new Promise((res, rej) => {
+		timestamp = timestamp || Date.now();
+		try {
+			const tx = dbCypriteConversation.db.transaction(["conversation"], "readwrite");
+			if (!tx) rej(new Error('Open IndexedDB Transaction Failed: conversation'));
+			const store = tx.objectStore("conversation");
+			if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: conversation'));
+
+			const record = {
+                role,
+                content,
+                topic,
+                timestamp,
+				time: timestmp2str(timestamp, "YYYY/MM/DD hh:mm:ss :WDE:"),
+            };
+			const request = store.add(record);
+			request.onsuccess = () => res(record);
+            request.onerror = () => rej(request.error);
+		}
+		catch (err) {
+			rej(err);
+		}
+	});
+	dbCypriteConversation.appendConversations = list => new Promise((res, rej) => {
+		try {
+			const tx = dbCypriteConversation.db.transaction(["conversation"], "readwrite");
+			if (!tx) rej(new Error('Open IndexedDB Transaction Failed: conversation'));
+			const store = tx.objectStore("conversation");
+			if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: conversation'));
+
+			list.forEach(item => {
+				item.timestamp = item.timestamp || Date.now();
+				item.time = timestmp2str(item.timestamp, "YYYY/MM/DD hh:mm:ss :WDE:");
+				store.add(item);
+			});
+
+			tx.oncomplete = () => res();
+			tx.onerror = (event) => rej(event.target.error);
+		}
+		catch (err) {
+			rej(err);
+		}
+	});
+	dbCypriteConversation.updateConversations = list => new Promise((res, rej) => {
+		try {
+			const tx = dbCypriteConversation.db.transaction(["conversation"], "readwrite");
+			if (!tx) rej(new Error('Open IndexedDB Transaction Failed: conversation'));
+			const store = tx.objectStore("conversation");
+			if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: conversation'));
+
+			list.forEach(item => {
+				store.put(item);
+			});
+
+			tx.oncomplete = () => res();
+			tx.onerror = (event) => rej(event.target.error);
+		}
+		catch (err) {
+			rej(err);
+		}
+	});
+	dbCypriteConversation.getConversationByTopics = async (topics, count) => {
+		try {
+			const tx = dbCypriteConversation.db.transaction(["conversation"], "readonly");
+			if (!tx) rej(new Error('Open IndexedDB Transaction Failed: conversation'));
+			const store = tx.objectStore("conversation");
+			if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: conversation'));
+
+			let records;
+			if (!isArray(topics) || !topics.length) {
+				records = await getAllInStore(store);
+			}
+			else {
+				let topicList = [];
+				topics.forEach(topic => {
+					if (topicList.includes(topic)) return;
+					topicList.push(topic);
+				});
+				const topicIndex = store.index('topic');
+				const allRecords = await Promise.all(topicList.map(async topic => {
+					let list = await getAllInStore(topicIndex, topic);
+					return list;
+				}));
+				records = [];
+				let ids = [];
+				allRecords.forEach(list => {
+					list.forEach(item => {
+						if (ids.includes(item.id)) return;
+						ids.push(item.id);
+						records.push(item);
+					});
+				});
+				if (records.length === 0) {
+					records = await getAllInStore(store);
+				}
+			}
+
+			records.sort((a, b) => b.timestamp - a.timestamp);
+			if (count > 0 && records.length > count) {
+				records.splice(count);
+			}
+			return records;
+		}
+		catch (err) {
+			logger.error('DBCyprite', err);
+			return [];
+		}
+	};
+	dbCypriteConversation.getInfo = async () => {
+		try {
+			const tx = dbCypriteConversation.db.transaction(["info"], "readonly");
+			if (!tx) rej(new Error('Open IndexedDB Transaction Failed: info'));
+			const store = tx.objectStore("info");
+			if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: info'));
+
+			const index = store.index('key');
+			const result = await getAllInStore(index);
+			const info = {};
+			result.forEach(item => {
+				info[item.key] = item.value;
+			});
+
+			return info;
+		}
+		catch (err) {
+			logger.error('DBCyprite', err);
+			return {};
+		}
+	};
+	dbCypriteConversation.setInfo = info => new Promise((res, rej) => {
+		try {
+			const tx = dbCypriteConversation.db.transaction(["info"], "readwrite");
+			if (!tx) rej(new Error('Open IndexedDB Transaction Failed: info'));
+			const store = tx.objectStore("info");
+			if (!store) rej(new Error('Open IndexedDB ObjectStore Failed: info'));
+
+			for (let key in info) {
+				let value = info[key];
+				let item = {key, value};
+				store.put(item);
+			}
+
+			tx.oncomplete = () => res();
+			tx.onerror = (event) => rej(event.target.error);
+		}
+		catch (err) {
+			rej(err);
+		}
+	});
+	await dbCypriteConversation.connect();
+	DBs.cyprite = dbCypriteConversation;
 };
 if (!globalThis.DefaultSendMessage) globalThis.DefaultSendMessage = () => {};
 if (!globalThis.sendMessage) globalThis.sendMessage = DefaultSendMessage;
@@ -1194,7 +1336,7 @@ AIHandler.getSearchKeyWord = async (request) => {
 	conversation.push(['human', PromptLib.assemble(PromptLib.analyzeSearchKeyWords, {tasks: request, time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")})]);
 
 	var modelList = getFunctionalModelList('analyzeSearchKeywords');
-	var keywords = (await callLLMOneByOne(modelList, conversation, null, true, 'SearchKeywords'));
+	var keywords = await callLLMOneByOne(modelList, conversation, null, true, 'SearchKeywords');
 	updateUsage(usage, keywords.usage);
 	keywords = keywords.reply || {};
 	['search', 'arxiv', 'wikipedia', 'philosophy'].forEach(tag => {
@@ -1301,8 +1443,8 @@ EventHandler.SearchGoogle = async (keywords) => {
 				if (!url.match(/^(f|ht)tps?/)) continue;
 				let params = parseParams(url);
 				for (let key in params) {
-					let value = params[key];
-					if (value.match(/^https?/i)) {
+					let value = params[key] || '';
+					if (!!value.match && value.match(/^https?/i)) {
 						url = decodeURI(value);
 						break;
 					}
@@ -1373,14 +1515,8 @@ AIHandler.callLLMForSearch = async (quest) => {
 	for (let model of SearchAIModel) {
 		if (!AI[model] || !AI[model].search) continue;
 
-		let ai = model.toLowerCase();
-		if (ai === 'ernie') {
-			let key = myInfo.apiKey[ai];
-			if (!key || !key.api || !key.secret) continue;
-		}
-		else {
-			if (!myInfo.apiKey[ai]) continue;
-		}
+		let usability = checkModelUsability(model);
+		if (!usability) continue;
 
 		let searchResult;
 		try {
@@ -1589,6 +1725,11 @@ EventHandler.SearchSimilarArticleForCurrentPage = async (url) => {
 		reply = reply.reply || {};
 		// Refresh article info
 		articleInfo = await DBs.pageInfo.get('pageInfo', key);
+		if (!articleInfo) {
+			articleInfo = {
+				content: "(No Content)",
+			};
+		}
 		// Update article info
 		articleInfo.category = parseArray(reply.category);
 		articleInfo.keywords = parseArray(reply.keywords);
@@ -1874,15 +2015,27 @@ const removeAIChatHistory = async (tid) => {
 };
 
 AIHandler.sayHello = async () => {
+	return;
 	var currentDate = timestmp2str('YYYY/MM/DD');
 	var lastHello = await chrome.storage.session.get('lastHello');
 	lastHello = lastHello.lastHello;
 	if (!!lastHello && lastHello === currentDate) return;
 	await chrome.storage.session.set({lastHello: currentDate});
 
-	var reply = await callAIandWait('sayHello');
-	reply = reply.reply; // test
-	showSystemNotification(reply);
+	const conversation = [['human', PromptLib.assemble(PromptLib.sayHello, {
+		lang: LangName[myInfo.lang],
+		name: myInfo.name,
+		info: myInfo.info,
+		time: timestmp2str(Date.now(), "YY年MM月DD日 :WDE: hh:mm"),
+	})]];
+	const modelList = getFunctionalModelList('quicklyCyprite');
+
+	var greet = await callLLMOneByOne(modelList, conversation, null, false, 'CypriteGreet');
+	greet = (greet || {}).reply;
+	if (!!greet) {
+		chrome.storage.session.set({cypriteGreet: greet});
+		showSystemNotification(greet);
+	}
 };
 AIHandler.summarizeArticle = async (data) => {
 	var available = await checkAvailability();
@@ -2191,20 +2344,20 @@ AIHandler.translateAndInterpretation = async (data, source, sid) => {
 		convertListToTable(entry.synonyms, messages.dictionary.hintItemSynonyms, item);
 		convertListToTable(entry.antonyms, messages.dictionary.hintItemAntonyms, item);
 
-		let list = json.translationentries;
+		let list = json.translationentries?.entry;
 		if (!!list) {
+			if (!isArray(list)) list = [list];
 			entry = [];
 			entry.push('#### ' + messages.dictionary.hintTranslation + '\n');
-			(list._origin || '').replace(/<entry>\s*([\w\W]+?)\s*<\/entry>/gi, (m, ctx) => {
-				var json = parseReplyAsXMLToJSON(ctx);
+			list.forEach(ent => {
 				let item = [];
 				item.push('|　|　|');
 				item.push('|-|-|');
-				convertListToTable(json.partofspeech, messages.dictionary.hintItemPartOfSpeech, item);
-				convertListToTable(json.translation, messages.dictionary.hintItemTranslation, item);
-				convertListToTable(json.pronunciation, messages.dictionary.hintItemPronunciation, item);
-				convertListToTable(json.usage, messages.dictionary.hintItemUsage, item);
-				convertListToTable(json.examples, messages.dictionary.hintItemExample, item);
+				convertListToTable(ent.partofspeech, messages.dictionary.hintItemPartOfSpeech, item);
+				convertListToTable(ent.translation, messages.dictionary.hintItemTranslation, item);
+				convertListToTable(ent.pronunciation, messages.dictionary.hintItemPronunciation, item);
+				convertListToTable(ent.usage, messages.dictionary.hintItemUsage, item);
+				convertListToTable(ent.examples, messages.dictionary.hintItemExample, item);
 				entry.push(item.join('\n'));
 			});
 			item.push('');
@@ -2248,8 +2401,8 @@ AIHandler.replyBasedOnSearch = async (data) => {
 	var prompt = PromptLib.assemble(PromptLib.replyBasedOnSearch, {
 		lang: LangName[myInfo.lang] || myInfo.lang,
 		request: data.request,
+		webpages: data.webpages,
 	});
-	prompt = PromptLib.assembleLongContent(prompt, 'webpages', data.webpages);
 
 	var conversation = [['human', prompt]];
 	logger.info('ReplyBasedOnSearch', 'Prompt Assembled', conversation);
@@ -2305,7 +2458,7 @@ AIHandler.raedAndReply = async (data) => {
 	var result = await callAIandWait('directAskAI', request), usage = {};
 	if (!!result) {
 		updateUsage(usage, result.usage);
-		result = result.reply || result;
+		if (result.reply !== undefined) result = result.reply;
 	}
 	let parsed = parseReplyAsXMLToJSON(result);
 	parsed.summary = parsed.summary?._origin || parsed.summary || '';
@@ -2737,6 +2890,7 @@ const findRelativeArticles = async (data, source, sid) => {
 };
 
 /* For QuickMenu of OS */
+
 var lastCypriteOSRequestTabId = null;
 var lastCypriteRequest = "";
 var desktopWidth = -1, desktopHeight = -1;
@@ -2875,7 +3029,12 @@ EventHandler.AskForCypriteRequest = () => lastCypriteRequest;
 
 /* Init */
 
-initDB();
+(async () => {
+	let tasks = [];
+	tasks.push(initDB());
+	await Promise.all(tasks);
+}) ();
+
 // initInjectScript();
 chrome.storage.local.remove('searchHistory'); // clear old version cache (1.0.0)
 

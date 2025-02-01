@@ -28,7 +28,7 @@ const convertItem = (role, ctx) => {
 	}
 	return entry;
 };
-const assembleConversation = conversation => {
+const assembleConversation = (conversation, model, tools) => {
 	const data = { messages: [] };
 	const toolUses = [];
 	conversation.forEach(item => {
@@ -40,14 +40,17 @@ const assembleConversation = conversation => {
 		if (item[0] === 'system') {
 			data.system = item[1];
 		}
-		else if (item[0] === 'human') {
+		else if (item[0] === 'human' || item[0] === 'inner') {
 			data.messages.push(convertItem('user', item[1]));
 		}
 		else if (item[0] === 'ai') {
 			data.messages.push(convertItem('assistant', item[1]));
 		}
 		else if (item[0] === 'call') {
+			if (NoToolModels.includes(model)) return;
 			let ctx = item[1][0];
+			let has = tools.some(tool => tool.name === ctx.name);
+			if (!has) return;
 			data.messages.push(convertItem('assistant', {
 				"type": "tool_use",
 				"id": ctx.id,
@@ -56,6 +59,9 @@ const assembleConversation = conversation => {
 			}));
 		}
 		else if (item[0] === 'tool') {
+			if (NoToolModels.includes(model)) return;
+			let has = tools.some(tool => tool.name === item[1].name);
+			if (!has) return;
 			toolUses.push({
 				"type": "tool_result",
 				"tool_use_id": item[1].id,
@@ -90,7 +96,8 @@ AI.Claude.chat = async (conversation, model=DefaultChatModel, tools=[], tid) => 
 	const request = { method: "POST" };
 	const url = "https://api.anthropic.com/v1/messages";
 
-	tools = AI.prepareToolList(tools);
+	if (NoToolModels.includes(model)) tools = [];
+	else tools = AI.prepareToolList(tools);
 	request.headers = Object.assign({}, ModelDefaultConfig.Claude.header, (ModelDefaultConfig[model] || {}).header || {});
 	request.headers["x-api-key"] = myInfo.apiKey.claude;
 
@@ -99,7 +106,7 @@ AI.Claude.chat = async (conversation, model=DefaultChatModel, tools=[], tid) => 
 	appendToolsToRequest(data, tools);
 
 	return await sendRequestAndWaitForResponse('Claude', model, conversation, url, request, () => {
-		Object.assign(data, assembleConversation(conversation));
+		Object.assign(data, assembleConversation(conversation, model, tools));
 		request.body = JSON.stringify(data);
 	}, tools, tid);
 };

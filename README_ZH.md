@@ -112,13 +112,13 @@ $$
 - **Mistral**：open-mixtral-8x22b，open-mistral-7b，open-mistral-nemo，pixtral-12b-latest，open-codestral-mamba
 - **Groq**：gemma2-9b-it，llama3-groq-70b-8192-tool-use-preview，llama-3.1-70b-versatile，llama-3.2-90b-vision-preview
 - **MoonShot**（仅限完整版）：moonshot-v1-auto，moonshot-web-search
-- **DeepSeek**（仅限完整版）：deepseek-chat，deepseek-coder
+- **DeepSeek**（仅限完整版）：deepseek-chat，deepseek-reasoner
 - **GLM**（仅限完整版）：glm-4-plus，glm-4-long，glm-4-flash，glm-web-search-pro
 - **MiniMax**（仅限完整版）：abab6.5s-chat
 - **Qwen**（仅限完整版）：qwen-max，qwen-long，qwen-turbo
 - **Ernie**（仅限完整版）：ernie-4.0-8k
 
-大部分模型都是可选的，而部分模型只能在完整版中被隐藏式地使用，比如写代码时会调用 `open-codestral-mamba` 、 `deepseek-coder` 等。
+大部分模型都是可选的，而部分模型只能在完整版中被隐藏式地使用，比如写代码时会调用 `open-codestral-mamba` 、 `deepseek-reasoner` 等。
 
 ![](./assets/readme1.webp)
 

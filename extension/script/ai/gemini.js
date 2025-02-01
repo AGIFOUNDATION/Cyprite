@@ -6,7 +6,6 @@ globalThis.AI.Gemini = {};
 const DefaultChatModel = AI2Model.gemini[0];
 const DefaultSearchModel = "gemini-1.5-flash-002";
 const DefaultEmbeddingModel = 'text-embedding-004';
-const NoToolGeminiModels = ['gemini-exp-1121'];
 
 const combineObject = (...objs) => {
 	var keys = [];
@@ -55,7 +54,7 @@ const getRequestPackage = (model, action) => {
 	var request = combineObject(ModelDefaultConfig.Gemini[action], (ModelDefaultConfig[model]|| {})[action] || {});
 	return request;
 };
-const assembleConversation = conversation => {
+const assembleConversation = (conversation, model, tools) => {
 	var sp = '';
 	var prompt = [];
 	conversation.forEach(item => {
@@ -66,7 +65,7 @@ const assembleConversation = conversation => {
 				}
 			};
 		}
-		else if (item[0] === 'human') {
+		else if (item[0] === 'human' || item[0] === 'inner') {
 			prompt.push({
 				role: "user",
 				parts: [
@@ -87,6 +86,9 @@ const assembleConversation = conversation => {
 			});
 		}
 		else if (item[0] === 'call') {
+			if (NoToolModels.includes(model)) return;
+			let has = tools.some(tool => tool.name === item[1][0].name);
+			if (!has) return;
 			prompt.push({
 				role: "model",
 				parts: [
@@ -100,6 +102,9 @@ const assembleConversation = conversation => {
 			});
 		}
 		else if (item[0] === 'tool') {
+			if (NoToolModels.includes(model)) return;
+			let has = tools.some(tool => tool.name === item[1].name);
+			if (!has) return;
 			prompt.push({
 				role: "user",
 				parts: [
@@ -190,8 +195,8 @@ AI.Gemini.chat = async (conversation, model=DefaultChatModel, tools = [], tid) =
 	const request = { method: "POST" };
 	const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ':generateContent?key=' + myInfo.apiKey.gemini;
 
-	if (NoToolGeminiModels.includes(model)) tools = null;
-	tools = AI.prepareToolList(tools);
+	if (NoToolModels.includes(model)) tools = [];
+	else tools = AI.prepareToolList(tools);
 	var originRequest = getRequestPackage(model, 'chat');
 	request.header = getRequestHeader(model);
 	appendToolsToRequest(originRequest, tools);
@@ -201,7 +206,7 @@ AI.Gemini.chat = async (conversation, model=DefaultChatModel, tools = [], tid) =
 	else tag = 'gemini-1.5-flash';
 
 	return await sendRequestAndWaitForResponse('Gemini', tag, conversation, url, request, () => {
-		Object.assign(originRequest, assembleConversation(conversation));
+		Object.assign(originRequest, assembleConversation(conversation, model, tools));
 		request.body = JSON.stringify(originRequest);
 	}, tools, tid);
 };
@@ -220,7 +225,7 @@ AI.Gemini.search = async (topic, model=DefaultSearchModel) => {
 			dynamic_threshold: 0, // Always search google
 		}
 	}}];
-	Object.assign(originRequest, assembleConversation(conversation));
+	Object.assign(originRequest, assembleConversation(conversation, model, tools));
 	request.body = JSON.stringify(originRequest);
 
 	const usage = { count: 0, input: 0, output: 0 };

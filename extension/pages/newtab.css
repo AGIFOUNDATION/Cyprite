@@ -52,6 +52,13 @@ body {
 	color: white;
 }
 
+svg {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	overflow: auto;
+}
+
 .themePanel {
 	position: fixed;
 	top: 0px;
@@ -188,6 +195,9 @@ body[layout="column"] .themePanel > .inner {
 	background-color: rgba(37, 61, 36, 1.0);
 	transition: background-color cubic-bezier(0.5, 0.1, 0.3, 1) 250ms;
 }
+.panel_operation_area .content_container .chat_item.human:last-child {
+	margin-right: 30px;
+}
 .panel_operation_area .content_container .chat_item.ai {
 	margin-right: 50px;
 	background-color: var(--background-color);
@@ -247,7 +257,8 @@ body[layout="column"][theme="dark"] .panel_operation_area .content_container .ch
 	margin-top: 5px;
 	margin-bottom: 5px;
 }
-.panel_operation_area .content_container .chat_item .chat_content img {
+.panel_operation_area .content_container .chat_item .chat_content img,
+.panel_operation_area .content_container .chat_item .chat_content video {
 	max-width: 100%;
 }
 .panel_operation_area .content_container .chat_item .operator_bar {
@@ -715,6 +726,9 @@ body[layout="column"][theme="dark"] .panel_operation_area .content_container .ch
 	right: 0px;
 	font-size: 10px;
 	color: darkgray;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 	pointer-events: none;
 }
 .panel_operation_area .search_records .search_record_panel .search_record_item .item_desc {
@@ -982,6 +996,25 @@ body[layout="column"][theme="dark"] .panel_container .panel_operation_area .requ
 }
 .panel_container .panel_operation_area .infoArea span:last-child {
 	margin-right: 0px;
+}
+.panel_container .panel_operation_area .navbar {
+	position: fixed;
+	right: 10px;
+	bottom: 70px;
+}
+.panel_container .panel_operation_area .navbar > div {
+	opacity: 0.6;
+	cursor: pointer;
+}
+.panel_container .panel_operation_area .navbar > div:first-child {
+	margin-bottom: 10px;
+}
+.panel_container .panel_operation_area .navbar > div:hover {
+	opacity: 1.0;
+}
+.panel_container .panel_operation_area .navbar > div > img {
+	width: 28px;
+	height: 28px;
 }
 
 body > div.router {

@@ -295,11 +295,10 @@ const updateModelList = async (model) => {
 		}
 	});
 };
-const addChatItem = (target, content, type, cid, need=false, animate=false) => {
+const addChatItem = (target, content, type, cid, needOperator=false, animate=false) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 
 	const container = document.body.querySelector('.panel_operation_area[group="' + target + '"] .content_container');
-	const needOperator = need && ['crossPageConversation', 'freelyConversation'].includes(target);
 
 	const item = newEle('div', 'chat_item');
 	var isOther = false;
@@ -308,9 +307,10 @@ const addChatItem = (target, content, type, cid, need=false, animate=false) => {
 
 	const titleBar = newEle('div', "chat_title");
 	const buttons = [];
-	var animation;
+	var animation, cancelable = false;
 	if (animate) animation = "enterFromLeft 350ms cubic-bezier(0.5, 0.1, 0.3, 1) 1";
 	if (type === 'human') {
+		cancelable = true;
 		item.classList.add('human');
 		if (!!myInfo.name) {
 			let comma = messages.conversation.yourTalkPrompt.substr(messages.conversation.yourTalkPrompt.length - 1, 1);
@@ -325,6 +325,7 @@ const addChatItem = (target, content, type, cid, need=false, animate=false) => {
 		if (animate) animation = "enterFromRight 350ms cubic-bezier(0.5, 0.1, 0.3, 1) 1";
 	}
 	else if (type === 'cyprite') {
+		cancelable = true;
 		item.classList.add('ai');
 		titleBar.innerText = messages.cypriteName + ':';
 		if (needOperator) buttons.push('<img button="true" action="reAnswerRequest" src="../images/rotate.svg">');
@@ -347,6 +348,15 @@ const addChatItem = (target, content, type, cid, need=false, animate=false) => {
 		cap.innerText = content[0];
 		titleBar.appendChild(cap);
 		content = content[1];
+		isOther = true;
+	}
+	else if (type === 'emotion') {
+		item.classList.add('other');
+		item.classList.add('process');
+		let cap = newEle('span', 'caption');
+		cap.innerText = content;
+		titleBar.appendChild(cap);
+		content = '';
 		isOther = true;
 	}
 	else if (type === 'process') {
@@ -393,6 +403,9 @@ const addChatItem = (target, content, type, cid, need=false, animate=false) => {
 			item.appendChild(contentPad);
 		}
 	}
+	else if (cancelable) {
+		return;
+	}
 
 	if (buttons.length > 0) {
 		const operatorBar = newEle('div', 'operator_bar');
@@ -408,6 +421,8 @@ const addChatItem = (target, content, type, cid, need=false, animate=false) => {
 	}
 	container.appendChild(item);
 	wait(60).then(() => {
+		let toBottom = container.scrollHeight - container.scrollTop;
+		if (toBottom <= 50) return;
 		container.scrollTop = container.scrollHeight - container.offsetHeight
 	});
 
@@ -525,23 +540,27 @@ const downloadConversation = async () => {
 		Notification.show('', messages.crossPageConv.hintConversationDownloaded, 'middleTop', 'success');
 	}
 };
-const restoreConversation = (conversation, mode, start=0) => {
+const restoreConversation = (conversation, mode, start=0, needOperator=true) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 
 	conversation.forEach((item, i) => {
 		if (i < start) return;
-		var content = item[1] || '', type = item[0];
+		let content = item[1] || '', type = item[0], extra, extraType;
 		if (type === 'human') {
 			content = content.replace(/\s*\(Time: \d{1,4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}(:\d{1,2})?\s+\w*?\)\s*$/, '');
 		}
 		else if (type === 'ai') {
 			type = 'cyprite';
 			const json = parseReplyAsXMLToJSON(content);
-			const strategy = json.strategy;
-			if (!!strategy) {
-				addChatItem(mode, [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint');
+			if (!!json.emotion) {
+				addChatItem(mode, PromptLib.assemble(messages.freeCyprite.hintEmotion, {emotion: json.emotion}), 'emotion');
 			}
-			content = json.reply?._origin ||json.reply || content.replace(/\s*<strategy>[\w\W]*?<\/strategy>\s*/i, '\n\n').trim();
+			if (!!json.strategy) {
+				addChatItem(mode, [messages.freeCyprite.hintThinkingStrategy, json.strategy], 'hint');
+			}
+			content = json.reply?._origin ||json.reply || content.replace(/\s*<(\w+)>[\w\W]*?<\/\1>\s*/i, '\n\n').trim();
+			extra = json.more?._origin || json.more;
+			extraType = type;
 		}
 		else if (type === 'call') {
 			(item[1] || []).forEach(item => {
@@ -552,7 +571,10 @@ const restoreConversation = (conversation, mode, start=0) => {
 		else {
 			return;
 		}
-		addChatItem(mode, content, type, item[2], true);
+		addChatItem(mode, content, type, item[2], needOperator);
+		if (!!extra) {
+			addChatItem(mode, extra, extraType, undefined, true);
+		}
 	});
 };
 const resizeCurrentInputter = () => {
@@ -1015,7 +1037,7 @@ ActionCenter.reAnswerRequest = async (target, ui) => {
 	}
 	tempConversation.splice(0);
 	notify._hide();
-	showTokenUsage(usage);
+	if (!isPanel) showTokenUsage(usage);
 	running = false;
 };
 ActionCenter.changeRequest = async (target, ui) => {
@@ -1154,21 +1176,52 @@ const findLatestHumanChat = (conversation) => {
 		if (item[0] === 'human') return item;
 	}
 };
+const findLatestChats = (conversation) => {
+	var results = [];
+	for (let i = conversation.length - 1; i >= 0; i --) {
+		let item = conversation[i];
+		results.unshift(item);
+		if (item[0] === 'human') {
+			break;
+		}
+	}
+	return results;
+};
 
 /* Free Cyprite */
 
 const switchToFreeCyprite = async () => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
 	// Force to update all conversation history
 	const content = document.body.querySelector('.panel_operation_area[group="' + currentMode + '"] .content_container');
 	for (let item of content.querySelectorAll('.chat_item')) {
 		item.parentElement.removeChild(item);
 	}
 
-	var conversation = await chrome.storage.session.get(TagFreeCypriteConversation);
-	conversation = (conversation || {})[TagFreeCypriteConversation] || [];
-	if (conversation.length === 0) return;
+	let data, conversation, needOperator = true;
+	if (PromptLib.useUltraCyprite) {
+		let conv;
+		[conv, data] = await Promise.all([
+			askSWandWait('restoreCypriteConversation'),
+			chrome.storage.session.get(['cypriteGreet']),
+		]);
+		data = data || {};
+		needOperator = false;
+		conversation = [];
+		conv.forEach(item => {
+			conversation.push(item);
+		});
+	}
+	else {
+		data = (await chrome.storage.session.get([TagFreeCypriteConversation, 'cypriteGreet'])) || {};
+		conversation = data[TagFreeCypriteConversation] || [];
+	}
+	const greet = data.cypriteGreet || messages.freeCyprite.hintGreet;
+	addChatItem('freelyConversation', greet, 'cyprite');
 
-	restoreConversation(conversation, 'freelyConversation');
+	if (conversation.length === 0) return;
+	restoreConversation(conversation, 'freelyConversation', 0, needOperator);
 };
 const downloadFreeConversation = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
@@ -1209,6 +1262,14 @@ const downloadFreeConversation = async () => {
 	}
 };
 const askFreeCyprite = async (content, usage, cid) => {
+	if (PromptLib.useUltraCyprite) {
+		return await askFreeCypriteUltraly(content, usage, cid);
+	}
+	else {
+		return await askFreeCypriteSimply(content, usage, cid);
+	}
+};
+const askFreeCypriteSimply = async (content, usage, cid) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 
 	var conversation = await chrome.storage.session.get(TagFreeCypriteConversation);
@@ -1270,6 +1331,73 @@ const askFreeCyprite = async (content, usage, cid) => {
 	}
 
 	return [result, conversation];
+};
+const askFreeCypriteUltraly = async (content, usage, cid) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	let conversation = await askSWandWait('restoreCypriteConversation');
+
+	const taskID = newID();
+	TaskCategory.set(taskID, 'freelyConversation');
+	let reply, items;
+	try {
+		[reply, items] = await askSWandWait('askCyprite', {content, taskID});
+	}
+	catch (err) {
+		logger.error('FreeCyprite', err);
+		err = err.message || err.msg || err.data || err.toString();
+		Notification.show('', err, "middleTop", 'error');
+		return [null, []];
+	}
+	TaskCategory.delete(taskID);
+
+	if (!!reply.usage) {
+		updateUsage(usage, reply.usage);
+	}
+	if (!reply.result.reply.reply) {
+		if (!!reply.error) {
+			Notification.show('', reply.error, "middleTop", 'error');
+		}
+		return ['', null];
+	}
+	if (reply.result.reply.refuse) {
+		addChatItem('freelyConversation', reply.result.reply.reply, 'ai', undefined, undefined, true);
+		return [null, conversation];
+	}
+	conversation.push(['human', content, cid]);
+	const result = ['<reply>\n' + reply.result.reply.reply + '\n</reply>'];
+	if (!!reply.result.reply.strategy) {
+		result.unshift('<strategy>\n' + reply.result.reply.strategy + '\n</strategy>');
+		addChatItem('freelyConversation', [messages.freeCyprite.hintThinkingStrategy, reply.result.reply.strategy], 'hint', undefined, false, true);
+	}
+	if (!!reply.result.reply.more) {
+		let more = reply.result.reply.more;
+		result.push('<more>\n' + more + '\n</more>');
+		wait(1000 + Math.min(4000, more.length / 50)).then(() => {
+			addChatItem('freelyConversation', more, 'cyprite', null, false);
+		});
+	}
+	conversation.push(['ai', result.join('\n')]);
+	reply = reply.result.reply.reply;
+
+	return [reply, conversation];
+};
+EventHandler.showInnerStrategy = async (data) => {
+	addChatItem('freelyConversation', '(Reply Strategy: ' + data + ')', 'emotion', undefined, false, true);
+};
+EventHandler.showEmotion = async (data) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	addChatItem('freelyConversation', PromptLib.assemble(messages.freeCyprite.hintEmotion, {emotion: data}), 'emotion', undefined, false, true);
+};
+EventHandler.showProcessHint = async (data) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	addChatItem('freelyConversation', [messages.freeCyprite[data.hint] || messages.freeCyprite.hintThinkingStrategy, data.content || data], 'hint', undefined, undefined, true);
+};
+EventHandler.showDirectMessage = async (data) => {
+	addChatItem('freelyConversation', data, 'emotion', undefined, undefined, true);
+};
+EventHandler.appendCypriteReply = async (data) => {
+	addChatItem('freelyConversation', data, 'cyprite', undefined, undefined, true);
 };
 
 /* Translation */
@@ -2574,7 +2702,7 @@ const replyQuestBySearchResult = async (messages, quest) => {
 	document.body.querySelector('.furthure_dialog').style.display = 'block';
 	resizeCurrentInputter();
 
-	showTokenUsage(usage);
+	if (!isPanel) showTokenUsage(usage);
 
 	notify._hide();
 	wait(100).then(() => {
@@ -2966,7 +3094,7 @@ ActionCenter.startAISearch = async (mode) => {
 	if (isAISearching) return;
 	isAISearching = true;
 
-	if (!!mode) await ActionCenter.changeMode(mode); // Force to change mode
+	if (isString(mode)) await ActionCenter.changeMode(mode); // Force to change mode
 	[...aiSearchInputter.querySelectorAll('*')].forEach(ele => ele.removeAttribute('style')); // Remove unexpectable styles
 
 	var content = getPageContent(aiSearchInputter, true);
@@ -3674,10 +3802,12 @@ EventHandler.requestHeartBeating = async () => {
 	}, 2000);
 };
 ActionCenter.gotoConfig = () => {
-	location.href = `./config.html`;
+	if (isPanel) location.href = `./config.html?panel=true`;
+	else location.href = `./config.html`;
 };
 ActionCenter.gotoAboutPage = () => {
-	location.href = `./config.html?tab=about`;
+	if (isPanel) location.href = `./config.html?tab=about&panel=true`;
+	else location.href = `./config.html?tab=about`;
 };
 ActionCenter.clearConversation = async () => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
@@ -3715,7 +3845,12 @@ ActionCenter.clearConversation = async () => {
 		}
 	}
 	else if (currentMode === 'freelyConversation') {
-		await chrome.storage.session.remove(TagFreeCypriteConversation);
+		const data = await Promise.all([
+			chrome.storage.session.get(['cypriteGreet']),
+			chrome.storage.session.remove(TagFreeCypriteConversation),
+		]);
+		const greet = (data[0] || {}).cypriteGreet || messages.freeCyprite.hintGreet;
+		addChatItem('freelyConversation', greet, 'cyprite');
 	}
 	else if (currentMode === 'cypriteHelper') {
 		if (!!helpConversation) helpConversation.splice(0);
@@ -3754,6 +3889,7 @@ ActionCenter.clearSearch = async () => {
 	// Refresh Search Result List and Show UI
 	document.body.querySelector('.search_records').style.display = '';
 	document.body.querySelector('.search_records').innerHTML = '';
+	aiSearchInputter.parentNode.parentNode.parentNode.querySelector('.navbar').style.display = 'none';
 	await getAISearchRecordList(true);
 };
 ActionCenter.hideFloatWindow = () => {
@@ -3786,7 +3922,19 @@ ActionCenter.sendMessage = async (button) => {
 			return;
 		}
 	}
-	var cid = addChatItem(target, content, 'human', null, true, true), conversation;
+
+	var needOperator = false;
+	if (target === 'crossPageConversation') {
+		needOperator = true;
+	}
+	else if (target === 'intelligentSearch') {
+		needOperator = true;
+		aiSearchInputter.parentNode.parentNode.parentNode.querySelector('.navbar').style.display = '';
+	}
+	else if (target === 'freelyConversation') {
+		needOperator = !PromptLib.useUltraCyprite;
+	}
+	var cid = addChatItem(target, content, 'human', null, needOperator, true), conversation;
 
 	inputter.innerText = messages.conversation.waitForAI;
 	inputter.setAttribute('contenteditable', 'false');
@@ -3795,16 +3943,20 @@ ActionCenter.sendMessage = async (button) => {
 	});
 
 	var result, usage = {};
+	needOperator = false
 	if (target === 'crossPageConversation') {
+		needOperator = true;
 		[result, conversation] = await askCrossPages(content, usage, cid);
 	}
 	else if (target === 'instantTranslation') {
 		result = await callTranslator(content, usage);
 	}
 	else if (target === 'intelligentSearch') {
+		needOperator = true;
 		[result, conversation] = await askViaSearchResult(content, usage, cid);
 	}
 	else if (target === 'freelyConversation') {
+		needOperator = !PromptLib.useUltraCyprite;
 		[result, conversation] = await askFreeCyprite(content, usage, cid);
 	}
 	else if (target === 'cypriteHelper') {
@@ -3815,14 +3967,14 @@ ActionCenter.sendMessage = async (button) => {
 	}
 
 	if (!!result) {
-		cid = addChatItem(target, result, 'cyprite', null, true, true);
+		cid = addChatItem(target, result, 'cyprite', null, needOperator, true);
 	}
 	else {
 		cid = 0;
 	}
 
 	if (!!conversation) {
-		conversation[conversation.length - 1].push(cid);
+		conversation[conversation.length - 1][2] = cid;
 		if (target === 'crossPageConversation') {
 			let item = {};
 			item[currentTabId + ':crosspageConv'] = conversation;
@@ -3839,7 +3991,7 @@ ActionCenter.sendMessage = async (button) => {
 	inputter.setAttribute('contenteditable', 'true');
 	inputter.focus();
 
-	showTokenUsage(usage);
+	if (!isPanel) showTokenUsage(usage);
 
 	running = false;
 };
@@ -3868,9 +4020,42 @@ ActionCenter.onOperateSearchResult = async (target, ui, evt) => {
 		await dowloadAISearchRecord();
 	}
 };
+ActionCenter.navPrev = (ele) => {
+	if (!ele) return;
+
+	let container = ele.parentElement.parentElement.parentElement.querySelector('.content_container');
+	let list = container.querySelectorAll('.chat_item');
+	let target;
+	[...list].some(item => {
+		if (item.classList.contains('other')) return;
+		let rect = item.getBoundingClientRect();
+		if (rect.top > 0) return true;
+		target = item;
+	});
+	if (!target) return;
+	target.scrollIntoView({behavior: 'smooth'});
+};
+ActionCenter.navNext = (ele) => {
+	if (!ele) return;
+
+	let container = ele.parentElement.parentElement.parentElement.querySelector('.content_container');
+	let list = container.querySelectorAll('.chat_item');
+	let target;
+	[...list].some(item => {
+		if (item.classList.contains('other')) return;
+		let rect = item.getBoundingClientRect();
+		if (rect.top > 36) {
+			target = item;
+			return true;
+		}
+	});
+	if (!target) return;
+	target.scrollIntoView({behavior: 'smooth'});
+};
 
 /* Cyprite OS */
 
+const CypriteOSRequestLock = new PoolWaitLock(1);
 const selectActionMode = (action, mode) => {
 	var needAsk = false;
 	mode = mode || DefaultPanel;
@@ -3912,7 +4097,7 @@ const handleOSAction = async (action, request) => {
 		if (!!inputter) {
 			inputter.innerText = request;
 			sender = document.body.querySelector('section[group="instantTranslation"] .input_sender');
-			ActionCenter.sendMessage(sender);
+			await ActionCenter.sendMessage(sender);
 		}
 	}
 	else if (action === 'explain') {
@@ -3920,18 +4105,17 @@ const handleOSAction = async (action, request) => {
 		if (!!inputter) {
 			inputter.innerText = messages.quickMenu.explainInfo + '\n\n' + request;
 			sender = document.body.querySelector('section[group="freelyConversation"] .input_sender');
-			ActionCenter.sendMessage(sender);
+			await ActionCenter.sendMessage(sender);
 		}
 	}
 	else if (action === 'search') {
 		inputter = document.body.querySelector('section[group="intelligentSearch"] .search_inputter .inner');
 		if (!!inputter) {
 			inputter.innerText = messages.quickMenu.searchInfo + '\n\n' + request;
-			ActionCenter.startAISearch("fullAnswer");
+			await ActionCenter.startAISearch("fullAnswer");
 		}
 	}
 	else if (action === 'expand') {
-		await wait(100); // Wait for `chrome.storage` to finish its job
 		let writeArea = document.body.querySelector('section[group="intelligentWriter"] .writingArea');
 		let requirementArea = document.body.querySelector('section[group="intelligentWriter"] .requirementArea');
 		inputter = document.body.querySelector('section[group="intelligentWriter"] .input_container');
@@ -3940,11 +4124,10 @@ const handleOSAction = async (action, request) => {
 			requirementArea.innerText = '';
 			inputter.innerText = messages.quickMenu.expandInfo;
 			sender = document.body.querySelector('section[group="intelligentWriter"] .input_sender');
-			ActionCenter.sendMessage(sender);
+			await ActionCenter.sendMessage(sender);
 		}
 	}
 	else if (action === 'polish') {
-		await wait(100); // Wait for `chrome.storage` to finish its job
 		let writeArea = document.body.querySelector('section[group="intelligentWriter"] .writingArea');
 		let requirementArea = document.body.querySelector('section[group="intelligentWriter"] .requirementArea');
 		inputter = document.body.querySelector('section[group="intelligentWriter"] .input_container');
@@ -3953,7 +4136,7 @@ const handleOSAction = async (action, request) => {
 			requirementArea.innerText = '';
 			inputter.innerText = messages.quickMenu.polishInfo;
 			sender = document.body.querySelector('section[group="intelligentWriter"] .input_sender');
-			ActionCenter.sendMessage(sender);
+			await ActionCenter.sendMessage(sender);
 		}
 	}
 	else if (action === 'ask') {
@@ -3961,17 +4144,26 @@ const handleOSAction = async (action, request) => {
 		if (!!inputter) {
 			inputter.innerText = '关于下面这段内容你能想到什么有趣的话题：\n\n' + request;
 			sender = document.body.querySelector('section[group="freelyConversation"] .input_sender');
-			ActionCenter.sendMessage(sender);
+			await ActionCenter.sendMessage(sender);
 		}
 	}
+
+	await CypriteOSRequestLock.finish();
 };
 EventHandler.appendCypriteOSRequest = async (msg) => {
+	await CypriteOSRequestLock.start();
+
 	var targetMode = selectActionMode(msg.action)[0];
 	changeTab(targetMode);
 	await handleOSAction(msg.action, msg.content);
 };
 
-window.addEventListener('resize', resizeCurrentInputter);
+const resizeWindowHeight = () => {
+	var maxHeight = window.innerHeight - 10;
+	if (resizeWindowHeight._value === maxHeight) return;
+	resizeWindowHeight._value = maxHeight
+	AIModelList.style.maxHeight = maxHeight + 'px';
+};
 chrome.storage.local.onChanged.addListener(evt => {
 	if (!!evt.AImodel?.newValue) {
 		myInfo.model = evt.AImodel.newValue;
@@ -3979,18 +4171,67 @@ chrome.storage.local.onChanged.addListener(evt => {
 	}
 });
 
+const afterInit = async (messages, action, startUp, needAsk) => {
+	const data = (await chrome.storage.local.get(['FilesOrderType', 'transLang', 'directRewrite', 'autoRewrite', 'writerContent', 'writerRequirement', "CypriteInfo"])) || {};
+
+	document.body.querySelector('[name="translation_language"]').value = data.transLang || LangName[myInfo.lang];
+	orderType = data.FilesOrderType || orderType;
+	directRewrite = data.directRewrite || false;
+	autoRewrite = data.autoRewrite || false;
+	document.body.setAttribute('directRewrite', directRewrite);
+	document.body.setAttribute('autoRewrite', autoRewrite);
+	document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea').innerText = data.writerContent || '';
+	document.querySelector('.panel_operation_area[group="intelligentWriter"] .requirementArea').innerText = data.writerRequirement || '';
+
+	// Init Conversations
+	addChatItem('crossPageConversation', messages.newTab.crossPageConversationHint, 'cyprite');
+	addChatItem('instantTranslation', messages.translation.instantTranslateHint, 'cyprite');
+	addChatItem('cypriteHelper', messages.newTab.helperHint, 'cyprite');
+	addChatItem('intelligentWriter', messages.writer.hintWelcome, 'cyprite');
+
+	// Loading Action
+	var done = false;
+	if (needAsk) {
+		let request;
+		try {
+			request = await askSWandWait('AskForCypriteRequest');
+		}
+		catch (err) {
+			logger.error("AskForCypriteRequest", err);
+			request = null;
+		}
+		if (!!request) {
+			await CypriteOSRequestLock.start();
+			handleOSAction(action, request);
+			done = true;
+		}
+	}
+	if (!done && startUp === 'intelligentSearch') {
+		await wait(100);
+		aiSearchInputter.focus();
+	}
+
+	window.addEventListener('resize', () => {
+		resizeWindowHeight();
+		resizeCurrentInputter();
+	});
+};
 const init = async () => {
 	const params = parseParams(location.href);
-	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 
 	// Init
-	var ot = await Promise.all([
-		chrome.storage.local.get(['FilesOrderType', 'transLang', 'layout', 'theme', 'shrinked', 'directRewrite', 'autoRewrite', 'writerContent', 'writerRequirement']),
+	const ot = await Promise.all([
+		chrome.storage.local.get(['layout', 'theme', 'shrinked']),
 		getConfig(),
 		getAISearchRecordList(true),
+		chrome.tabs.getCurrent(),
 	]);
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	var tab = ot[3];
+	currentTabId = tab.id;
+
 	ot[0] = ot[0] || {};
-	document.body.querySelector('[name="translation_language"]').value = ot[0].transLang || LangName[myInfo.lang];
 	document.body.setAttribute('theme', ot[0].theme || 'light');
 	if (params.panel) {
 		isPanel = true;
@@ -4004,13 +4245,6 @@ const init = async () => {
 		document.body.setAttribute('shrinked', ot[0].shrinked || 'no');
 		document.body.removeAttribute('panel');
 	}
-	orderType = ot[0].FilesOrderType || orderType;
-	directRewrite = ot[0].directRewrite || false;
-	autoRewrite = ot[0].autoRewrite || false;
-	document.body.setAttribute('directRewrite', directRewrite);
-	document.body.setAttribute('autoRewrite', autoRewrite);
-	document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea').innerText = ot[0].writerContent || '';
-	document.querySelector('.panel_operation_area[group="intelligentWriter"] .requirementArea').innerText = ot[0].writerRequirement || '';
 	await getConfig();
 	updateAIModelList();
 
@@ -4048,6 +4282,7 @@ const init = async () => {
 	aiSearchInputter.referencePanel = resultPanel.querySelector('.reference_panel');
 	aiSearchInputter.morequestionPanel = resultPanel.querySelector('.morequestion_panel');
 	aiSearchInputter.navMenuPanel = resultPanel.querySelector('.nav_menu_panel');
+	aiSearchInputter.parentNode.parentNode.parentNode.querySelector('.navbar').style.display = 'none';
 
 	await generateModelList('');
 
@@ -4170,10 +4405,6 @@ const init = async () => {
 	});
 
 	// Init
-	addChatItem('crossPageConversation', messages.newTab.crossPageConversationHint, 'cyprite');
-	addChatItem('instantTranslation', messages.translation.instantTranslateHint, 'cyprite');
-	addChatItem('cypriteHelper', messages.newTab.helperHint, 'cyprite');
-	addChatItem('intelligentWriter', messages.writer.hintWelcome, 'cyprite');
 	var ele = aiSearchInputter.parentNode.querySelector('.mode_chooser > li[mode="' + myInfo.searchMode + '"]:not([disabled="true"])');
 	if (!ele) {
 		SearchModeOrderList.some(mode => {
@@ -4188,33 +4419,15 @@ const init = async () => {
 		ele.setAttribute('checked', 'true');
 	}
 
-	var tab = await chrome.tabs.getCurrent();
-	currentTabId = tab.id;
-
 	var [startUp, needAsk] = selectActionMode(params.action, params.mode);
 	changeTab(startUp);
 
-	var done = false;
-	if (needAsk) {
-		let request;
-		try {
-			request = await askSWandWait('AskForCypriteRequest');
-		}
-		catch (err) {
-			logger.error("AskForCypriteRequest", err);
-			request = null;
-		}
-		if (!!request) {
-			await handleOSAction(params.action, request);
-			done = true;
-		}
-	}
-	if (!done && startUp === 'intelligentSearch') {
-		await wait(500);
-		aiSearchInputter.focus();
-	}
-
 	document.body.removeAttribute('loading');
+	resizeWindowHeight();
+
+	setTimeout(() => {
+		afterInit(messages, params.action, startUp, needAsk);
+	}, 100);
 };
 
 window.onload = init;

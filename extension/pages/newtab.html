@@ -32,7 +32,7 @@
 	<div class="panel_container">
 		<div class="panel_logo">
 			<img src="/images/cyprite.png">
-			<div class="panel_model_chooser"></div>
+			<div class="panel_model_chooser scrollable"></div>
 			<div class="thinking_hint" titlePath="thinkingHeartBeating"></div>
 		</div>
 		<nav class="panel_tabs_area">
@@ -195,6 +195,10 @@
 					<div class="morequestion_panel" action="chooseQuestion"></div>
 				</div>
 			</div>
+			<div class="navbar">
+				<div class="navup"><img src="../images/circle-chevron-up.svg" action="navPrev"></div>
+				<div class="navdown"><img src="../images/circle-chevron-down.svg" action="navNext"></div>
+			</div>
 			<div class="furthure_dialog">
 				<div class="input_container scrollable" contenteditable="true" placeholderName="mentions.quickAccessHint"></div>
 				<div class="input_sender" action="sendMessage" target="intelligentSearch">
@@ -209,6 +213,10 @@
 		</section>
 		<section class="panel_operation_area" group="crossPageConversation" type="conversationArea">
 			<div class="content_container scrollable"></div>
+			<div class="navbar">
+				<div class="navup"><img src="../images/circle-chevron-up.svg" action="navPrev"></div>
+				<div class="navdown"><img src="../images/circle-chevron-down.svg" action="navNext"></div>
+			</div>
 			<div class="input_container scrollable" contenteditable="true" placeholderName="mentions.quickAccessHint"></div>
 			<div class="input_sender" action="sendMessage" target="crossPageConversation">
 				<span titlePath="buttons.sendMessageToCyprite"></span>
@@ -216,6 +224,10 @@
 		</section>
 		<section class="panel_operation_area" group="freelyConversation" type="conversationArea">
 			<div class="content_container scrollable"></div>
+			<div class="navbar">
+				<div class="navup"><img src="../images/circle-chevron-up.svg" action="navPrev"></div>
+				<div class="navdown"><img src="../images/circle-chevron-down.svg" action="navNext"></div>
+			</div>
 			<div class="input_container scrollable" contenteditable="true" placeholderName="mentions.quickAccessHint"></div>
 			<div class="input_sender" action="sendMessage" target="freelyConversation">
 				<span titlePath="buttons.talkToCyprite"></span>

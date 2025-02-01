@@ -1,3 +1,20 @@
+const ArticleCache = new Map();
+const CacheExpireTimeout = 1000 * 3600 * 12;
+const checkArticleCacheExpire = async () => {
+	const now = Date.now();
+	for (let [key, cache] of ArticleCache) {
+		if (!cache || !cache.time) {
+			ArticleCache.delete(key);
+		}
+		else {
+			let delta = now - cache.time;
+			if (delta > CacheExpireTimeout) {
+				ArticleCache.delete(key);
+			}
+		}
+	}
+};
+
 globalThis.UtilityLib = {};
 
 /* Message Sender */
@@ -64,7 +81,7 @@ UtilityLib.collectInformation = {
 		var articles = [];
 		var pair;
 		try {
-			var [local, google, llm] = await Promise.all(tasks);
+			let [local, google, llm] = await Promise.all(tasks);
 
 			const urls = [];
 			if (!!local) {
@@ -95,6 +112,7 @@ UtilityLib.collectInformation = {
 			articles = articles.map(item => {
 				return '<webpage title="' + (item.title || '').replace(/[\n\r]+/g, ' ') + '" url="' + item.url + '">\n' + (item.summary || '').trim() + '\n</webpage>';
 			}).join('\n');
+			if (IsPublished) logger.info('Tool:CollectInfo', local, google, llm, articles);
 
 			pair = {};
 			pair.call = [{
@@ -155,40 +173,50 @@ UtilityLib.readArticle = {
 			running: true,
 		});
 
-		var pair, success = true;
+		let pair, success = true, article;
 
-		// Read Local File
-		var article = await EventHandler.GetArticleInfo({
-			articles: [url]
-		});
-		if (!!article) article = article[0];
-		if (!!article) article = article.content;
-
-		// Read from internet
-		if (!article) {
-			try {
-				article = await EventHandler.ReadWebPage(url);
-				article = parseWebPage(article, true, url) || "";
-			}
-			catch (err) {
-				logger.error('ReadWebPage', err);
-				success = false;
-			}
+		// Read From Cache
+		let cache = ArticleCache.get(url);
+		if (!!cache) {
+			logger.info("ReadArticle", 'From Cache: ' + url);
+			article = cache.article;
 		}
-
-		if (success) {
-			pair = {};
-			pair.call = [{
-				id: questID,
-				name: "read_article",
-				arguments: params,
-				hint,
-			}];
-			pair.tool = {
-				id: questID,
-				name: "read_article",
-				content: article,
-			};
+		else {
+			// Read Local File
+			article = await EventHandler.GetArticleInfo({
+				articles: [url]
+			});
+			if (!!article) article = article[0];
+			if (!!article) article = article.content;
+	
+			// Read from internet
+			if (!article) {
+				try {
+					logger.log('ReadArticle', url);
+					article = await EventHandler.ReadWebPage(url);
+					article = parseWebPage(article, true, url) || "";
+				}
+				catch (err) {
+					logger.error('ReadWebPage', err);
+					success = false;
+				}
+			}
+	
+			if (success) {
+				pair = {};
+				pair.call = [{
+					id: questID,
+					name: "read_article",
+					arguments: params,
+					hint,
+				}];
+				pair.tool = {
+					id: questID,
+					name: "read_article",
+					content: article,
+				};
+				ArticleCache.set(url, {article, time: Date.now()});
+			}
 		}
 
 		UtilityLib.sendMessageByTaskID(taskID, "appendAction", {
@@ -198,9 +226,58 @@ UtilityLib.readArticle = {
 			conversation: pair
 		});
 
+		checkArticleCacheExpire();
+
+		// logger.info('ReadArticle', article);
 		return {
 			result: article,
 			usage,
+		}
+	},
+};
+UtilityLib.askExpert = {
+	name: "deep_thought",
+	description: "When you are uncertain about certain questions or information, unable to provide definitive replies to some issues, or need others to offer you opinions, you can invoke this tool to consult experts in relevant fields to obtain more effective and reliable information or ideas.",
+	parameters: {
+		type: "object",
+		properties: {
+			question: {
+				type: "string",
+				description: "Questions posed to experts should be clearly expressed and precisely formulated; if necessary, you can provide explicit constraints or known information."
+			},
+			field: {
+				type: "string",
+				description: "The fields to which the questions belong, such as Mathematics, Physics, Philosophy, Programming, Literature, Art, etc."
+			}
+		},
+		required: ["question"]
+	},
+	call: async (params, model, taskID, questID) => {
+		if (!params.question) {
+			return "NO Question";
+		}
+
+		questID = questID || newID();
+		const hint = "Deep Inner Thought: " + params.question;
+		UtilityLib.sendMessageByTaskID(taskID, "appendAction", {
+			task: taskID,
+			id: questID,
+			hint,
+			running: true,
+		});
+
+		const reply = await Cyprite.Id.executeSpark(Cyprite.Abilities.askExpert, params, {}, []);
+		if (!IsPublished) logger.info('DeepInnerThought', reply);
+
+		UtilityLib.sendMessageByTaskID(taskID, "appendAction", {
+			task: taskID,
+			id: questID,
+			running: false,
+		});
+
+		return {
+			result: !!reply.error ? "**ERROR OCCUR:**\n\n" + reply.error : reply.result,
+			usage: reply.usage,
 		}
 	},
 };

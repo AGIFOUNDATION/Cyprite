@@ -10,9 +10,10 @@ const DefaultOpenAIDrawModel = 'dall-e-3';
 const DefaultMixtralChatModel = AI2Model.mixtral[0];
 const DefaultGrokChatModel = AI2Model.grok[0];
 
-const assembleMessages = (conversation, full=true, useSP=true) => {
+const assembleMessages = (conversation, model, tools, full=true, useSP=true) => {
 	var messages = [];
 	conversation.forEach(item => {
+
 		var role, prompt = item[1], extra = null, normalAppend = true;
 		var content = full ? [{
 			type: "text",
@@ -35,15 +36,18 @@ const assembleMessages = (conversation, full=true, useSP=true) => {
 				};
 			}
 		}
-		else if (item[0] === 'human') role = 'user';
+		else if (item[0] === 'human' || item[0] === 'inner') role = 'user';
 		else if (item[0] === 'ai') role = 'assistant';
 		else if (item[0] === 'call') {
+			if (NoToolModels.includes(model)) return;
 			let conv = {
 				role: 'assistant',
 				content: "",
 				tool_calls: [],
 			};
 			prompt.forEach(quest => {
+				let has = tools.some(tool => tool.name === quest.name);
+				if (!has) return;
 				conv.tool_calls.push({
 					id: quest.id,
 					type: "function",
@@ -53,10 +57,14 @@ const assembleMessages = (conversation, full=true, useSP=true) => {
 					}
 				});
 			});
+			if (conv.tool_calls.length === 0) return;
 			messages.push(conv);
 			normalAppend = false;
 		}
 		else if (item[0] === 'tool') {
+			if (NoToolModels.includes(model)) return;
+			let has = tools.some(tool => tool.name === prompt.name);
+			if (!has) return;
 			let conv = {
 				role: 'tool',
 				tool_call_id: prompt.id,
@@ -112,6 +120,56 @@ const appendToolsToRequest = (data, tools, needParallel=false, stringParameter=f
 	data.tool_choice = 'auto';
 	if (needParallel) data.parallel_tool_calls = true;
 };
+const requestAndWaitForLongQuest = async (tag, url, token, stateInit, stateSuccess, stateFailed, statePath, errorPath, dataPath, duration=5000) => {
+	let result;
+	if (stateInit === stateFailed) {
+		return;
+	}
+	else {
+		let request = {
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+				"Authorization": 'Bearer ' + token
+			},
+		};
+		if (stateInit === stateSuccess) {
+			let resp = await waitUntil(fetchWithCheck(url, request));
+			resp = await resp.json();
+			logger.log(tag, 'Response: ', resp);
+			let err = readData(resp, errorPath);
+			if (!!err) {
+				throw (err);
+			}
+			else {
+				result = readData(resp, dataPath);
+			}
+		}
+		else {
+			while (true) {
+				await wait(duration);
+				let resp = await waitUntil(fetchWithCheck(url, request));
+				resp = await resp.json();
+				logger.log(tag, 'Response: ', resp);
+				let err = readData(resp, errorPath);
+				if (!!err) {
+					throw (err);
+				}
+				let state = readData(resp, statePath);
+				if (state === stateSuccess) {
+					result = readData(resp, dataPath);
+					break;
+				}
+				else if (state === stateFailed) {
+					result = null;
+					break;
+				}
+			}
+		}
+	}
+
+	return result
+};
 
 AI.OpenAI.list = async () => {
 	var request = {
@@ -142,7 +200,8 @@ AI.OpenAI.chat = async (conversation, model=DefaultOpenAIChatModel, tools=[], ti
 	const request = { method: "POST" };
 	const url = "https://api.openai.com/v1/chat/completions";
 
-	tools = AI.prepareToolList(tools);
+	if (NoToolModels.includes(model)) tools = [];
+	else tools = AI.prepareToolList(tools);
 	var [header, data] = assembleDataPack(model, myInfo.apiKey.openai);
 	request.headers = header;
 	if (!isO1Preview) appendToolsToRequest(data, tools, true);
@@ -151,11 +210,11 @@ AI.OpenAI.chat = async (conversation, model=DefaultOpenAIChatModel, tools=[], ti
 	delete data.max_tokens;
 
 	return await sendRequestAndWaitForResponse('OpenAI', model, conversation, url, request, () => {
-		data.messages = assembleMessages(conversation, true, !isO1Preview);
+		data.messages = assembleMessages(conversation, model, tools, true, !isO1Preview);
 		request.body = JSON.stringify(data);
 	}, tools, tid);
 };
-AI.OpenAI.draw = async (prompt, model=DefaultOpenAIDrawModel) => {
+AI.OpenAI.draw = async (prompt, options={}, model=DefaultOpenAIDrawModel) => {
 	var data = {
 		model,
 		prompt,
@@ -182,7 +241,7 @@ AI.OpenAI.draw = async (prompt, model=DefaultOpenAIDrawModel) => {
 		throw err;
 	}
 	time = Date.now() - time;
-	logger.info('OpenAI', 'Chat: ' + (time / 1000) + 's');
+	logger.info('OpenAI', 'Image: ' + (time / 1000) + 's');
 
 	response = await response.json();
 	var json = response;
@@ -200,13 +259,14 @@ AI.Mixtral.chat = async (conversation, model=DefaultMixtralChatModel, tools=[], 
 	const request = { method: "POST" };
 	const url = 'https://api.mistral.ai/v1/chat/completions';
 
-	tools = AI.prepareToolList(tools);
+	if (NoToolModels.includes(model)) tools = [];
+	else tools = AI.prepareToolList(tools);
 	var [header, data] = assembleDataPack(model, myInfo.apiKey.mixtral);
 	request.headers = header;
 	appendToolsToRequest(data, tools);
 
 	return await sendRequestAndWaitForResponse('Mixtral', model, conversation, url, request, () => {
-		data.messages = assembleMessages(conversation, false);
+		data.messages = assembleMessages(conversation, model, tools, false);
 		request.body = JSON.stringify(data);
 	}, tools, tid);
 };
@@ -239,13 +299,15 @@ AI.Grok.chat = async (conversation, model=DefaultGrokChatModel, tools=[], tid) =
 	const request = { method: "POST" };
 	const url = "https://api.x.ai/v1/chat/completions";
 
-	tools = AI.prepareToolList(tools);
+	if (NoToolModels.includes(model)) tools = [];
+	else tools = AI.prepareToolList(tools);
 	var [header, data] = assembleDataPack(model, myInfo.apiKey.grok);
 	request.headers = header;
 	appendToolsToRequest(data, tools);
 
 	return await sendRequestAndWaitForResponse('Grok', model, conversation, url, request, () => {
-		data.messages = assembleMessages(conversation, false);
+		data.messages = assembleMessages(conversation, model, tools, false);
 		request.body = JSON.stringify(data);
 	}, tools, tid);
 };
+

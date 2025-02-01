@@ -2,8 +2,9 @@ globalThis.ModelContinueRequestLoopLimit = 10;
 globalThis.ModelList = [];
 globalThis.Model2AI = {
 	"gemini-1.5-pro-exp-0827": "Gemini",
-	"gemini-1.5-flash-exp-0827": "Gemini",
+	"gemini-2.0-flash-exp": "Gemini",
 	"gemini-1.5-pro-002": "Gemini",
+	"gemini-2.0-flash-thinking-exp-1219": "Gemini",
 	"gemini-1.5-flash-002": "Gemini",
 	"gemini-exp-1121": "Gemini",
 	"learnlm-1.5-pro-experimental": "Gemini",
@@ -15,6 +16,8 @@ globalThis.Model2AI = {
 	"gpt-4o": "OpenAI",
 	"gpt-4o-mini": "OpenAI",
 	"grok-beta": "Grok",
+	"grok-2-1212": "Grok",
+	"grok-2-vision-1212": "Grok",
 	"open-mixtral-8x22b": "Mixtral",
 	"open-mistral-7b": "Mixtral",
 	"open-mistral-nemo": "Mixtral",
@@ -28,9 +31,10 @@ globalThis.Model2AI = {
 globalThis.AI2Model = {
 	"gemini": [
 		"gemini-1.5-pro-exp-0827",
-		"gemini-1.5-flash-exp-0827",
+		"gemini-2.0-flash-exp",
 		"gemini-1.5-pro-002",
 		"gemini-1.5-flash-002",
+		"gemini-2.0-flash-thinking-exp-1219",
 		"gemini-exp-1121",
 		"learnlm-1.5-pro-experimental",
 	],
@@ -47,6 +51,8 @@ globalThis.AI2Model = {
 	],
 	"grok": [
 		"grok-beta",
+		"grok-2-1212",
+		"grok-2-vision-1212",
 	],
 	"mixtral": [
 		"open-mixtral-8x22b",
@@ -71,20 +77,22 @@ globalThis.ModelOrder = [
 	"mixtral",
 ];
 globalThis.ModelNameList = {
+"gemini-2.0-flash-thinking-exp-1219": "Gemini Thinking",
 	"gemini-1.5-pro-exp-0827": "Gemini Pro",
-	"gemini-1.5-flash-exp-0827": "Gemini Flash",
+	"gemini-2.0-flash-exp": "Gemini Flash",
 	// "gemini-1.5-pro-002": "GeminiPro2",
 	// "gemini-1.5-flash-002": "GeminiFlash2",
-	"gemini-exp-1121": "Gemini Exp",
-	"learnlm-1.5-pro-experimental": "Gemini LearnLM",
+	// "gemini-exp-1121": "Gemini Exp",
+	// "learnlm-1.5-pro-experimental": "Gemini LearnLM",
 	"claude-3-5-sonnet-latest": "Sonnet 3.5",
-	"claude-3-opus-20240229": "Opus 3",
 	"claude-3-5-haiku-latest": "Haiku 3.5",
+	// "claude-3-opus-20240229": "Opus 3",
 	"o1-preview": "O1",
 	"o1-mini": "O1 Mini",
 	"gpt-4o": "GPT 4o",
 	"gpt-4o-mini": "GPT 4o Mini",
-	"grok-beta": "Grok Beta",
+	// "grok-beta": "Grok Beta",
+	"grok-2-1212": "Grok 2",
 	"open-mixtral-8x22b": "Open Mixtral",
 	// "open-mistral-7b": "OpenMistral",
 	"open-mistral-nemo": "Mistral Nemo",
@@ -236,10 +244,8 @@ globalThis.ModelDefaultConfig = {
 };
 globalThis.SearchAIModel = ['GLM', 'MoonShot'];
 globalThis.PaCableModels = [
-	"gemini-1.5-pro-exp-0827",
-	"gemini-1.5-flash-exp-0827",
-	"gemini-1.5-pro-002",
-	"gemini-1.5-flash-002",
+	"gemini-2.0-flash-exp",
+	"gemini-2.0-flash-thinking-exp-1219",
 	"claude-3-5-sonnet-latest",
 	"claude-3-5-haiku-latest",
 	"claude-3-opus-20240229",
@@ -247,6 +253,18 @@ globalThis.PaCableModels = [
 	"deepseek-chat",
 	"qwen-max-latest",
 ];
+globalThis.NoToolModels = ['gemini-exp-1121', 'gemini-2.0-flash-thinking-exp-1219', 'o1-preview', 'o1-mini', 'deepseek-reasoner'];
+globalThis.DrawingModels = {
+	"dall-e-3": "OpenAI",
+	"cogview-3": "GLM",
+	"cogview-3-plus": "GLM",
+	"cogview-3-flash": "GLM",
+};
+globalThis.ShootingModels = {
+	"kling-v1-6": "KLing",
+	"CogVideoX": "GLM",
+	"CogVideoX-Flash": "GLM",
+};
 
 /* Long Context Control */
 
@@ -264,19 +282,46 @@ globalThis.PickLongContextModel = () => {
 
 /* Functional Model Allocation */
 
+const ModelUsability = {};
+globalThis.checkModelUsability = (model) => {
+	if (ModelUsability[model]) return true;
+
+	let usability = true;
+	let ai = Model2AI[model] || DrawingModels[model] || ShootingModels[model];
+	if (!!ai) {
+		ai = ai.toLowerCase();
+		if (['ernie', 'kling'].includes(ai)) {
+			let key = myInfo.apiKey[ai];
+			if (!key || !(key.api || key.access) || !key.secret) {
+				usability = false;
+			}
+		}
+		else {
+			if (!myInfo.apiKey[ai]) {
+				usability = false;
+			}
+		}
+	}
+	else {
+		usability = false;
+	}
+	ModelUsability[model] = usability;
+	return usability;
+};
+
 const FunctionalModel = {
 	analyzeKeywordCategory: [
 		'claude-3-5-haiku-latest',
 		'grok-beta',
 		'glm-4-flash',
 		'moonshot-v1-auto',
-		'gemini-1.5-flash-exp-0827',
+		'gemini-2.0-flash-exp',
 	],
 	filterKeywordCategory: [
 		'claude-3-5-haiku-latest',
 		'gemini-1.5-flash-002',
 		'glm-4-flash',
-		'gemini-1.5-flash-exp-0827',
+		'gemini-2.0-flash-exp',
 		'deepseek-chat',
 		'glm-4-plus',
 		'gpt-4o',
@@ -293,7 +338,7 @@ const FunctionalModel = {
 		"abab6.5s-chat",
 	],
 	excludeIrrelevants: [
-		"gemini-1.5-flash-exp-0827",
+		"gemini-2.0-flash-exp",
 		"gemini-1.5-flash-002",
 		"o1-mini",
 		"gpt-4o-mini",
@@ -301,7 +346,7 @@ const FunctionalModel = {
 		"moonshot-v1-auto",
 	],
 	identityRelevants: [
-		"gemini-1.5-flash-exp-0827",
+		"gemini-2.0-flash-exp",
 		"gemini-1.5-flash-002",
 		"gpt-4o",
 		"deepseek-chat",
@@ -309,7 +354,7 @@ const FunctionalModel = {
 		"claude-3-5-sonnet-latest",
 	],
 	analyzeSearchKeywords: [
-		'gemini-1.5-flash-exp-0827',
+		'gemini-2.0-flash-exp',
 		"gemini-1.5-flash-002",
 		'claude-3-5-haiku-latest',
 		'glm-4-long',
@@ -318,7 +363,7 @@ const FunctionalModel = {
 		'claude-3-5-sonnet-latest',
 		'gpt-4o',
 		'o1-preview',
-		'grok-beta',
+		'grok-2-1212',
 		'moonshot-v1-auto',
 		'deepseek-chat',
 	],
@@ -326,15 +371,158 @@ const FunctionalModel = {
 		'o1-mini',
 		"gpt-4o-mini",
 		'claude-3-5-sonnet-latest',
-		'grok-beta',
+		'grok-2-1212',
 		'gemini-1.5-pro-002',
 		'gemini-1.5-pro-exp-0827',
 		'moonshot-v1-auto',
 		'deepseek-chat',
 	],
+	quicklyCyprite: [
+		"qwen-turbo-latest",
+		"gpt-4o-mini",
+		"claude-3-5-haiku-latest",
+		"gemini-1.5-flash-002",
+		"grok-2-1212",
+		"gemini-2.0-flash-exp",
+		"glm-4-flash",
+	],
 };
 globalThis.getFunctionalModelList = () => {
 	return [myInfo.model];
+};
+globalThis.callLLMOneByOne = async (modelList, conversation, tools, needParse=true, tag="CallAI", operationID) => {
+	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
+	let reply, usage = {}, error, toolUsage = [];
+
+	for (let model of modelList) {
+		let usability = checkModelUsability(model);
+		if (!usability) {
+			error = messages.msgNoAvailableModel;
+			continue;
+		}
+
+		let time = Date.now();
+		error = undefined;
+		try {
+			reply = await callAIandWait('directAskAI', {
+				conversation,
+				model,
+				tools,
+				operationID,
+			});
+			if (!!reply) {
+				usage = reply.usage || {};
+				toolUsage = reply.toolUsage || [];
+				reply = reply.reply || '';
+			}
+			else {
+				reply = '';
+			}
+		}
+		catch (err) {
+			error = err;
+			reply = null;
+			logger.error(tag + ': ' + model, err);
+			continue;
+		}
+		time = Date.now() - time;
+		logger.info(tag, model + ' : ' + time + 'ms');
+		if (needParse) {
+			reply = parseReplyAsXMLToJSON(reply);
+		}
+		break;
+	}
+
+	return {reply, usage, toolUsage, error};
+};
+globalThis.callDrawOneByOne = async (modelList, request, options={}, tag="CallAIDraw") => {
+	let url, usage = {}, error;
+
+	if (!modelList) modelList = Object.keys(DrawingModels);
+
+	for (let model of modelList) {
+		if (!model)	continue;
+		let ai = DrawingModels[model];
+		if (!!ai) ai = AI[ai];
+		if (!ai || !ai.draw) continue;
+
+		let usability = checkModelUsability(model);
+		if (!usability) {
+			error = messages.msgNoAvailableModel;
+			continue;
+		}
+
+		let time = Date.now();
+		error = undefined;
+		try {
+			url = await ai.draw(request, options, model);
+			if (!!url) {
+				if (isArray(url)) url = url.filter(url => !!url)[0];
+				if (!url) continue;
+			}
+			else {
+				continue;
+			}
+		}
+		catch (err) {
+			error = err;
+			url = null;
+			logger.error(tag + ': ' + model, err);
+			continue;
+		}
+		time = Date.now() - time;
+		logger.info(tag, model + ' (' + time + 'ms) : ' + url);
+		break;
+	}
+
+	return {url, usage, error};
+};
+globalThis.callFilmOneByOne = async (modelList, request, options={}, tag="CallAIFilm") => {
+	let video, usage = {}, error;
+
+	if (!modelList) modelList = Object.keys(ShootingModels);
+
+	for (let model of modelList) {
+		if (!model)	continue;
+		let ai = ShootingModels[model];
+		if (!!ai) ai = AI[ai];
+		if (!ai || !ai.film) continue;
+
+		let usability = checkModelUsability(model);
+		if (!usability) {
+			error = messages.msgNoAvailableModel;
+			continue;
+		}
+
+		let time = Date.now();
+		error = undefined;
+		try {
+			video = await ai.film(request, options, model);
+			if (!!video) {
+				if (!!video.error) {
+					error = video.error;
+					video = null;
+					logger.error(tag + ': ' + model, err);
+					continue;
+				}
+			}
+			else {
+				continue;
+			}
+		}
+		catch (err) {
+			error = err;
+			video = null;
+			logger.error(tag + ': ' + model, err);
+			continue;
+		}
+		time = Date.now() - time;
+		logger.info(tag, model + ' (' + time + 'ms) :', video);
+		break;
+	}
+
+	return {video, usage, error};
 };
 
 /* Rate Limit Controller */
@@ -379,11 +567,15 @@ globalThis.ModelRateLimit= {
 	"claude-3-opus-20240229": {
 		tpm: 80000,
 	},
-	"gemini-1.5-flash-exp-0827": {
+	"gemini-2.0-flash-exp": {
 		rpm: 15,
 		tpm: 1000000,
 	},
 	"gemini-1.5-flash-002": {
+		rpm: 15,
+		tpm: 1000000,
+	},
+	"gemini-2.0-flash-thinking-exp-1219": {
 		rpm: 15,
 		tpm: 1000000,
 	},

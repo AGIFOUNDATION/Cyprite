@@ -112,13 +112,13 @@ The AI platforms we can currently connect to include:
 - **Mistral**: open-mixtral-8x22b, open-mistral-7b, open-mistral-nemo, pixtral-12b-latest, open-codestral-mamba
 - **Groq**: gemma2-9b-it, llama3-groq-70b-8192-tool-use-preview, llama-3.1-70b-versatile, llama-3.2-90b-vision-preview
 - **MoonShot** (Full Version only): moonshot-v1-auto, moonshot-web-search
-- **DeepSeek** (Full Version only): deepseek-chat, deepseek-coder
+- **DeepSeek** (Full Version only): deepseek-chat, deepseek-reasoner
 - **GLM** (Full Version only): glm-4-plus, glm-4-long, glm-4-flash, glm-web-search-pro
 - **MiniMax** (Full Version only): abab6.5s-chat
 - **Qwen** (Full Version only): qwen-max, qwen-long, qwen-turbo
 - **Ernie** (Full Version only): ernie-4.0-8k
 
-Most models are optional, while some models can only be used covertly in the Full Version, such as `open-codestral-mamba` and `deepseek-coder` for writing code.
+Most models are optional, while some models can only be used covertly in the Full Version, such as `open-codestral-mamba` and `deepseek-reasoner` for writing code.
 
 ![](./assets/readme1.webp)
 

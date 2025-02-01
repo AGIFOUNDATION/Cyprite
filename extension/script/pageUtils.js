@@ -47,6 +47,7 @@ const clearHTML = (html, full=true, markList=false) => {
 	return html.trim();
 };
 const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
+	const IsInsider = PageName === 'FrontEnd';
 	const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v6.7.1/svgs/";
 	// const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v6.6.0/svgs/";
 	// const FONTAWESOMEROOT = "https://site-assets.fontawesome.com/releases/v5.15.4/svgs/";
@@ -72,6 +73,16 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 			return '[InlineMath:' + idx + ']';
 		}).trim();
 	}
+
+	// SVG
+	let blocks = {}, blockCount = 0;
+	content = content.replace(/<\?xml[^>]*?>/gi, '');
+	content = content.replace(/<(svg)([^>]*?)?>[\w\W]*?<\/\1>/gi, (m) => {
+		blockCount ++;
+		let tagName = 'BLOCK::' + blockCount;
+		blocks[tagName] = m;
+		return '[' + tagName + ']';
+	});
 
 	// Parse FontAwesome
 	content = content.replace(/:fa([rsb])\.([\w\-]+):/gi, (m, type, icon) => {
@@ -160,6 +171,15 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 		});
 	}
 
+	let last = content;
+	while (true) {
+		last = content.replace(/\[BLOCK::\d+\]/g, (m) => {
+			let key = m.replace(/\[|\]/g, '');
+			return blocks[key] || m;
+		});
+		if (content === last) break;
+		content = last;
+	}
 	container.innerHTML = content;
 
 	// Make hyperlink open page in new frame
@@ -174,13 +194,16 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 
 	// Colorize code block
 	[...container.querySelectorAll('pre > code')].forEach(block => {
-		const content = block.innerText;
+		const content = block.innerText, html = block.innerHTML;
 		const lang = (block.className.match(/language-([\w\-\+_\.]+)/) || [])[1] || '';
-		var isSVG = lang.trim().match(/^svg/i);
+		let isSVG = lang.trim().match(/^svg/i);
 		if (!isSVG) {
 			if (!!('\n' + content).match(/\n\s*(<\?xml[^\n\r]*>\s*\n\s*)?<svg/i)) {
 				isSVG = true;
 			}
+		}
+		else {
+			isSVG = true;
 		}
 
 
@@ -191,12 +214,12 @@ const parseMarkdownWithOutwardHyperlinks = (container, content, defaults) => {
 		caption.innerText = lang;
 		titleBar.appendChild(caption);
 		const copyBtn = newEle('img');
-		copyBtn.src = "../images/copy.svg";
+		copyBtn.src = IsInsider ? chrome.runtime.getURL('/images/copy.svg') : "../images/copy.svg";
 		titleBar.appendChild(copyBtn);
 
 		if (isSVG) {
 			const SVG = newEle('div', 'svg');
-			SVG.innerHTML = content;
+			SVG.innerHTML = html;
 			const bar = newEle('div', 'svg_bar');
 			let convertBtn = newEle('img');
 			convertBtn.src = "../images/retweet.svg";

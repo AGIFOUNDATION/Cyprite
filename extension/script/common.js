@@ -1,7 +1,9 @@
-const HTMLTags = ('a|b|i|strong|em|u|del|img|div|span|p|input|textarea|button|br|hr|h1|h2|h3|h4|h5|h6|ul|ol|li|blockquote').split('|').map(tag => tag.toLowerCase());
+const HTMLTags = ('a|b|i|strong|em|u|del|img|div|span|p|input|textarea|button|br|hr|h1|h2|h3|h4|h5|h6|ul|ol|li|blockquote|script|style').split('|').map(tag => tag.toLowerCase());
 const RegUnlatin = /(\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|\p{Script=Thai}|\p{Script=Arabic})/gu;
 const RegLatin = /(\p{L}+)/ug;
 const RegPunctuation = /[\p{P}．，、。？！；：‘’“”"'\(\)\[\]\{\}《》〈〉<>«»“„\-_=\+~`\/\\\|@#\$%\^&\*…—·～¡¿・ー;\u00A1-\u00BF\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF]/gu;
+
+globalThis.IsPublished = true;
 
 globalThis.OneMinute = 60 * 1000;
 globalThis.DayLong = 24 * 3600 * 1000;
@@ -84,7 +86,7 @@ globalThis.readData = (data, path) => {
 	if (path.length === 1) return data[path[0]];
 	var key = path.shift();
 	data = data[key];
-	if (!isObject(data)) return data;
+	if (data === null || data === undefined) return data;
 	return readData(data, path);
 };
 globalThis.writeData = (data, path, value) => {
@@ -163,19 +165,33 @@ globalThis.parseArray = (array, noSub=true) => {
 	}
 	return array;
 };
-globalThis.parseReplyAsXMLToJSON = (xml, init=true) => {
+globalThis.parseReplyAsXMLToJSON = (xml, forceLowerCase=true, init=true, blocks) => {
 	if (!xml) {
 		if (xml === 0) return 0;
 		if (xml === false) return false;
-		return '';
+		return {};
 	}
+	if (isObject(xml)) return xml;
 
-	var json = { _origin: xml.trim() };
-	var loc = -1;
-	var lev = 0;
-	const reg = /<(\/?)([^>\n\r\t ]+?[^>\n\r ]*?)>/gi;
+	const reg = /<(\/?)([^>\n\r\t ]+?[^>\n\r]*?)>/gi;
 
 	if (init) {
+		// Mark special blocks
+		blocks = blocks || {};
+		let blockCount = 0;
+		// xml = xml.replace(/```\w*[\n\r]+[\w\W]*?[\n\r]+```/gi, (m) => {
+		// 	blockCount ++;
+		// 	let tagName = 'BLOCK::' + blockCount;
+		// 	blocks[tagName] = m;
+		// 	return '[' + tagName + ']';
+		// });
+		xml = xml.replace(/<(svg)([^>]*?)?>[\w\W]*?<\/\1>/gi, (m) => {
+			blockCount ++;
+			let tagName = 'BLOCK::' + blockCount;
+			blocks[tagName] = m;
+			return '[' + tagName + ']';
+		});
+
 		xml = xml.replace(/<[^\n\r ]*?\s*\/>/g, ''); // Remove self-closed tags
 		let tags = [], lev = 0;
 		xml.replace(reg, (_, end, tag) => {
@@ -229,44 +245,78 @@ globalThis.parseReplyAsXMLToJSON = (xml, init=true) => {
 		});
 	}
 
+	const recallContent = ctx => {
+		let str = ctx;
+		let result = ctx;
+		while (true) {
+			str = result.replace(/\[BLOCK::\d+\]/g, (m) => {
+				let key = m.replace(/\[|\]/g, '');
+				return (blocks || {})[key] || m;
+			});
+			if (result === str) break;
+			result = str
+		}
+		return result;
+	};
+
+	let json = { _origin: recallContent(xml.trim()) };
+	let stacks = [];
 	xml.replace(reg, (m, end, tag, pos) => {
-		tag = tag.toLowerCase();
 		if (!tag.match(/[a-z]/i)) return;
-		if (HTMLTags.includes(tag)) return;
+		let low = tag.toLowerCase();
+		if (HTMLTags.includes(low)) return;
+		if (forceLowerCase) tag = low;
 		end = !!end;
+
 		if (end) {
-			lev --;
-			if (lev === 0 && loc >= 0) {
-				let sub = xml.substring(loc, pos).trim();
-				loc = -1;
-				if (!!sub.match(reg)) {
-					json[tag] = parseReplyAsXMLToJSON(sub, false);
-				}
-				else {
-					let low = sub.toLowerCase();
-					if (low === 'true') {
-						json[tag] = true;
-					}
-					else if (low === 'false') {
-						json[tag] = false;
-					}
-					else if (!!sub.match(/^(\d+|\d+\.|\.\d+|\d+\.\d+)$/)) {
-						json[tag] = sub * 1;
-					}
-					else {
-						json[tag] = sub;
-					}
+			let info = null, idx = -1;
+			for (let i = stacks.length - 1; i >= 0; i --) {
+				let stack = stacks[i];
+				if (stack[1] === low) {
+					info = stack;
+					idx = i;
+					break;
 				}
 			}
-			else if (lev < 0) {
-				lev = 0;
+			if (!!info) {
+				stacks.splice(idx);
+				if (idx === 0) {
+					let loc = info[2];
+					tag = info[0];
+					let sub = xml.substring(loc, pos).trim();
+					let value;
+					if (!!sub.match(reg)) {
+						value = parseReplyAsXMLToJSON(sub, forceLowerCase, false, blocks);
+					}
+					else {
+						let low = sub.toLowerCase();
+						if (low === 'true') {
+							value = true;
+						}
+						else if (low === 'false') {
+							value = false;
+						}
+						else if (!!sub.match(/^(\d+|\d+\.|\.\d+|\d+\.\d+)$/)) {
+							value = sub * 1;
+						}
+						else {
+							value = recallContent(sub);
+						}
+					}
+					if (json[tag] === undefined) {
+						json[tag] = value;
+					}
+					else if (isArray(json[tag])) {
+						json[tag].push(value);
+					}
+					else {
+						json[tag] = [json[tag], value];
+					}
+				}
 			}
 		}
 		else {
-			lev ++;
-			if (lev === 1) {
-				loc = pos + m.length;
-			}
+			stacks.push([tag, low, pos + m.length]);
 		}
 	});
 
@@ -520,16 +570,8 @@ globalThis.isString = obj => obj !== null && obj !== undefined && !!obj.__proto_
 globalThis.isNumber = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === Number;
 globalThis.isBoolean = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === Boolean;
 globalThis.isObject = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === Object;
-globalThis.isFunction = obj => obj !== null && obj !== undefined && !!obj.__proto__ && (obj.__proto__.constructor === Function || obj.__proto__.constructor === AsyncFunction);
-globalThis.isAsyncFunction = obj => obj !== null && obj !== undefined && !!obj.__proto__ && obj.__proto__.constructor === AsyncFunction;
-globalThis.shiftTimeToDayStart = time => {
-	time = new Date(time);
-	var y = time.getYear() + 1900;
-	var m = time.getMonth() + 1;
-	var d = time.getDate();
-	time = new Date(y + '/' + m + '/' + d);
-	return time.getTime();
-};
+globalThis.isFunction = obj => obj !== null && obj !== undefined && !!obj.__proto__ && (obj.__proto__.constructor === Function || obj.__proto__ === AsyncFunction || obj.__proto__.constructor === AsyncFunction);
+globalThis.isAsyncFunction = obj => obj !== null && obj !== undefined && !!obj.__proto__ && (obj.__proto__ === AsyncFunction || obj.__proto__.constructor === AsyncFunction);
 
 /* Auxillary Utils and Extends for DateTime */
 
@@ -637,4 +679,136 @@ globalThis.timestmp2str = (time, format) => {
 	format = format.replace(/:WDZ:/g, weekdayZT);
 
 	return format;
+};
+globalThis.convertTimeToArray = time => {
+	time = new Date(time);
+	let Y = time.getYear() + 1900;
+	let M = time.getMonth() + 1;
+	let D = time.getDate();
+	let h = time.getHours();
+	let m = time.getMinutes();
+	let s = time.getSeconds();
+	return [Y, M, D, h, m, s];
+};
+globalThis.shiftTimeToDayStart = time => {
+	let [y, m, d] = convertTimeToArray(time);
+	time = new Date(y + '/' + m + '/' + d);
+	return time.getTime();
+};
+globalThis.timeDifference = (timeA, timeB) => {
+	if (!timeB) {
+		timeB = Date.now();
+	}
+	else if (timeA > timeB) {
+		[timeA, timeB] = [timeB, timeA];
+	}
+
+	const [Y1, M1, D1, h1, m1, s1] = convertTimeToArray(timeA);
+	const [Y2, M2, D2, h2, m2, s2] = convertTimeToArray(timeB);
+	let dY = Y2 - Y1;
+	let dM = M2 - M1;
+	let dD = D2 - D1;
+	let dh = h2 - h1;
+	let dm = m2 - m1;
+	let ds = s2 - s1;
+
+	if (dM < 0) {
+		dY --;
+		dM += 12;
+	}
+	else if (dM === 0) {
+		if (dD < 0) {
+			dY --;
+			dM = 12;
+		}
+		else if (dD === 0) {
+			if (dh < 0) {
+				dY --;
+				dM = 12;
+			}
+			else if (dh === 0) {
+				if (dm < 0) {
+					dY --;
+					dM = 12;
+				}
+				else if (dm === 0) {
+					if (ds < 0) {
+						dY --;
+						dM = 12;
+					}
+				}
+			}
+		}
+	}
+	if (dY > 0) return dY + ' years ago';
+
+	if (dD < 0) {
+		dM --;
+	}
+	else if (dD === 0) {
+		if (dh < 0) {
+			dM --;
+		}
+		else if (dh === 0) {
+			if (dm < 0) {
+				dM --;
+			}
+			else if (dm === 0) {
+				if (ds < 0) {
+					dM --;
+				}
+			}
+		}
+	}
+	if (dM > 0) return dM + ' months ago';
+
+	dD = Math.floor((timeB - timeA) / 1000 / 3600 / 24);
+	if (dD > 0) return dD + ' days ago';
+
+	dh = Math.floor((timeB - timeA) / 1000 / 3600);
+	if (dh > 0) return dh + ' hours ago';
+
+	dm = Math.floor((timeB - timeA) / 1000 / 60);
+	if (dm > 0) return dm + ' minutes ago';
+
+	ds = Math.floor((timeB - timeA) / 1000);
+	return ds + ' seconds ago';
+};
+
+/* Memory Control */
+
+globalThis.constructMemory = (inside, outside, tag) => {
+	let stack = [];
+	if (!!outside && !!outside.__stack__) stack.push(...outside.__stack__);
+	stack.push(tag);
+	return new Proxy(inside, {
+		get: (inner, prop) => {
+			if (prop === '__blueprint__') return inner;
+			if (prop === '__stack__') return stack;
+
+			let value = inner[prop];
+			if (value === undefined) value = outside[prop];
+			return value;
+		},
+		set: (inner, prop, value) => {
+			if (prop === '__blueprint__') return false;
+			if (prop === '__stack__') return false;
+
+			let old;
+			old = inner[prop];
+			if (old !== undefined) {
+				inner[prop] = value;
+				return true;
+			}
+
+			old = outside[prop];
+			if (old !== undefined) {
+				outside[prop] = value;
+				return true;
+			}
+
+			inner[prop] = value;
+			return true;
+		}
+	});
 };

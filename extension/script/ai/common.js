@@ -146,9 +146,10 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 		tools.forEach(tool => toolMap[tool.name] = tool);
 	}
 
-	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0;
+	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0, toolRecord = [];
 	while (true) {
 		let response;
+		logger.log('sendRequest', tag, [...conversation]);
 		try {
 			await AI.requestRateLimitLock(locker);
 			AI.updateRateLimitLock(locker, true);
@@ -377,8 +378,10 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 			}
 			if (replies.length > 0) {
 				conversation.push(['call', requests]);
+				toolRecord.push(['call', requests]);
 				replies.forEach(reply => {
 					conversation.push(['tool', reply]);
+					toolRecord.push(['tool', reply]);
 				});
 				assembleConversation();
 			}
@@ -396,5 +399,6 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 	return {
 		reply: replies.join(' '),
 		usage,
+		toolUsage: toolRecord
 	};
 };

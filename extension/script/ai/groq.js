@@ -5,7 +5,7 @@ globalThis.AI.Groq = {};
 
 const DefaultGroqChatModel = AI2Model.groq[0];
 
-const assemblePayload = (conversation) => {
+const assemblePayload = (conversation, model, tools) => {
 	var payload = [];
 
 	conversation.forEach(item => {
@@ -16,7 +16,7 @@ const assemblePayload = (conversation) => {
 				content
 			});
 		}
-		else if (role === 'human') {
+		else if (role === 'human' || role === 'inner') {
 			payload.push({
 				role: 'user',
 				content
@@ -29,11 +29,14 @@ const assemblePayload = (conversation) => {
 			});
 		}
 		else if (role === 'call') {
+			if (NoToolModels.includes(model)) return;
 			let conv = {
 				role: 'assistant',
 				tool_calls: [],
 			};
 			content.forEach(quest => {
+				let has = tools.some(tool => tool.name === quest.name);
+				if (!has) return;
 				conv.tool_calls.push({
 					id: quest.id,
 					type: "function",
@@ -43,14 +46,18 @@ const assemblePayload = (conversation) => {
 					}
 				});
 			});
+			if (conv.tool_calls.length === 0) return;
 			payload.push(conv);
 		}
 		else if (item[0] === 'tool') {
+			if (NoToolModels.includes(model)) return;
+			let has = tools.some(tool => tool.name === content.name);
+			if (!has) return;
 			payload.push({
 				role: 'tool',
-				tool_call_id: item[1].id,
-				name: item[1].name,
-				content: item[1].content,
+				tool_call_id: content.id,
+				name: content.name,
+				content: content.content,
 			});
 		}
 	});
@@ -82,7 +89,8 @@ AI.Groq.chat = async (conversation, model, tools=[], tid) => {
 	const apiKey = myInfo.apiKey.groq || '';
 	const ai = Model2AI[model];
 
-	tools = AI.prepareToolList(tools);
+	if (NoToolModels.includes(model)) tools = [];
+	else tools = AI.prepareToolList(tools);
 	request.headers = Object.assign({}, ModelDefaultConfig[ai].header, (ModelDefaultConfig[model] || {}).header || {}, {
 		"Authorization": "Bearer " + apiKey
 	});
@@ -90,7 +98,7 @@ AI.Groq.chat = async (conversation, model, tools=[], tid) => {
 	appendToolsToRequest(payload, tools);
 
 	return await sendRequestAndWaitForResponse('Groq', model, conversation, url, request, () => {
-		payload.messages = assemblePayload(conversation);
+		payload.messages = assemblePayload(conversation, model, tools);
 		request.body = JSON.stringify(payload);
 	}, tools, tid);
 };
