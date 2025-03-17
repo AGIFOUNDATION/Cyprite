@@ -1,13 +1,15 @@
 globalThis.ModelContinueRequestLoopLimit = 10;
 globalThis.ModelList = [];
 globalThis.Model2AI = {
-	"gemini-1.5-pro-exp-0827": "Gemini",
+	"gemini-2.0-pro-exp": "Gemini",
+	"gemini-2.0-flash": "Gemini",
 	"gemini-2.0-flash-exp": "Gemini",
-	"gemini-1.5-pro-002": "Gemini",
-	"gemini-2.0-flash-thinking-exp-1219": "Gemini",
+	"gemini-2.0-flash-lite-preview": "Gemini",
+	"gemini-2.0-flash-thinking-exp": "Gemini",
 	"gemini-1.5-flash-002": "Gemini",
-	"gemini-exp-1121": "Gemini",
+	"gemini-exp-1206": "Gemini",
 	"learnlm-1.5-pro-experimental": "Gemini",
+	"claude-3-7-sonnet-20250219": "Claude",
 	"claude-3-5-sonnet-latest": "Claude",
 	"claude-3-opus-20240229": "Claude",
 	"claude-3-5-haiku-latest": "Claude",
@@ -15,6 +17,7 @@ globalThis.Model2AI = {
 	"o1-mini": "OpenAI",
 	"gpt-4o": "OpenAI",
 	"gpt-4o-mini": "OpenAI",
+	"gpt-4.5-preview": "OpenAI",
 	"grok-beta": "Grok",
 	"grok-2-1212": "Grok",
 	"grok-2-vision-1212": "Grok",
@@ -30,15 +33,17 @@ globalThis.Model2AI = {
 };
 globalThis.AI2Model = {
 	"gemini": [
-		"gemini-1.5-pro-exp-0827",
+		"gemini-2.0-pro-exp",
+		"gemini-2.0-flash",
 		"gemini-2.0-flash-exp",
-		"gemini-1.5-pro-002",
+		"gemini-2.0-flash-lite-preview",
+		"gemini-2.0-flash-thinking-exp",
 		"gemini-1.5-flash-002",
-		"gemini-2.0-flash-thinking-exp-1219",
-		"gemini-exp-1121",
+		"gemini-exp-1206",
 		"learnlm-1.5-pro-experimental",
 	],
 	"claude": [
+		"claude-3-7-sonnet-20250219",
 		"claude-3-5-sonnet-latest",
 		"claude-3-opus-20240229",
 		"claude-3-5-haiku-latest",
@@ -48,6 +53,7 @@ globalThis.AI2Model = {
 		"gpt-4o-mini",
 		"o1-preview",
 		"o1-mini",
+		"gpt-4.5-preview",
 	],
 	"grok": [
 		"grok-beta",
@@ -77,13 +83,15 @@ globalThis.ModelOrder = [
 	"mixtral",
 ];
 globalThis.ModelNameList = {
-"gemini-2.0-flash-thinking-exp-1219": "Gemini Thinking",
-	"gemini-1.5-pro-exp-0827": "Gemini Pro",
+	"gemini-2.0-flash-thinking-exp": "Gemini Thinking",
+	"gemini-2.0-pro-exp": "Gemini Pro",
 	"gemini-2.0-flash-exp": "Gemini Flash",
-	// "gemini-1.5-pro-002": "GeminiPro2",
+	"gemini-2.0-flash-lite-preview": "Gemini Lite",
+	"gemini-2.0-flash-thinking-exp": "Gemini Thinking",
 	// "gemini-1.5-flash-002": "GeminiFlash2",
-	// "gemini-exp-1121": "Gemini Exp",
-	// "learnlm-1.5-pro-experimental": "Gemini LearnLM",
+	// "gemini-exp-1206": "Gemini Exp",
+	"learnlm-1.5-pro-experimental": "Gemini LearnLM",
+	"claude-3-7-sonnet-20250219": "Sonnet 3.7",
 	"claude-3-5-sonnet-latest": "Sonnet 3.5",
 	"claude-3-5-haiku-latest": "Haiku 3.5",
 	// "claude-3-opus-20240229": "Opus 3",
@@ -91,6 +99,7 @@ globalThis.ModelNameList = {
 	"o1-mini": "O1 Mini",
 	"gpt-4o": "GPT 4o",
 	"gpt-4o-mini": "GPT 4o Mini",
+	"gpt-4.5-preview": "GPT 4.5",
 	// "grok-beta": "Grok Beta",
 	"grok-2-1212": "Grok 2",
 	"open-mixtral-8x22b": "Open Mixtral",
@@ -151,7 +160,6 @@ globalThis.ModelDefaultConfig = {
 			"anthropic-dangerous-direct-browser-access": true
 		},
 		chat: {
-			top_k: 3,
 			temperature: 1.0,
 			max_tokens: 4096,
 		}
@@ -193,6 +201,18 @@ globalThis.ModelDefaultConfig = {
 			max_tokens: 8192,
 		},
 	},
+	"claude-3-7-sonnet-20250219": {
+		header: {
+			"anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
+		},
+		chat: {
+			max_tokens: 16000,
+			thinking: {
+				type: "enabled",
+				"budget_tokens": 8000
+			}
+		}
+	},
 	"claude-3-5-sonnet-latest": {
 		header: {
 			"anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
@@ -221,6 +241,16 @@ globalThis.ModelDefaultConfig = {
 			max_tokens: 65536,
 		}
 	},
+	"gpt-4.5-preview": {
+		chat: {
+			max_tokens: 16383,
+		}
+	},
+	"grok-2-1212": {
+		chat: {
+			max_tokens: 102400,
+		},
+	},
 	"open-mixtral-8x22b": {
 		chat: {
 			max_tokens: 64000,
@@ -244,8 +274,10 @@ globalThis.ModelDefaultConfig = {
 };
 globalThis.SearchAIModel = ['GLM', 'MoonShot'];
 globalThis.PaCableModels = [
+	"gemini-2.0-pro-exp",
+	"gemini-2.0-flash",
 	"gemini-2.0-flash-exp",
-	"gemini-2.0-flash-thinking-exp-1219",
+	"gemini-2.0-flash-thinking-exp",
 	"claude-3-5-sonnet-latest",
 	"claude-3-5-haiku-latest",
 	"claude-3-opus-20240229",
@@ -253,7 +285,7 @@ globalThis.PaCableModels = [
 	"deepseek-chat",
 	"qwen-max-latest",
 ];
-globalThis.NoToolModels = ['gemini-exp-1121', 'gemini-2.0-flash-thinking-exp-1219', 'o1-preview', 'o1-mini', 'deepseek-reasoner'];
+globalThis.NoToolModels = ['gemini-exp-1206', 'gemini-2.0-flash-thinking-exp', 'gemini-2.0-flash-lite-preview', 'o1-preview', 'o1-mini', 'deepseek-reasoner'];
 globalThis.DrawingModels = {
 	"dall-e-3": "OpenAI",
 	"cogview-3": "GLM",
@@ -270,9 +302,11 @@ globalThis.ShootingModels = {
 
 globalThis.AILongContextLimit = 200000;
 const LongContextModel = [
-	'gemini-1.5-pro-exp-0827',
-	'gemini-1.5-pro-002',
-	"gemini-exp-1121",
+	'gemini-2.0-pro-exp',
+	'gemini-2.0-flash',
+	'gemini-2.0-flash-exp',
+	'gemini-2.0-flash-lite-preview',
+	"gemini-exp-1206",
 	"learnlm-1.5-pro-experimental",
 ];
 LongContextModel.idx = -1;
@@ -284,9 +318,10 @@ globalThis.PickLongContextModel = () => {
 
 const ModelUsability = {};
 globalThis.checkModelUsability = (model) => {
-	if (ModelUsability[model]) return true;
+	let usability = ModelUsability[model];
+	if (isBoolean(usability)) return usability;
 
-	let usability = true;
+	usability = true;
 	let ai = Model2AI[model] || DrawingModels[model] || ShootingModels[model];
 	if (!!ai) {
 		ai = ai.toLowerCase();
@@ -308,6 +343,11 @@ globalThis.checkModelUsability = (model) => {
 	ModelUsability[model] = usability;
 	return usability;
 };
+globalThis.resetModelUsability = () => {
+	for (let model in ModelUsability) {
+		delete ModelUsability[model];
+	}
+};
 
 const FunctionalModel = {
 	analyzeKeywordCategory: [
@@ -321,14 +361,14 @@ const FunctionalModel = {
 		'claude-3-5-haiku-latest',
 		'gemini-1.5-flash-002',
 		'glm-4-flash',
-		'gemini-2.0-flash-exp',
+		'gemini-2.0-flash-lite-preview',
 		'deepseek-chat',
 		'glm-4-plus',
+		'gemini-2.0-flash-exp',
 		'gpt-4o',
-		'gemini-1.5-pro-002',
 		'gpt-4o-mini',
 		'grok-beta',
-		'gemini-1.5-pro-exp-0827',
+		'gemini-2.0-pro-exp',
 		'claude-3-5-sonnet-latest',
 	],
 	findArticlesFromList: [
@@ -372,8 +412,8 @@ const FunctionalModel = {
 		"gpt-4o-mini",
 		'claude-3-5-sonnet-latest',
 		'grok-2-1212',
-		'gemini-1.5-pro-002',
-		'gemini-1.5-pro-exp-0827',
+		'gemini-2.0-flash-lite-preview',
+		'gemini-2.0-pro-exp',
 		'moonshot-v1-auto',
 		'deepseek-chat',
 	],
@@ -567,15 +607,23 @@ globalThis.ModelRateLimit= {
 	"claude-3-opus-20240229": {
 		tpm: 80000,
 	},
+	"gemini-2.0-flash": {
+		rpm: 15,
+		tpm: 1000000,
+	},
 	"gemini-2.0-flash-exp": {
 		rpm: 15,
 		tpm: 1000000,
 	},
-	"gemini-1.5-flash-002": {
+	"gemini-2.0-flash-lite-preview": {
 		rpm: 15,
 		tpm: 1000000,
 	},
-	"gemini-2.0-flash-thinking-exp-1219": {
+	"gemini-2.0-flash-thinking-exp": {
+		rpm: 15,
+		tpm: 1000000,
+	},
+	"gemini-1.5-flash-002": {
 		rpm: 15,
 		tpm: 1000000,
 	},

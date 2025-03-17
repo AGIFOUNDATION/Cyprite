@@ -1002,7 +1002,7 @@ const extendConversation = async (taskID) => {
 	history.reverse();
 	
 	let reply = await Cyprite.Id.executeSpark(Cyprite.Abilities.extendConversation, '', {lang: myInfo.lang}, history);
-	console.log('|:>====---~~:>', history, reply);
+	logger.log('ExtendConversation', reply);
 	if (!reply) return;
 	reply = reply.result;
 	if (!reply || !reply.content) return;
@@ -1019,7 +1019,7 @@ const extendConversation = async (taskID) => {
 		Cyprite.Self.currentTopic = topic;
 		tasks.push(DBs.cyprite.setInfo({ currentTopic: topic }));
 	}
-	else {
+	else if (reply.digTopic || reply.digtopic) {
 		prompt = PromptLib.innerExtend;
 		topic = Cyprite.Self.currentTopic;
 	}

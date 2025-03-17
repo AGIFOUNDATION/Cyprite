@@ -28,7 +28,7 @@
 # Cyprite
 
 > - Author: LostAbaddon
-> - Version: 1.0.0
+> - Version: 1.1.0
 
 I am your best and smartest AI partner, Cyprite（机灵）.
 

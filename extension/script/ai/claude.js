@@ -110,3 +110,28 @@ AI.Claude.chat = async (conversation, model=DefaultChatModel, tools=[], tid) => 
 		request.body = JSON.stringify(data);
 	}, tools, tid);
 };
+AI.Claude.list = async () => {
+	const request = { method: "GET" };
+	const url = "https://api.anthropic.com/v1/models";
+
+	request.headers = {
+		Accept: "application/json",
+		"content-type": "application/json",
+		"anthropic-version": "2023-06-01",
+		"x-api-key": myInfo.apiKey.claude,
+	};
+
+	var response, time = Date.now();
+	try {
+		response = await waitUntil(fetchWithCheck(url, request));
+	}
+	catch (err) {
+		throw err;
+	}
+	time = Date.now() - time;
+	logger.info('Claude', 'List: ' + (time / 1000) + 's');
+
+	response = await response.json();
+	response = response.data || response;
+	return response;
+};

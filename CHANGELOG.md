@@ -1,5 +1,46 @@
 # Change Logs
 
+## v1.0.0 (2025.02.01)
+
+- New Features
+  + Added light/dark themes and theme switching functionality
+  + Added left/right layouts and layout switching functionality
+  + Integrated drawing and video creation APIs from Keling (Keling)
+  + Help functionality based on Cyprite (Cyprite)
+  + New Cyprite dialogue function framework
+    * Added Spark (Spark) and Lighting (Lighting) parsing and execution capabilities
+    * Added consistency emotion management
+    * Completed "Long Thinking" mode, capable of very deep task and problem breakdown, strategy formulation, sectional answers and comprehensive responses
+    * Optimized serious response mode, added strategy reconstruction and reflection
+    * Added translation-related workflows
+    * Explanation and teaching mechanisms
+    * Writing mechanism: Micro Science Fiction
+    * Writing mechanism: Thriller and Mystery
+    * Added drawing workflow
+    * Added video generation workflow
+    * Added dialogue summarization function, with the ability to replace lengthy long-term memories with summaries when retrieving memories
+    * Added functionality to update user understanding
+    * Ability to extract and remember additional requirements from dialogues
+    * Ability to actively initiate questions
+  + Writing Assistant
+    * Automatic expansion, polish, and continuation based on requirements, existing text, and dialogue content
+    * Automatically find matching knowledge sources for articles
+    * Output formats for rewriting, inserting lines, deleting lines, and replacing lines
+  + Windows Program
+    * Auto-start on boot
+    * System tray entry
+    * Text selection activation
+    * Completed feature integration and prompt modifications on the plugin side
+- Optimizations
+  + Adjusted the activation mechanism for in-page entries, changed to display shortcut icons by default on all pages
+  + Optimized the loading state style of the configuration page
+  + Changed JWT library to JOSE, with minimal trimming
+  + Optimized available model list management
+  + Frontend adjustment: quick navigation between up and down dialogue records
+- Fixes
+  + Fixed issues caused by missing tool parameters in the "Reply Again" function
+  + Conflicts between tool usage declarations and dialogue records
+
 ## v0.5.10 (2024.11.16)
 
 - New Features

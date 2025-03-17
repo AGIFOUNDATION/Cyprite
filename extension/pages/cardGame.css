@@ -1,0 +1,352 @@
+body {
+	user-select: none;
+}
+
+.button {
+	display: inline-block;
+	padding: 10px 20px;
+	margin: 10px;
+	border: 1px solid var(--front-color);
+	border-radius: 5px;
+	text-align: center;
+	text-decoration: none;
+	cursor: pointer;
+}
+.button.backhome {
+	margin: 0px;
+	padding: 0px 3px;
+	border: none;
+}
+
+.area {
+	position: relative;
+	padding: 20px;
+}
+
+.area .title {
+	padding-top: 0.2em;
+	font-size: 20px;
+	font-weight: bold;
+}
+
+.modeSelector > .selector {
+	display: none;
+	cursor: pointer;
+}
+img.selector {
+	position: relative;
+	top: 4px;
+	width: 20px;
+	height: 20px;
+	margin-left: 10px;
+	margin-right: 5px;
+}
+[mode="onlyView"] [mode="onlyView"] {
+	display: inline-block;
+}
+[mode="joinWar"] [mode="joinWar"] {
+	display: inline-block;
+}
+
+.panel[panel="welcome"] .selection {
+	position: relative;
+	padding-top: 50px;
+	padding-bottom: 50px;
+	border-bottom: 1px solid var(--front-color);
+	text-align: center;
+}
+.panel[panel="welcome"] .button {
+	display: block;
+	width: 200px;
+	margin: 20px auto;
+}
+
+.panel[panel="WinLoseRule"] .info,
+.panel[panel="ScoreRule"] .info {
+	padding: 50px 20px;
+}
+
+.modelList {
+	position: relative;
+}
+.modelList .listitem {
+	padding: 2px 5px;
+}
+.modelList .listitem:hover {
+	background-color: rgba(127, 127, 127, 0.5);
+}
+.modelList .listitem .tool_panel {
+	float: right;
+	position: relative;
+	top: 1px;
+}
+.modelList .listitem .btn {
+	position: relative;
+	top: 2px;
+	width: 16px;
+	height: 16px;
+	margin: 0px 5px;
+	cursor: pointer;
+}
+
+.modeSelector .starter {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	padding: 7px 20px 5px;
+	border: 1px solid var(--front-color);
+	border-radius: 5px;
+	cursor: pointer;
+}
+
+.panel[panel="FightVerse"] {
+	position: fixed;
+	top: 0px;
+	bottom: 0px;
+	left: 0px;
+	right: 0px;
+	--panelWidth: 300px;
+}
+.panel[panel="FightVerse"] .leftArea {
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	left: 0px;
+	width: var(--panelWidth);
+}
+.panel[panel="FightVerse"] .rightArea {
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	left: calc(var(--panelWidth) + 10px);
+	right: 25px;
+}
+
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo {
+	position: relative;
+	margin-top: 10px;
+	margin-left: 10px;
+	padding: 5px;
+	border-radius: 5px;
+	box-shadow: 0px 0px 1px var(--front-color);
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo[mode="ready"] {
+	box-shadow: 0px 0px 5px green;
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo[mode="thinking"] {
+	box-shadow: 0px 0px 5px yellow;
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo[mode="dead"] {
+	color:rgb(127, 127, 127);
+	box-shadow: 0px 0px 5px red;
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo .name {
+	font-size: 1.2em;
+	font-weight: bolder;
+	color: inherit;
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo .name .extra {
+	display: none;
+	margin-left: 5px;
+	font-size: 0.6em;
+	color: rgb(127, 127, 127);
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo:hover .name .extra {
+	display: inline-block;
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo .name .extra::before {
+	content: "(";
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo .name .extra::after {
+	content: ")";
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo .score {
+	margin-top: 5px;
+	color: inherit;
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo .score .hint {
+	display: inline-block;
+	width: 20%;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	color: inherit;
+}
+.panel[panel="FightVerse"] .leftArea .topArea .playerInfo .score .value {
+	display: inline-block;
+	width: 30%;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	color: inherit;
+}
+
+.panel[panel="FightVerse"] .leftArea .bottomArea {
+	position: absolute;
+	bottom: 0px;
+	left: 10px;
+	right: 0px;
+	padding-bottom: 30px;
+}
+.panel[panel="FightVerse"][onlyView="true"] .leftArea .bottomArea {
+	display: none;
+}
+.panel[panel="FightVerse"] .leftArea .bottomArea .hint {
+	margin-top: 0px;
+	margin-bottom: 0px;
+	font-size: 1.2em;
+	font-weight: bolder;
+}
+.panel[panel="FightVerse"] .leftArea .bottomArea .value {
+	margin-top: 5px;
+	margin-bottom: 20px;
+	padding-left: 22px;
+}
+.panel[panel="FightVerse"] .leftArea .bottomArea .line {
+	padding-left: 22px;
+}
+
+.panel[panel="FightVerse"][onlyView="true"] .rightArea .input_sender {
+	/* display: none; */
+}
+
+.mask {
+	position: fixed;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	z-index: 100;
+	display: none;
+}
+
+.popwin {
+	position: fixed;
+	z-index: 101;
+	top: 50%;
+	left: 50%;
+	display: none;
+	padding: 10px;
+	border-radius: 8px;
+	border: 1px solid rgba(127, 127, 127, 0.6);
+	background-color: rgba(25, 25, 25, 0.75);
+	box-shadow: 2px 2px 5px rgba(36, 36, 36, 0.5);
+	backdrop-filter: blur(2px);
+	transform: translate(-50%, -50%);
+}
+.popwin.cardselect {
+	width: 600px;
+	height: 235px;
+}
+.popwin.targetselect {
+	width: 450px;
+}
+.popwin.continuer {
+	top: 0px;
+	width: 90%;
+	max-width: calc(100% - 50px);
+	transform: translateX(-50%);
+	border-top-left-radius: 0px;
+	border-top-right-radius: 0px;
+	border-bottom-left-radius: 20px;
+	border-bottom-right-radius: 20px;
+	text-align: center;
+}
+.popwin.nextRound {
+	top: 0px;
+	width: 60%;
+	max-width: calc(100% - 50px);
+	transform: translateX(-50%);
+	border-top-left-radius: 0px;
+	border-top-right-radius: 0px;
+	border-bottom-left-radius: 20px;
+	border-bottom-right-radius: 20px;
+	text-align: center;
+}
+
+.popwin .title {
+	padding: 2px 5px;
+	border-bottom: 1px solid rgba(127, 127, 127, 0.8);
+	font-size: 1.2em;
+	font-weight: bolder;
+}
+.popwin .cardArea {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 10px;
+	row-gap: 10px;
+	padding: 20px;
+}
+.popwin .cardArea .card {
+	position: relative;
+	min-width: 75px;
+	max-width: 120px;
+	height: 150px;
+	flex: 0 1 25%;
+	padding: 0px;
+	border-radius: 10px;
+	border: 1px solid rgba(127, 127, 127, 0.7);
+	cursor: pointer;
+}
+.popwin .cardArea .card:hover {
+	border: 1px solid rgba(127, 127, 127, 1.0);
+	box-shadow: 2px 2px 5px rgba(127, 127, 127, 0.6);
+}
+.popwin .cardArea .card .name {
+	margin-top: 30px;
+	font-size: 2em;
+	text-align: center;
+	pointer-events: none;
+}
+.popwin .cardArea .card .count {
+	margin-top: 10px;
+	font-size: 1.5em;
+	text-align: center;
+	pointer-events: none;
+}
+
+.popwin .playerArea {
+	padding: 10px;
+	max-height: 200px;
+}
+.popwin .playerArea .listitem {
+	padding: 2px 10px;
+	margin-top: 5px;
+	cursor: pointer;
+}
+.popwin .playerArea .listitem:hover {
+	box-shadow: 1px 1px 3px rgba(127, 127, 127, 0.9);
+}
+
+.popwin.nextRound .buttons {
+	margin-top: 10px;
+	text-align: center;
+}
+.popwin.nextRound .buttons .button {
+	display: inline-block;
+	margin-left: 20px;
+	margin-right: 20px;
+}
+
+.content_container .chat_item.system {
+	margin-right: 50px;
+	background-color: black;
+	transition: background-color cubic-bezier(0.5, 0.1, 0.3, 1) 250ms;
+}
+.content_container .chat_item .chat_content {
+	user-select: text;
+}
+
+.content_container .chat_item .tool_panel {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+}
+.content_container .chat_item .tool_panel img {
+	display: none;
+	width: 22px;
+	padding: 5px;
+	cursor: pointer;
+}
+.content_container .chat_item:hover .tool_panel img {
+	display: block;
+}

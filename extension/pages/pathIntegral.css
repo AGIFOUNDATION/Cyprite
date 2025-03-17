@@ -1,0 +1,310 @@
+.showStatics {
+	position: fixed;
+	display: none;
+	z-index: 99999;
+	top: 30px;
+	right: 0px;
+	width: 26px;
+	padding: 0px 3px;
+	user-select: none;
+	cursor: pointer;
+}
+
+#AgentListContainer .listItem:hover {
+	background-color: rgba(225, 225, 225, 0.4);
+}
+
+.panel .area {
+	position: fixed;
+	bottom: 0px;
+	padding: 0px;
+	--static-width: 550px;
+	--padding: 40px;
+}
+.panel .area.conversation {
+	top: 0px;
+	left: var(--padding);
+	right: calc(var(--static-width) + var(--padding));
+}
+.panel .area.statics {
+	top: 30px;
+	right: var(--padding);
+	width: calc(var(--static-width) - var(--padding));
+}
+
+.panel .area.statics .title {
+	border-bottom-color: rgba(225, 225, 225, 0.6);
+	font-size: 20px;
+	user-select: none;
+}
+
+@media (max-width: 1152px) {
+	.showStatics {
+		display: block;
+	}
+	.panel .area.conversation {
+		left: var(--padding);
+		right: var(--padding);
+	}
+	.panel .area.statics {
+		display: none;
+		top: 10px;
+		bottom: 10px;
+		left: var(--padding);
+		right: var(--padding);
+		width: auto;
+		padding: 10px;
+		background-color: rgba(36, 36, 36, 0.6);
+		backdrop-filter: blur(2px);
+		box-shadow: inset 0px 0px 2px rgba(225, 225, 225, 0.6), 2px 2px 5px black;
+	}
+	[showstatics="true"] .panel .area.statics {
+		display: block;
+	}
+}
+
+.panel.full {
+	width: 100%;
+}
+
+.navbar {
+	position: absolute;
+	left: calc(100% + 5px);
+	bottom: 5px;
+}
+.navbar > div {
+	margin-top: 10px;
+	margin-bottom: 0px;
+	opacity: 0.6;
+	cursor: pointer;
+}
+.navbar > div:first-child {
+	margin-top: 0px;
+	margin-bottom: 0px;
+}
+.navbar > div:hover {
+	opacity: 1.0;
+}
+.navbar > div > img {
+	width: 28px;
+	height: 28px;
+}
+
+.popWin {
+	position: fixed;
+	display: none;
+	width: 1200px;
+	max-width: calc(100% - 200px);
+	height: 600px;
+	top: 50%;
+	left: 50%;
+	z-index: 10000;
+	padding: 10px;
+	transform: translate(-50%, -50%);
+	border: 1px solid rgba(225, 225,225, 0.25);
+	background-color: rgba(36, 36, 36, 0.8);
+	backdrop-filter: blur(2px);
+	box-shadow: 2px 2px 5px black;
+}
+.popWin .title {
+	padding: 0px 15px 10px 15px;
+	border-bottom: 1px solid rgba(225, 225,225, 0.25);
+	font-size: 20px;
+	font-weight: bolder;
+	user-select: none;
+}
+.popWin .info {
+	padding: 10px 15px;
+	border-bottom: 1px solid rgba(225, 225,225, 0.25);
+	color: rgb(125, 125, 125);
+	font-size: 16px;
+	font-style: italic;
+	user-select: none;
+}
+.popWin .closeMe {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+}
+.popWin .confirmPanel {
+	position: absolute;
+	bottom: 10px;
+	width: 100%;
+	left: 0px;
+	margin-top: 0px;
+	padding-top: 0px;
+	padding-bottom: 2px;
+	border-top: none;
+}
+
+.replyFrame {
+	position: absolute;
+	top: 100px;
+	bottom: 60px;
+	left: 20px;
+	right: 20px;
+}
+.replyFrame .modelList {
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	left: 0px;
+	width: 50px;
+}
+.replyFrame .modelList .modelTab {
+	width: 100%;
+	padding: 2px 5px;
+	border-radius: 5px;
+	border: 1px solid rgba(225, 225, 225, 0.6);
+	text-align: center;
+	user-select: none;
+	cursor: pointer;
+}
+.replyFrame .modelList .modelTab.active {
+	background-color: rgba(225, 225, 225, 0.6);
+}
+.replyFrame .replyList {
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	left: 60px;
+	right: 10px;
+}
+
+.leaderboard {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: baseline;
+	gap: 2px;
+	height: 300px;
+	margin-top: 20px;
+}
+.leaderboard .boardItem {
+	position: relative;
+	flex: auto;
+}
+.leaderboard .boardItem:empty {
+	background-color: rgb(100, 225, 100);
+	border: 1px solid white;
+	border-left: none;
+	border-right: none;
+}
+.leaderboard .boardItem[neg="true"]:empty {
+	background-color: rgb(225, 100, 100);
+}
+.leaderboard .boardItem::after,
+.leaderboard .boardItem .boardInnerItem::after {
+	display: none;
+	content: attr(model);
+	position: absolute;
+	top: calc(100% + 5px);
+	left: 50%;
+	transform: translateX(-50%);
+	font-size: 12px;
+	white-space: nowrap;
+}
+.leaderboard .boardItem[neg="true"]::after,
+.leaderboard .boardItem[neg="true"] .boardInnerItem::after {
+	top: auto;
+	bottom: calc(100% + 5px);
+}
+[showLable="true"] .leaderboard .boardItem::after,
+[showLable="true"] .leaderboard .boardItem .boardInnerItem::after {
+	display: inline-block;
+	transform-origin: left;
+	transform: rotate(90deg);
+}
+[showLable="true"] .leaderboard .boardItem[neg="true"]::after,
+[showLable="true"] .leaderboard .boardItem[neg="true"] .boardInnerItem::after {
+	transform-origin: right;
+	transform: translateX(-100%) rotate(90deg);
+}
+
+.leaderboard .boardItem:empty:hover {
+	background-color: rgb(100, 100, 225);
+}
+.leaderboard .boardItem[neg="true"]:empty:hover {
+	background-color: rgb(225, 100, 225);
+}
+.leaderboard .boardItem:hover::after,
+.leaderboard .boardItem .boardInnerItem:hover::after {
+	display: inline-block;
+}
+.leaderboard .boardItem .boardInnerItem {
+	position: relative;
+	display: block;
+	background-color: rgb(100, 225, 100);
+	border: 1px solid white;
+	border-left: none;
+	border-right: none;
+}
+.leaderboard .boardItem[neg="true"] .boardInnerItem {
+	background-color: rgb(225, 100, 100);
+}
+.leaderboard .boardItem:hover .boardInnerItem {
+	background-color: rgb(100, 100, 225);
+}
+.leaderboard .boardItem[neg="true"]:hover .boardInnerItem {
+	background-color: rgb(225, 100, 225);
+}
+
+.scorePanel {
+	position: absolute;
+	right: 10px;
+	top: -35px;
+}
+.scorePanel > span {
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	margin: 0px 10px;
+	cursor: pointer;
+}
+.scorePanel > span.liked,
+.scorePanel > span.disliked {
+	display: none;
+}
+.scorePanel[like="true"] > span.like {
+	display: none;
+}
+.scorePanel[like="true"] > span.liked {
+	display: inline-block;
+}
+.scorePanel[like="false"] > span.dislike {
+	display: none;
+}
+.scorePanel[like="false"] > span.disliked {
+	display: inline-block;
+}
+
+.toolPanel {
+	top: 20px;
+	right: 100%;
+	width: var(--padding);
+}
+
+.onlyEdit {
+	display: none;
+}
+[isEdit="true"] .onlyEdit {
+	display: inline-block;
+}
+
+.chat_item .tool_panel {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+}
+.chat_item .tool_panel img {
+	display: none;
+	width: 22px;
+	padding: 5px;
+	cursor: pointer;
+}
+.chat_item:hover .tool_panel img {
+	display: block;
+}

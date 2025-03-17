@@ -1,0 +1,131 @@
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,viewport-fit=cover,minimum-scale=1,maximum-scale=1,user-scalable=no">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<title>Card Game</title>
+<link rel="stylesheet" href="../style/main.css">
+<link rel="stylesheet" href="../components/notification.css">
+<script src="../components/notification.js"></script>
+<script src="../components/marked.min.js"></script>
+<script src="../components/MathJax2.5/MathJax.js?config=TeX-AMS_HTML&delayStartupUntil=configured"></script>
+<script src="../script/i18n.js"></script>
+<script src="../script/common.js"></script>
+<script src="../script/utils.js"></script>
+<script src="../script/pageUtils.js"></script>
+<script src="../script/cachedDB.js"></script>
+<script src="../script/ai/config.js"></script>
+<script src="../script/ai/prompts.js"></script>
+<link rel="stylesheet" href="./common.css">
+<script src="./common.js"></script>
+<link rel="stylesheet" href="./cardGame.css">
+<script src="./cardGame.js"></script>
+</head>
+<body page="panelPage" class="scrollable" loading="true">
+<div class="button backhome" action="backToHome">
+	<img src="../images/xmark.svg">
+</div>
+<div class="panel narrow" panel="welcome" active="false">
+	<div class="title" titlePath="welcome.title"></div>
+	<div class="description" titlePath="welcome.description"></div>
+	<div class="selection">
+		<div class="button" action="EnterGame" titlePath="welcome.enter"></div>
+		<div class="button" action="ViewWinLoseRule" titlePath="welcome.winloseRule"></div>
+		<div class="button" action="ViewScoreRule" titlePath="welcome.scoreRule"></div>
+	</div>
+</div>
+<div class="panel narrow" panel="WinLoseRule" active="false">
+	<div class="title" titlePath="welcome.winloseRuleTitle"></div>
+	<div class="info" titlePath="welcome.winloseRuleDetail"></div>
+</div>
+<div class="panel narrow" panel="ScoreRule" active="false">
+	<div class="title" titlePath="welcome.scoreRuleTitle"></div>
+	<div class="info" titlePath="welcome.scoreRuleDetail"></div>
+</div>
+<div class="panel narrow" panel="SelectPlayers" active="false">
+	<div class="title" titlePath="select.title"></div>
+	<div id="WarModeSelector" class="area modeSelector" mode="onlyView">
+		<span class="label" titlePath="select.modeSelect"></span>
+		<img class="selector" mode="joinWar" src="../images/toggle-on.svg"><span class="selector" mode="joinWar" titlePath="select.joinWar"></span>
+		<img class="selector" mode="onlyView" src="../images/toggle-off.svg"><span class="selector" mode="onlyView" titlePath="select.onlyView"></span>
+		<div class="starter" titlePath="select.startFight" action="StartFight"></div>
+	</div>
+	<div class="area">
+		<div class="title" titlePath="select.aiSelect"></div>
+		<div id="ModelListContainer" class="modelList"></div>
+	</div>
+</div>
+<div id="WarArea" class="panel full" panel="FightVerse" active="false">
+	<div class="leftArea">
+		<div id="PlayerListUI" class="topArea"></div>
+		<div class="bottomArea">
+			<div class="hint" titlePath="game.hintCurrent"></div>
+			<div id="CurrentCardUI" class="value"></div>
+			<div class="hint" titlePath="game.hintHands"></div>
+			<div>
+				<div class="line">
+					<span class="name" titlePath="game.fireBall"></span>
+					<span id="HandCardFUI" class="count"></span>
+				</div>
+				<div class="line">
+					<span class="name" titlePath="game.waterCage"></span>
+					<span id="HandCardWUI" class="count"></span>
+				</div>
+				<div class="line">
+					<span class="name" titlePath="game.thunderBolt"></span>
+					<span id="HandCardTUI" class="count"></span>
+				</div>
+				<div class="line">
+					<span class="name" titlePath="game.chaosMagic"></span>
+					<span id="HandCardCUI" class="count"></span>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="rightArea">
+		<div id="ConversationArea" class="content_container scrollable"></div>
+		<div id="RequestInputter" class="input_container scrollable" contenteditable="true" placeholderName="game.hintSendMessage" action="onEnterMessage"></div>
+		<div id="RequestSender" class="input_sender" action="onSendMessage">
+			<span titlePath="game.submitMessage"></span>
+		</div>
+	</div>
+</div>
+<div id="CardChooser" class="popwin cardselect">
+	<div class="title" titlePath="game.hintChooseCard"></div>
+	<div class="cardArea" action="onChooseCard">
+		<div class="card fireball" card="fireBall">
+			<div class="name" titlePath="game.cardFireBall"></div>
+			<div class="count">0</div>
+		</div>
+		<div class="card watercage" card="waterCage">
+			<div class="name" titlePath="game.cardWaterCage"></div>
+			<div class="count">0</div>
+		</div>
+		<div class="card thunderbolt" card="thunderBolt">
+			<div class="name" titlePath="game.cardThunderBolt"></div>
+			<div class="count">0</div>
+		</div>
+		<div class="card chaosmagic" card="chaosMagic">
+			<div class="name" titlePath="game.cardChaosMagic"></div>
+			<div class="count">0</div>
+		</div>
+	</div>
+</div>
+<div id="TargetChooser" class="popwin targetselect">
+	<div class="title" titlePath="game.hintChooseTarget"></div>
+	<div class="playerArea scrollable" action="onChooseTarget"></div>
+</div>
+<div id="ContinueFighter" class="popwin continuer">
+	<div class="content" titlePath="game.hintContinueFight"></div>
+	<div class="button" titlePath="game.btnContinue" action="ContinueFight"></div>
+</div>
+<div id="StartNextRounder" class="popwin nextRound">
+	<div class="content" titlePath="game.hintNextRound"></div>
+	<div class="buttons">
+		<div class="button" titlePath="game.btnNextRound" action="StartNextRound"></div>
+		<div class="button" titlePath="game.btnExitRound" action="ExitFight"></div>
+	</div>
+</div>
+<div id="BackgroundMask" class="mask"></div>
+</body>
+</html>

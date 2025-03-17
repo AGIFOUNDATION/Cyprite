@@ -1,0 +1,88 @@
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,viewport-fit=cover,minimum-scale=1,maximum-scale=1,user-scalable=no">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<title>Conference Room</title>
+<link rel="stylesheet" href="../style/main.css">
+<link rel="stylesheet" href="../components/notification.css">
+<script src="../components/notification.js"></script>
+<script src="../components/marked.min.js"></script>
+<script src="../components/MathJax2.5/MathJax.js?config=TeX-AMS_HTML&delayStartupUntil=configured"></script>
+<script src="../script/i18n.js"></script>
+<script src="../script/common.js"></script>
+<script src="../script/utils.js"></script>
+<script src="../script/pageUtils.js"></script>
+<script src="../script/cachedDB.js"></script>
+<script src="../script/ai/config.js"></script>
+<script src="../script/ai/prompts.js"></script>
+<link rel="stylesheet" href="./common.css">
+<script src="./common.js"></script>
+<link rel="stylesheet" href="./chatroom.css">
+<script src="./chatroom.js"></script>
+</head>
+<body page="panelPage" class="scrollable" loading="true">
+<div class="button backhome" action="backToHome">
+	<img src="../images/xmark.svg">
+</div>
+<div class="panel narrow" panel="listRoom" active="false">
+	<div class="title">
+		<span titlePath="listRoom.title"></span>
+		<span class="button" titlePath="newRoom.title" action="createNewRoom"></span>
+	</div>
+	<div class="description" titlePath="listRoom.description"></div>
+	<div class="hint"></div>
+	<div id="ChatRoomListContainer" class="listContainer"></div>
+</div>
+<div class="panel narrow" panel="newRoom" active="false">
+	<div class="title">
+		<span titlePath="newRoom.title"></span>
+		<span class="button" titlePath="newRoom.newAgent" action="createNewAgent"></span>
+	</div>
+	<div class="description" titlePath="newRoom.description"></div>
+	<div class="hint" titlePath="newRoom.hintName"></div>
+	<input id="NewRoomName" type="text" class="inputter">
+	<div class="hint" titlePath="newRoom.hintTopic"></div>
+	<textarea id="NewRoomTopic" class="editor scrollable" placeholderName="newRoom.msgTopic"></textarea>
+	<div class="hint" titlePath="newRoom.hintHoster"></div>
+	<div id="NewRoomParticipants" class="listContainer"></div>
+	<div class="confirmPanel">
+		<div class="button submit" titlePath="buttons.submit" action="generateNewRoom"></div>
+		<div class="button cancel" titlePath="buttons.cancel" action="cancelNewRoom"></div>
+	</div>
+</div>
+<div class="panel narrow" panel="newAgent" active="false">
+	<div class="title">
+		<span titlePath="newRoom.newAgent"></span>
+		<span class="button onlyInner" titlePath="newRoom.resetAgentInnerIdea" action="resetAgentInnerIdea"></span>
+	</div>
+	<div class="description" titlePath="newRoom.agentDesc"></div>
+	<div class="hint" titlePath="newRoom.hintAgentName"></div>
+	<input id="NewAgentName" type="text" class="inputter">
+	<div class="hint" titlePath="newRoom.hintNewAgent"></div>
+	<textarea id="NewAgentSetting" class="editor scrollable"></textarea>
+	<div class="hint" titlePath="newRoom.hintAgentInnerIdea"></div>
+	<div id="AgentInnerIdea" class="information"></div>
+	<div class="hint" titlePath="newRoom.hintSelectModel"></div>
+	<div id="ModelListContainer" class="listContainer"></div>
+	<div class="confirmPanel">
+		<div class="button submit" titlePath="buttons.submit" action="submitCreateAgent"></div>
+		<div class="button cancel" titlePath="buttons.cancel" action="cancelCreateAgent"></div>
+	</div>
+</div>
+<div class="panel full" panel="conferencePanel" active="false">
+	<div class="area conversation" globalChannel="true">
+		<div id="ConversationArea" class="content_container scrollable"></div>
+		<div id="RequestInputter" class="input_container scrollable" contenteditable="true" placeholderName="newRoom.hintSendMessage" action="onEnterMessage"></div>
+		<div id="RequestSender" class="input_sender" action="onSendMessage">
+			<span titlePath="buttons.sender"></span>
+		</div>
+		<div class="toolPanel">
+			<span class="button" action="clearConversation"><img src="../images/eraser.svg"></span>
+			<span class="button globalChannel" action="switchVisibility"><img src="../images/ear-listen.svg"></span>
+			<span class="button privateChannel" action="switchVisibility"><img src="../images/ear-deaf.svg"></span>
+		</div>
+	</div>
+</div>
+</body>
+</html>

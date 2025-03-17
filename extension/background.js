@@ -395,6 +395,7 @@ chrome.storage.local.onChanged.addListener(evt => {
 	if (!!evt.AImodel?.newValue) {
 		myInfo.model = evt.AImodel.newValue;
 	}
+	resetModelUsability();
 });
 chrome.storage.sync.onChanged.addListener(evt => {
 	if (!!evt.lang?.newValue) {
@@ -1583,6 +1584,11 @@ EventHandler.ChangePageTitle = async (data) => {
 	var info = await getPageInfo(data.url);
 	info.title = data.title;
 	await setPageInfo(data.url, info, true);
+};
+EventHandler.GetAvailableModelList = () => {
+	let list = Object.keys(Model2AI);
+	list = list.filter(model => checkModelUsability(model));
+	return list;
 };
 
 /* Search Similarity */

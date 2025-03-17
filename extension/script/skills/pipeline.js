@@ -244,7 +244,12 @@ PipelineLib.conversationSparks = `
 整理针对 \`任务/问题\` 的思路，分析其中的难点、要点、关键点，以及分析我提出该任务/问题的表面原因以及没有明说的真正原因与动机，特别是我的隐藏动机与真正想要看到的回复，并整理生成你对该 \`任务/问题\` 的解决思路，输出到 "最终输出"
 输出字符串 "</thinking>" 到 "最终输出"
 输出字符串 "<strategy>" 到 "最终输出"
-令 "分解任务列表" = 拆分 \`任务/问题\` // 拆分任务或问题为前置任务或问题与子任务或子问题，而非拆分回答任务或问题的流程
+令 "候选策略组" = 以之前的分析与思考为基础，以三四个不同的身份或立场分析针对我提出的任务或问题的完整的回复策略
+输出 "候选策略组" 到 "最终输出"
+重新审视 "候选策略组" 中的所有策略并打分，将打分结果以列表形式输出到 "最终输出"
+令 "最终回复策略" = 根据上述打分结果从 "候选策略组" 中选择最高分的回复策略
+输出 "最终回复策略" 到 "最终输出"
+令 "分解任务列表" = 根据 "最终回复策略" 拆分 \`任务/问题\` // 拆分任务或问题为前置任务或问题与子任务或子问题，而非拆分回答任务或问题的流程
 对 "分解任务列表" 进行循环操作，循环变量记为 "分解任务"，执行如下操作，且输出语言为“{{Workflow.replyLanguage}}”：
 	输出 \`"- " + 分解任务\` 到 "最终输出"
 当遍历完 "分解任务列表" 中所有元素后，循环结束；如果没遍历完则继续循环
@@ -2395,7 +2400,7 @@ PipelineLib.extendConversation = `
 <spark>
 	<name>extendConversation</name>
 	<title>拓展并延续对话</title>
-	<model>o1-mini, claude-3-5-haiku-latest, qwen-turbo-latest, grok-2-1212, moonshot-auto, deepseek-chat, gemini-2.0-flash-exp</model>
+	<model>glm-4-plus, claude-3-5-haiku-latest, qwen-turbo-latest, moonshot-auto, o1-mini, gemini-2.0-flash-exp, deepseek-chat</model>
 	<keepConversation>true</keepConversation>
 	<systemPrompt>
 # 设定
@@ -2421,10 +2426,11 @@ PipelineLib.extendConversation = `
 	向 "最终输出" 写入 “<needOptimize>false</needOptimize>”
 判断分支结束
 令 "用户可能需求" = 判断对话历史、你对我的了解、我的喜好以及我当前的情绪状态，分析我对当前话题是否想要进一步深入，还是想要换一个新话题，或者我想要自己思考分析而不希望你打扰
+将 "用户可能需求" 写入 "内心思考"
 如果 "用户可能需求" 是我想要自己思考分析而不希望你打扰，则执行下面的分支：
 	退出后续思考流程并向我输出 "最终输出"
 如果 "用户可能需求" 是我想深入当前话题，则执行下面的分支：
-	向 "最终输出" 写入 “<newTopic>false</newTopic>”
+	向 "最终输出" 写入 “<digTopic>true</digTopic>”
 	令 "延续话题内容" = 根据对话历史、你对我的了解以及我的喜好，分析应该如何展开和延续此前的对话，比如从母题延伸当前话题，或者从一个不同的视角来分析当前话题，或者就当前话题中某些你感兴趣的点或者你觉得我可能感兴趣的点出发深入讨论
 	向 "最终输出" 写入 “<content>”
 	向 "最终输出" 写入 "延续话题内容"
@@ -2466,6 +2472,7 @@ PipelineLib.extendConversation = `
 	<outputFormat>
 		<needoptimize>Boolean</needoptimize>
 		<newtopic>Boolean</newtopic>
+		<digtopic>Boolean</digtopic>
 		<topic>String</topic>
 		<content>String</content>
 	</outputFormat>

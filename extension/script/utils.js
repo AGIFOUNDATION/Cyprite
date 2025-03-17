@@ -69,8 +69,15 @@ const setDataGroup = (group, data) => {
 };
 const setGroupSwitcher = () => {
 	[...document.body.querySelectorAll('[showGroup]')].forEach(item => {
-		var groupName = item.getAttribute('showGroup');
+		let groupName = item.getAttribute('showGroup');
 		item.addEventListener('click', () => changeTab(groupName));
+	});
+	[...document.body.querySelectorAll('[goto]')].forEach(item => {
+		let url = item.getAttribute('goto');
+		url = chrome.runtime.getURL('/pages' + url);
+		item.addEventListener('click', () => {
+			location.href = url;
+		});
 	});
 };
 const changeTab = (mode) => {
@@ -81,7 +88,7 @@ const changeTab = (mode) => {
 	if (globalThis.afterChangeTab) globalThis.afterChangeTab();
 };
 const renderI18N = () => {
-	var messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+	const messages = !!globalThis.getMessages ? getMessages(myInfo.lang) : (I18NMessages[myInfo.lang] || I18NMessages[DefaultLang]);
 
 	[...document.body.querySelectorAll('[titlePath]')].forEach(item => {
 		var path = item.getAttribute('titlePath');

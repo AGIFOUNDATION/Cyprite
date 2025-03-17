@@ -146,10 +146,10 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 		tools.forEach(tool => toolMap[tool.name] = tool);
 	}
 
-	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0, toolRecord = [];
+	var replies = [], usage = { count: 0, input: 0, output: 0 }, isFirst = true, time = Date.now(), loop = 0, toolRecord = [], thinking = [];
 	while (true) {
 		let response;
-		logger.log('sendRequest', tag, [...conversation]);
+		logger.log('sendRequest', tag, [...conversation], request);
 		try {
 			await AI.requestRateLimitLock(locker);
 			AI.updateRateLimitLock(locker, true);
@@ -242,10 +242,18 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 						text: item
 					});
 
-					let reason = (reply.stop_reason || '').toLowerCase();
+					let reason = (response.stop_reason || '').toLowerCase();
 					if (reason === 'max_tokens') {
 						stopReason = 'maxToken';
 					}
+				}
+				else if (item.type === 'thinking') {
+					thinking.push(item.thinking);
+					reply.push({
+						type: 'thinking',
+						signature: item.signature,
+						thinking: item.thinking,
+					});
 				}
 				else if (item.type === 'tool_use') {
 					if (stopReason === 'maxToken') return;
@@ -307,7 +315,8 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 
 				if (stopReason !== 'toolcall') {
 					if (textList.length > 0) {
-						replies.push(textList.join('\n\n'));
+						reply = textList.join('\n\n');
+						replies.push(reply);
 					}
 					else {
 						reply = "";
@@ -398,6 +407,7 @@ globalThis.AI.sendRequestAndWaitForResponse = async (tag, locker, conversation, 
 
 	return {
 		reply: replies.join(' '),
+		thinking: thinking.join('\n\n'),
 		usage,
 		toolUsage: toolRecord
 	};

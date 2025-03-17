@@ -7,21 +7,21 @@ const MaximumWebpageRead = 15;
 const SearchHistoryCount = 20;
 const RelativeArticleLimitForXPageConversation = 5;
 const DefaultPanel = 'intelligentSearch';
-// const DefaultPanel = 'intelligentWriter';
 const IntelligentOrderList = [
 	'freelyConversation',
 	'intelligentSearch',
 	'crossPageConversation',
 	'instantTranslation',
-	'intelligentWriter',
+	// 'intelligentWriter',
+	'toolbox',
 	'articleManager',
 	'cypriteHelper',
 ];
 const SearchModeOrderList = [
 	'fullAnalyze',
 	'fullAnswer',
-	'searchOnly',
-	'keywordOnly',
+	// 'searchOnly',
+	// 'keywordOnly',
 ];
 const AIToolsForMode = {
 	freelyConversation: ['collectInformation', 'readArticle'],
@@ -199,7 +199,6 @@ const onInputFinish = (inputter, sender, frame) => {
 	sender.style.height = height + 'px';
 	box = frame.parentNode.getBoundingClientRect();
 	frame.style.height = (box.height - height - 10) + 'px';
-	resizer = null;
 };
 const onContentPaste = evt => {
 	evt.preventDefault();
@@ -624,7 +623,8 @@ const switchToXPageConv = async () => {
 const askCrossPages = async (content, usage, cid) => {
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 
-	var conversation = await prepareXPageConv(content);
+	let conversation = await prepareXPageConv(content), articleList;
+	articleList = conversation.articles || [];
 	updateUsage(usage, conversation.usage);
 	conversation = conversation.conversation;
 	xPageConversation = conversation;
@@ -633,49 +633,52 @@ const askCrossPages = async (content, usage, cid) => {
 		request: content,
 		time: timestmp2str("YYYY/MM/DD hh:mm :WDE:")
 	};
-	var prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationTemplate, option);
-	conversation.push(['human', prompt, cid]);
+	let result;
 
-	const taskID = newID();
-	TaskCategory.set(taskID, 'crossPageConversation');
-	const request = {
-		taskID,
-		conversation,
-		model: myInfo.model,
-		tools: AIToolsForMode.crossPageConversation,
-	};
-	const tokens = estimateTokenCount(request.conversation);
-	if (tokens > AILongContextLimit) {
-		request.model = PickLongContextModel();
-	}
+	if (TrialVersion || !articleList.length) {
+		let prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationTemplate, option);
+		conversation.push(['human', prompt, cid]);
 
-	var result;
-	try {
-		result = await askAIandWait('directSendToAI', request);
-		updateUsage(usage, result.usage);
-		result = result.reply;
-	}
-	catch (err) {
-		result = null;
-		logger.error('CrossPageConversation', err);
-		err = err.message || err.msg || err.data || err.toString();
-		Notification.show('', err, "middleTop", 'error');
-	}
-	TaskCategory.delete(taskID);
+		const taskID = newID();
+		TaskCategory.set(taskID, 'crossPageConversation');
+		const request = {
+			taskID,
+			conversation,
+			model: myInfo.model,
+			tools: TrialVersion ? AIToolsForMode.crossPageConversation : AIToolsForMode.freelyConversation,
+		};
+		const tokens = estimateTokenCount(request.conversation);
+		if (tokens > AILongContextLimit) {
+			request.model = PickLongContextModel();
+		}
 
-	if (!!result) {
-		prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
-		let item = findLatestHumanChat(conversation);
-		item[1] = prompt;
-		item[2] = cid;
-		conversation.push(['ai', result]);
-		const json = parseReplyAsXMLToJSON(result);
-		const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
-		if (!!strategy) addChatItem('crossPageConversation', [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint', undefined, undefined, true);
-		result = json.reply?._origin || json.reply || result.replace(/\s*<strategy>[\w\W]*?<\/strategy>\s*/i, '\n\n').trim();
-	}
-	else {
-		removeLatestConversation(conversation);
+		try {
+			result = await askAIandWait('directSendToAI', request);
+			updateUsage(usage, result.usage);
+			result = result.reply;
+		}
+		catch (err) {
+			result = null;
+			logger.error('CrossPageConversation', err);
+			err = err.message || err.msg || err.data || err.toString();
+			Notification.show('', err, "middleTop", 'error');
+		}
+		TaskCategory.delete(taskID);
+
+		if (!!result) {
+			prompt = PromptLib.assemble(PromptLib.deepThinkingContinueConversationFrame, option);
+			let item = findLatestHumanChat(conversation);
+			item[1] = prompt;
+			item[2] = cid;
+			conversation.push(['ai', result]);
+			const json = parseReplyAsXMLToJSON(result);
+			const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
+			if (!!strategy) addChatItem('crossPageConversation', [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint', undefined, undefined, true);
+			result = json.reply?._origin || json.reply || result.replace(/\s*<strategy>[\w\W]*?<\/strategy>\s*/i, '\n\n').trim();
+		}
+		else {
+			removeLatestConversation(conversation);
+		}
 	}
 
 	return [result, conversation];
@@ -856,7 +859,7 @@ const prepareXPageConv = async (request) => {
 		conversation[0][1] = sp;
 	}
 
-	return {conversation, usage};
+	return {conversation, usage, articles};
 };
 const getDialogPair = (button, conversation) => {
 	const container = button.parentNode.parentNode;
@@ -1444,7 +1447,7 @@ const callTranslator = async (content, usage) => {
 	var result;
 	try {
 		result = await askAIandWait(action, { lang, content });
-		console.log(result);
+		logger.info('Translator', result);
 		if (!!result && !!result.usage) {
 			updateUsage(usage, result.usage);
 		}
@@ -1511,6 +1514,11 @@ const askCypriteWriter = async (content, usage, cid) => {
 	const wordCount = calculateWordCount(context);
 	document.querySelector('.infoArea span.wordcount').innerText = messages.writer.hintWordCount + ': ' + (wordCount.total || 0);
 
+	chrome.storage.local.set({
+		writerContent: context || '',
+		writerRequirement: requirement || '',
+	});
+
 	var result;
 	if (!!PromptLib.writerSystemPromptUltra) {
 		result = await askCypriteWriterUltraly(context, requirement, content, usage, cid, messages);
@@ -1519,13 +1527,37 @@ const askCypriteWriter = async (content, usage, cid) => {
 		result = await askCypriteWriterSimply(context, requirement, content, usage, cid, messages);
 	}
 
+	context = getPageContent(writerArea, true) || '';
+	chrome.storage.local.set({
+		writerContent: context || ''
+	});
+
 	return [result, writerConversation];
 };
-const askCypriteWriterSimply = async (context, requirement, content, usage, cid, messages) => {
-	var prompt = PromptLib.assemble(PromptLib.writerSystemPrompt, {
-		context: context || '（还没开始写）',
-		requirement: requirement || '（没有具体要求）',
+const splitContentToLines = content => {
+	let lineCount = 0, lineMap = {}, origin = [];
+	let lines = content.split(/\r*\n\r*/).map((line, i) => {
+		origin.push(line);
+		line = line.trim();
+		if (!line) return '';
+		lineCount ++;
+		lineMap[lineCount] = i;
+		return lineCount + ': ' + line;
 	});
+	return [lines.join('\n'), lineMap, origin];
+};
+const askCypriteWriterSimply = async (context, requirement, content, usage, cid, messages) => {
+	let lineMap = {}, lines = [];
+	if (!context) {
+		context = '（还没开始写）';
+		lines.push(context);
+	}
+	else {
+		[context, lineMap, lines] = splitContentToLines(context);
+	}
+	requirement = requirement || '（没有具体要求）';
+
+	var prompt = PromptLib.assemble(PromptLib.writerSystemPrompt, { context, requirement });
 	if (!writerConversation || !writerConversation.length) {
 		writerConversation = [['system', prompt]];
 	}
@@ -1584,53 +1616,59 @@ const askCypriteWriterSimply = async (context, requirement, content, usage, cid,
 		if (!!json.asreader) result.push(json.asreader?._origin || json.asreader);
 		if (!!json.aseditor) result.push(json.aseditor?._origin || json.aseditor);
 		if (!!json.aswriter) {
-			let changed = false, originalContent = context, isRewrite = false;
+			let isRewrite = false, hints = [];
 			let ctx = json.aswriter?._origin || json.aswriter;
-			ctx = ctx.replace(/<idea>\s*([\w\W]*?)\s*<\/idea>/gi, (m, inner) => {
-				var c = parseReplyAsXMLToJSON(inner);
-				var paragraph = c.iscontinue ? 0 : c.paragraphnumber;
-				var original = (c.iscontinue ? '' : (c.originalcontent || '')).replace(/[\n\r]+/g, ' ').replace(/^[\-\+\*>#\s]+/, '');
-				var modify = (c.modifiedcontent || '').replace(/[\n\r]+/g, ' ').replace(/^[\-\+\*>#\s]+/, '');
+			let modifies = [], appends = [];
+			ctx.replace(/<idea>\s*([\w\W]*?)\s*<\/idea>/gi, (m, inner) => {
+				let data = parseReplyAsXMLToJSON(inner);
+				if (!!data.isrewrite) {
+					context = data.content;
+					isRewrite = true;
+					modifies.splice(0);
+					appends.splice(0);
+					hints.slice(0);
+					hints.push(messages.writer.msgRewrite + '\n' + data.content);
+				}
+				if (isRewrite) return;
 
-				if (directRewrite && !isRewrite) {
-					if (c.isrewrite && !!modify) {
-						context = c.modifiedcontent;
-						isRewrite = true;
-						changed = true;
-					}
-					else if (c.iscontinue) {
-						if (!!modify) {
-							changed = true;
-							context = context + '\n\n' + c.modifiedcontent;
-						}
-					}
-					else {
-						if (!!original) {
-							let idx = context.indexOf(c.originalcontent);
-							if (idx >= 0) {
-								changed = true;
-								context = context.replace(c.originalcontent, c.modifiedcontent || "");
-							}
-						}
+				if (!!data.iscontinue) {
+					if (!!data.content) {
+						appends.push(data.content);
+						hints.push(messages.writer.msgAppend + '\n' + data.content);
 					}
 				}
-
-				if (c.isrewrite) {
-					return '\n\n> ' + (c.modifiedcontent || '""') + '\n\n';
-				}
-				else if (c.iscontinue) {
-					return '\n\n> ' + (modify || '""') + '\n\n';
-				}
-				else {
-					return '- P' + paragraph + '\n  + > ' + (original || '""') + '\n  + ' + (modify || '""') + '\n';
+				else if (!!data.paragraphnumber) {
+					let pn = data.paragraphnumber;
+					let realPN = lineMap[pn];
+					if (!!realPN) {
+						modifies.push({
+							idx: realPN,
+							content: data.content || '',
+						});
+						hints.push(messages.writer.msgModify + '\nP' + pn + ' :\n' + lines[realPN] + '\n==>\n' + data.content);
+					}
+					else if (!!data.content) {
+						appends.push(data.content);
+						hints.push(messages.writer.msgAppend + '\n' + data.content);
+					}
 				}
 			});
-			result.push(ctx);
-			if (changed) {
-				let ctx = (context || originalContent).trim();
-				document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea').innerText = ctx;
-				// parseMarkdownWithOutwardHyperlinks(document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea'), ctx);
-				const wordCount = calculateWordCount(ctx);
+			logger.log('CypriteWriter', modifies, appends);
+			result.push(hints.join('\n\n'));
+			if (directRewrite) {
+				if (!isRewrite) {
+					modifies.sort((a, b) => b.idx - a.idx);
+					modifies.forEach(item => {
+						lines[item.idx] = item.content.trim();
+					});
+					lines = lines.map(line => !!line ? line.trim() : '');
+					context = lines.join('\n').trim();
+					appends.forEach(line => context += '\n\n' + line);
+					context = context.trim();
+				}
+				document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea').innerText = context;
+				// parseMarkdownWithOutwardHyperlinks(document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea'), context);
+				const wordCount = calculateWordCount(context);
 				document.querySelector('.infoArea span.wordcount').innerText = messages.writer.hintWordCount + ': ' + (wordCount.total || 0);
 			}
 		}
@@ -1654,11 +1692,6 @@ const askCypriteWriterUltraly = async (context, requirement, content, usage, cid
 	const lastR = askCypriteWriterUltraly.lastRequirement || '';
 	const tasks = [];
 
-	chrome.storage.local.set({
-		writerContent: context || '',
-		writerRequirement: requirement || '',
-	});
-
 	if (!!context && ctx !== lastC) tasks.push(askCypriteWriterAsReader(context, usage, messages));
 	else tasks.push(askCypriteWriterUltraly.readerIdea || '');
 
@@ -1666,7 +1699,7 @@ const askCypriteWriterUltraly = async (context, requirement, content, usage, cid
 	else tasks.push({analyze: askCypriteWriterUltraly.editorIdea || ''});
 
 	var [asReader, asEditor] = await Promise.all(tasks);
-	console.log(asReader, asEditor);
+	logger.info('CypriteWriterInner', asReader, asEditor);
 	if (!!asReader) askCypriteWriterUltraly.readerIdea = asReader;
 	if (!!asEditor.analyze) askCypriteWriterUltraly.editorIdea = asEditor.analyze;
 	if (!!asEditor.category) document.querySelector('.infoArea span.category').innerText = messages.writer.hintCategory + ': ' + asEditor.category;
@@ -1731,10 +1764,19 @@ const askCypriteWriterAsEditor = async (context, requirement, usage, messages) =
 	return result;
 };
 const askCypriteWriterAsWriter = async (context, requirement, content, cid, usage, messages) => {
+	let lineMap = {}, lines = [];
+	if (!context) {
+		context = '（还没开始写）';
+		lines.push(context);
+	}
+	else {
+		[context, lineMap, lines] = splitContentToLines(context);
+	}
+
 	const readerIdea = askCypriteWriterUltraly.readerIdea || '（暂时没有想法）';
 	const editorIdea = askCypriteWriterUltraly.editorIdea || '（暂时没有意见）';
 	var prompt = PromptLib.assemble(PromptLib.writerSystemPromptUltra, {
-		context: context || '（还没开始写）',
+		context,
 		requirement: requirement,
 		readerIdea,
 		editorIdea,
@@ -1788,54 +1830,59 @@ const askCypriteWriterAsWriter = async (context, requirement, content, cid, usag
 		const strategy = parseArray(json.strategy?._origin || json.strategy || '', false).map(line => '- ' + line).join('\n');
 		if (!!strategy) addChatItem('intelligentWriter', [messages.freeCyprite.hintThinkingStrategy, strategy], 'hint', undefined, undefined, true);
 
-		result = [];
-		let changed = false, originalContent = context, isRewrite = false;
-		let ctx = json.rewrite?._origin || json.rewrite || json._origin;
-		ctx = ctx.replace(/<idea>\s*([\w\W]*?)\s*<\/idea>/gi, (m, inner) => {
-			var c = parseReplyAsXMLToJSON(inner);
-			var paragraph = c.iscontinue ? 0 : c.paragraphnumber;
-			var original = (c.iscontinue ? '' : (c.originalcontent || '')).replace(/[\n\r]+/g, ' ').replace(/^[\-\+\*>#\s]+/, '');
-			var modify = (c.modifiedcontent || '').replace(/[\n\r]+/g, ' ').replace(/^[\-\+\*>#\s]+/, '');
+		let isRewrite = false, hints = [];
+		let ctx = json.content?._origin || json.content;
+		let modifies = [], appends = [];
+		ctx.replace(/<idea>\s*([\w\W]*?)\s*<\/idea>/gi, (m, inner) => {
+			let data = parseReplyAsXMLToJSON(inner);
+			if (!!data.isrewrite) {
+				context = data.content;
+				isRewrite = true;
+				modifies.splice(0);
+				appends.splice(0);
+				hints.slice(0);
+				hints.push(messages.writer.msgRewrite + '\n' + data.content);
+			}
+			if (isRewrite) return;
 
-			if (directRewrite && !isRewrite) {
-				if (c.isrewrite && !!modify) {
-					context = c.modifiedcontent;
-					isRewrite = true;
-					changed = true;
-				}
-				else if (c.iscontinue) {
-					if (!!modify) {
-						changed = true;
-						context = context + '\n\n' + c.modifiedcontent;
-					}
-				}
-				else {
-					if (!!original) {
-						let idx = context.indexOf(c.originalcontent);
-						if (idx >= 0) {
-							changed = true;
-							context = context.replace(c.originalcontent, c.modifiedcontent || "");
-						}
-					}
+			if (!!data.iscontinue) {
+				if (!!data.content) {
+					appends.push(data.content);
+					hints.push(messages.writer.msgAppend + '\n' + data.content);
 				}
 			}
-
-			if (c.isrewrite) {
-				return '\n\n> ' + (c.modifiedcontent || '""') + '\n\n';
-			}
-			else if (c.iscontinue) {
-				return '\n\n> ' + (modify || '""') + '\n\n';
-			}
-			else {
-				return '- P' + paragraph + '\n  + > ' + (original || '""') + '\n  + ' + (modify || '""') + '\n';
+			else if (!!data.paragraphnumber) {
+				let pn = data.paragraphnumber;
+				let realPN = lineMap[pn];
+				if (!!realPN) {
+					modifies.push({
+						idx: realPN,
+						content: data.content || '',
+					});
+					hints.push(messages.writer.msgModify + '\nP' + pn + ' :\n' + lines[realPN] + '\n==>\n' + data.content);
+				}
+				else if (!!data.content) {
+					appends.push(data.content);
+					hints.push(messages.writer.msgAppend + '\n' + data.content);
+				}
 			}
 		});
-		result = ctx.trim();
-		if (changed) {
-			let ctx = (context || originalContent).trim();
-			document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea').innerText = ctx;
-			// parseMarkdownWithOutwardHyperlinks(document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea'), ctx);
-			const wordCount = calculateWordCount(ctx);
+		logger.log('CypriteWriter', modifies, appends);
+		result = hints.join('\n\n');
+		if (directRewrite) {
+			if (!isRewrite) {
+				modifies.sort((a, b) => b.idx - a.idx);
+				modifies.forEach(item => {
+					lines[item.idx] = item.content.trim();
+				});
+				lines = lines.map(line => !!line ? line.trim() : '');
+				context = lines.join('\n').trim();
+				appends.forEach(line => context += '\n\n' + line);
+				context = context.trim();
+			}
+			document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea').innerText = context;
+			// parseMarkdownWithOutwardHyperlinks(document.querySelector('.panel_operation_area[group="intelligentWriter"] .writingArea'), context);
+			const wordCount = calculateWordCount(context);
 			document.querySelector('.infoArea span.wordcount').innerText = messages.writer.hintWordCount + ': ' + (wordCount.total || 0);
 		}
 	}
@@ -2791,6 +2838,7 @@ const getAISearchRecordList = async (showUI=false) => {
 
 	// Show UI
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
+
 	const ul = document.body.querySelector('.search_records');
 	const nowDay = Math.round(shiftTimeToDayStart(Date.now()) / DayLong);
 	var lastType = -1, area, titleBar, panel;
@@ -4223,12 +4271,11 @@ const init = async () => {
 	const ot = await Promise.all([
 		chrome.storage.local.get(['layout', 'theme', 'shrinked']),
 		getConfig(),
-		getAISearchRecordList(true),
 		chrome.tabs.getCurrent(),
 	]);
 	const messages = I18NMessages[myInfo.lang] || I18NMessages[DefaultLang];
 
-	var tab = ot[3];
+	var tab = ot[2];
 	currentTabId = tab.id;
 
 	ot[0] = ot[0] || {};
@@ -4245,7 +4292,6 @@ const init = async () => {
 		document.body.setAttribute('shrinked', ot[0].shrinked || 'no');
 		document.body.removeAttribute('panel');
 	}
-	await getConfig();
 	updateAIModelList();
 
 	// Branch Control: Trial Version
@@ -4284,7 +4330,10 @@ const init = async () => {
 	aiSearchInputter.navMenuPanel = resultPanel.querySelector('.nav_menu_panel');
 	aiSearchInputter.parentNode.parentNode.parentNode.querySelector('.navbar').style.display = 'none';
 
-	await generateModelList('');
+	await Promise.all([
+		getAISearchRecordList(true),
+		generateModelList(''),
+	]);
 
 	// I18N
 	renderI18N('newTab');
@@ -4331,27 +4380,27 @@ const init = async () => {
 			onInputFinish(inputter, sender, frame);
 		});
 		inputter.addEventListener('paste', onContentPaste);
-		frame.addEventListener('click', ({target}) => {
-			var action = target.getAttribute('action');
+		frame.addEventListener('click', evt => {
+			var action = evt.target.getAttribute('action');
 			if (!!action) {
 				let handler = ActionCenter[action];
 				if (!!handler) {
-					handler(target, {frame, inputter, sender});
+					handler(evt.target, {frame, inputter, sender});
 				}
 			}
 
-			action = target.getAttribute('toggle');
+			action = evt.target.getAttribute('toggle');
 			if (!!action) {
-				let toggled = target.classList.contains('toggled');
+				let toggled = evt.target.classList.contains('toggled');
 				if (!!toggled) {
-					target.classList.remove('toggled');
+					evt.target.classList.remove('toggled');
 				}
 				else {
-					target.classList.add('toggled');
+					evt.target.classList.add('toggled');
 				}
 				let handler = ActionCenter[action];
 				if (!!handler) {
-					handler(target, {frame, inputter, sender});
+					handler(evt.target, {frame, inputter, sender});
 				}
 			}
 		});

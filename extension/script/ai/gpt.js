@@ -13,7 +13,6 @@ const DefaultGrokChatModel = AI2Model.grok[0];
 const assembleMessages = (conversation, model, tools, full=true, useSP=true) => {
 	var messages = [];
 	conversation.forEach(item => {
-
 		var role, prompt = item[1], extra = null, normalAppend = true;
 		var content = full ? [{
 			type: "text",

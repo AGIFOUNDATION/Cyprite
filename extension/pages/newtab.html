@@ -61,9 +61,9 @@
 				<span titlePath="newTab.instantTranslation"></span>
 				<div class="border" layout="column"></div>
 			</div>
-			<div class="panel_tab" showGroup="intelligentWriter">
-				<img class="btn_cover" src="../images/feather-pointed.svg" layout="column">
-				<span titlePath="newTab.intelligentWriter"></span>
+			<div class="panel_tab" showGroup="toolbox">
+				<img class="btn_cover" src="../images/toolbox.svg" layout="column">
+				<span titlePath="newTab.toolboxPanel"></span>
 				<div class="border" layout="column"></div>
 			</div>
 			<div class="panel_tab" layout="row" showGroup="cypriteHelper"><img src="../images/helper.svg"></div>
@@ -155,12 +155,12 @@
 					<div class="inner scrollable" contenteditable="true" placeholderName="aiSearch.hintSearch"></div>
 					<div class="submitter">
 						<div class="mode_chooser">
-							<li mode="keywordOnly" action="changeMode">
+							<li mode="keywordOnly" action="changeMode" invalid="true">
 								<img class="notcheck" src="../images/circle-xmark.svg">
 								<img class="checked" src="../images/circle-checked.svg">
 								<span titlePath="aiSearch.btnModeOnlyKeywords"></span>
 							</li>
-							<li mode="searchOnly" action="changeMode">
+							<li mode="searchOnly" action="changeMode" invalid="true">
 								<img class="notcheck" src="../images/circle-xmark.svg">
 								<img class="checked" src="../images/circle-checked.svg">
 								<span titlePath="aiSearch.btnModeOnlySearch"></span>
@@ -245,6 +245,24 @@
 			<div class="input_container scrollable" contenteditable="true" placeholderName="mentions.quickAccessHint"></div>
 			<div class="input_sender" action="sendMessage" target="cypriteHelper">
 				<span titlePath="buttons.talkToCyprite"></span>
+			</div>
+		</section>
+		<section class="panel_operation_area toolbox_panel" group="toolbox">
+			<div class="toolbox_entry" showGroup="intelligentWriter">
+				<img class="btn_cover" src="../images/feather-pointed.svg">
+				<span titlePath="newTab.intelligentWriter"></span>
+			</div>
+			<div class="toolbox_entry" goto="/pathIntegral.html">
+				<img class="btn_cover" src="../images/khanda.svg">
+				<span titlePath="newTab.pathIntegral"></span>
+			</div>
+			<div class="toolbox_entry" goto="/chatroom.html">
+				<img class="btn_cover" src="../images/users-between-lines.svg">
+				<span titlePath="newTab.chatroom"></span>
+			</div>
+			<div class="toolbox_entry" goto="/cardGame.html">
+				<img class="btn_cover" src="../images/old-republic.svg">
+				<span titlePath="newTab.cardGame"></span>
 			</div>
 		</section>
 		<section class="panel_operation_area" group="intelligentWriter" type="conversationArea">

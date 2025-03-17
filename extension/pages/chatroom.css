@@ -1,0 +1,79 @@
+#NewRoomParticipants {
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
+#NewRoomParticipants.no_agent {
+	color: rgb(175, 175, 175);
+	font-style: italic;
+	user-select: none;
+}
+
+.information {
+	padding: 0em 0.5em;
+	font-size: 0.9em;
+	font-weight: lighter;
+	font-style: italic;
+	color: rgb(127, 127, 127);
+}
+
+.no_inner .onlyInner {
+	display: none;
+}
+
+.listItem[mode="1"] {
+	background-color: rgb(125, 125, 175);
+}
+.listItem[mode="2"] {
+	background-color: rgb(175, 125, 125);
+}
+
+.panel.full {
+	position: fixed;
+	left: 35px;
+	right: 35px;
+}
+
+.area.conversation {
+	position: relative;
+	height: 100%;
+}
+
+.toolPanel {
+	top: 20px;
+	right: calc(100% + 5px);
+}
+
+.chat_item .tool_panel {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+}
+.chat_item .tool_panel img {
+	display: none;
+	width: 22px;
+	padding: 5px;
+	cursor: pointer;
+}
+.chat_item:hover .tool_panel img {
+	display: block;
+}
+
+.globalChannel {
+	display: inline-block !important;
+}
+[globalChannel="true"] .globalChannel {
+	display: none !important;
+}
+.privateChannel {
+	display: none !important;
+}
+[globalChannel="true"] .privateChannel {
+	display: inline-block !important;
+}
+
+[forAllChannel="false"] {
+	display: none;
+}
+[globalChannel="true"] [forAllChannel="false"] {
+	display: block;
+}

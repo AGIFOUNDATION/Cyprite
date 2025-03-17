@@ -1,0 +1,94 @@
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,viewport-fit=cover,minimum-scale=1,maximum-scale=1,user-scalable=no">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<title>Arena</title>
+<link rel="stylesheet" href="../style/main.css">
+<link rel="stylesheet" href="../components/notification.css">
+<script src="../components/notification.js"></script>
+<script src="../components/marked.min.js"></script>
+<script src="../components/MathJax2.5/MathJax.js?config=TeX-AMS_HTML&delayStartupUntil=configured"></script>
+<script src="../script/i18n.js"></script>
+<script src="../script/common.js"></script>
+<script src="../script/utils.js"></script>
+<script src="../script/pageUtils.js"></script>
+<script src="../script/cachedDB.js"></script>
+<script src="../script/ai/config.js"></script>
+<script src="../script/ai/prompts.js"></script>
+<link rel="stylesheet" href="./common.css">
+<script src="./common.js"></script>
+<link rel="stylesheet" href="./pathIntegral.css">
+<script src="./pathIntegral.js"></script>
+</head>
+<body page="panelPage" class="scrollable" loading="true">
+<div class="button backhome" action="backToHome">
+	<img src="../images/xmark.svg">
+</div>
+<div class="button showStatics" action="showStatics">
+	<img src="../images/window-maximize.svg">
+</div>
+<div class="panel narrow" panel="newAgent" active="false">
+	<div class="title">
+		<span titlePath="newAgent.title"></span>
+		<span class="button onlyEdit" titlePath="newAgent.resetStatics" action="resetStatics"></span>
+	</div>
+	<div class="hint" titlePath="newAgent.hintAgentName"></div>
+	<input id="NewAgentName" type="text" class="inputter">
+	<div class="hint" titlePath="newAgent.systemPrompt"></div>
+	<textarea id="AgentSystemPrompt" class="editor scrollable" placeholderName="newAgent.hintSystemPrompt"></textarea>
+	<div class="hint" titlePath="newAgent.runningPrompt"></div>
+	<textarea id="AgentRunningPrompt" class="editor scrollable" placeholderName="newAgent.hintRunningPrompt"></textarea>
+	<div class="hint" titlePath="newAgent.chooseModels"></div>
+	<div id="ModelListContainer" class="listContainer"></div>
+	<div class="confirmPanel">
+		<div class="button submit" titlePath="buttons.submit" action="generateNewAgent"></div>
+		<div class="button cancel" titlePath="buttons.cancel" action="closeNewAgent"></div>
+	</div>
+</div>
+<div class="panel narrow" panel="listAgent" active="false">
+	<div class="title">
+		<span titlePath="listAgent.title"></span>
+		<span class="button" titlePath="newAgent.title" action="createNewAgent"></span>
+	</div>
+	<div class="description" titlePath="listAgent.description"></div>
+	<div id="AgentListContainer" class="listContainer"></div>
+</div>
+<div class="panel full" panel="communicationPanel" active="false">
+	<div class="area conversation">
+		<div id="ConversationArea" class="content_container scrollable"></div>
+		<div id="RequestInputter" class="input_container scrollable" contenteditable="true" placeholderName="callAgent.submit" action="onEnterMessage"></div>
+		<div id="RequestSender" class="input_sender" action="onSendMessage" target="freelyConversation">
+			<span titlePath="buttons.sender"></span>
+		</div>
+		<div class="toolPanel">
+			<span class="button" action="clearConversation"><img src="../images/eraser.svg"></span>
+		</div>
+	</div>
+	<div id="StaticsPanel" class="area statics">
+		<div class="title" titlePath="statics.hintReplyScore"></div>
+		<div id="ReplyScoreBoard" class="leaderboard"></div>
+		<div class="title" titlePath="statics.hintSpeedScore"></div>
+		<div id="SpeedScoreBoard" class="leaderboard"></div>
+	</div>
+</div>
+<div id="ReplyListPanel" class="popWin">
+	<div class="title" titlePath="callAgent.title"></div>
+	<div id="ReplyListInfo" class="info"></div>
+	<div class="replyFrame">
+		<div id="ModelListTab" class="modelList scrollable"></div>
+		<div id="ReplyListTab" class="replyList content_container scrollable"></div>
+		<div id="ScoreTab" class="scorePanel">
+			<span class="like" action="likeReply"><img src="../images/thumbs-up.svg"></span>
+			<span class="liked" action="unlikeReply"><img src="../images/thumbs-up-solid.svg"></span>
+			<span class="dislike" action="dislikeReply"><img src="../images/thumbs-down.svg"></span>
+			<span class="disliked" action="undislikeReply"><img src="../images/thumbs-down-solid.svg"></span>
+		</div>
+	</div>
+	<div class="confirmPanel">
+		<div class="button submit" titlePath="buttons.submit" action="confirmReply"></div>
+		<div class="button cancel" titlePath="buttons.cancel" action="closeReplyListPanel"></div>
+	</div>
+</div>
+</body>
+</html>
